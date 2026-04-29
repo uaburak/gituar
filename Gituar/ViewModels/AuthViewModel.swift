@@ -11,6 +11,8 @@ class AuthViewModel: ObservableObject {
     @Published var isLoading: Bool = false
     @Published var errorMessage: String? = nil
     @Published var isGuestMode: Bool = false
+    @Published var isProfileComplete: Bool = false
+    @Published var isCheckingProfile: Bool = false
 
     private var currentNonce: String?
     private var authStateHandle: AuthStateDidChangeListenerHandle?
@@ -19,7 +21,23 @@ class AuthViewModel: ObservableObject {
         authStateHandle = Auth.auth().addStateDidChangeListener { [weak self] _, user in
             DispatchQueue.main.async {
                 self?.currentUser = user
-                if user != nil { self?.isGuestMode = false }
+                if let user = user {
+                    self?.isGuestMode = false
+                    self?.checkUserProfile(uid: user.uid)
+                } else {
+                    self?.isProfileComplete = false
+                }
+            }
+        }
+    }
+
+    func checkUserProfile(uid: String) {
+        isCheckingProfile = true
+        Task { [weak self] in
+            let profile = try? await UserService.shared.fetchUserProfile(uid: uid)
+            DispatchQueue.main.async {
+                self?.isProfileComplete = (profile != nil)
+                self?.isCheckingProfile = false
             }
         }
     }

@@ -1,7 +1,7 @@
 import Foundation
 import FirebaseFirestore
 
-struct Song: Identifiable, Codable {
+struct Song: Identifiable, Codable, Hashable {
     @DocumentID var id: String?
     var docId: String
     var artist: String
@@ -18,6 +18,9 @@ struct Song: Identifiable, Codable {
     // Sahiplik
     var ownerId: String?
     
+    // Yayınlama Durumu
+    var status: String? // "draft", "pending", "approved", "rejected"
+    
     
     // Popülerlik Puanı Algoritması
     // Formula: (TotalViews * 0.1) + (RecentViews * 0.6) + (RepertoireAdds * 0.3)
@@ -31,6 +34,14 @@ struct Song: Identifiable, Codable {
         let adds = Double(repertoireAdds ?? 0)
         
         return (total * wTotal) + (recent * wRecent) + (adds * wAdds)
+    }
+    
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(docId)
+    }
+    
+    static func == (lhs: Song, rhs: Song) -> Bool {
+        return lhs.docId == rhs.docId
     }
 }
 

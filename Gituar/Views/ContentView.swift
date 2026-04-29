@@ -6,7 +6,17 @@ struct ContentView: View {
 
     var body: some View {
         if authViewModel.isSignedIn {
-            MainView()
+            if authViewModel.isCheckingProfile {
+                VStack {
+                    ProgressView("Profil yükleniyor...")
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Color(.systemBackground))
+            } else if authViewModel.isGuestMode || authViewModel.isProfileComplete {
+                MainView()
+            } else {
+                CompleteProfileView()
+            }
         } else {
             AuthView()
         }

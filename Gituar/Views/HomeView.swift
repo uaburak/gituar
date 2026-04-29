@@ -34,11 +34,11 @@ struct HomeView: View {
                         
                         // Hero Section
                         HStack(spacing: 16) {
-                            NavigationLink(destination: FavoritesView()) {
+                            NavigationLink(destination: MySongsView()) {
                                 MinimalCategoryCard(
                                     title: "Şarkılarım",
-                                    subtitle: "\(viewModel.favoriteSongs.count) Kayıtlı",
-                                    icon: "music.note",
+                                    subtitle: authViewModel.currentUser != nil ? "\(viewModel.userSongs(userId: authViewModel.currentUser!.uid).count) Kayıtlı" : "Giriş Yap",
+                                    icon: "music.quarternote.3",
                                     color: .indigo
                                 )
                             }
@@ -68,8 +68,8 @@ struct HomeView: View {
                                 HomeSmallCard(title: "Popüler", icon: "flame.fill")
                             }
                             
-                            NavigationLink(destination: DiscoverView()) {
-                                HomeSmallCard(title: "Keşfet", icon: "safari.fill")
+                            NavigationLink(destination: FavoritesView()) {
+                                HomeSmallCard(title: "Favoriler", icon: "heart.fill")
                             }
                         }
                         .padding(.horizontal, 20)

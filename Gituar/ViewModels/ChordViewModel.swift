@@ -295,7 +295,7 @@ class ChordViewModel: ObservableObject {
     }
     
     func deleteRepertoire(at offsets: IndexSet) {
-        if let uid = userId {
+        if userId != nil {
             offsets.forEach { index in
                 let repertoire = repertoires[index]
                 deleteRepertoire(repertoire)
@@ -441,6 +441,18 @@ class ChordViewModel: ObservableObject {
         }
     }
 
+    func deleteSong(_ song: Song) {
+        let songId = song.id ?? song.docId
+        db.collection("chords").document(songId).delete() { [weak self] error in
+            if error == nil {
+                DispatchQueue.main.async {
+                    self?.allSongs.removeAll { $0.docId == songId || $0.id == songId }
+                    self?.processDashboardData()
+                }
+            }
+        }
+    }
+    
     // MARK: - User Song Preferences
     
     private func getPrefKey(for songId: String) -> String {
@@ -461,8 +473,8 @@ class ChordViewModel: ObservableObject {
         // Fetch from Firebase
         if let uid = userId {
             db.collection("users").document(uid).collection("preferences").document(songId).getDocument { [weak self] snapshot, _ in
-                if let data = try? snapshot?.data(as: UserSongPreference.self) {
-                    DispatchQueue.main.async {
+                DispatchQueue.main.async {
+                    if let data = try? snapshot?.data(as: UserSongPreference.self) {
                         self?.songPreferences[songId] = data
                         // Update local cache
                         let currentPrefKey = self?.getPrefKey(for: songId) ?? "pref_guest_\(songId)"

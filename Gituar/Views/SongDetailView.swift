@@ -468,13 +468,7 @@ struct SongDetailView: View {
 
                 // Copyright Disclaimer
                 NavigationLink(destination: LegalContactView()) {
-                    Text("Bu içerik müzik eğitimi amacı ile yayımlanmış olup hakları kendi sahiplerine aittir. Telif ihlali içerdiğini düşünüyorsanız bizimle ")
-                        .foregroundColor(.secondary)
-                    + Text("iletişime")
-                        .foregroundColor(.blue)
-                        .underline()
-                    + Text(" geçebilirsiniz.")
-                        .foregroundColor(.secondary)
+                    Text("\(Text("Bu içerik müzik eğitimi amacı ile yayımlanmış olup hakları kendi sahiplerine aittir. Telif ihlali içerdiğini düşünüyorsanız bizimle ").foregroundColor(.secondary))\(Text("iletişime").foregroundColor(.blue).underline())\(Text(" geçebilirsiniz.").foregroundColor(.secondary))")
                 }
                 .font(.system(size: 11))
                 .buttonStyle(.plain)

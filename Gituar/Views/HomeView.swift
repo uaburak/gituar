@@ -74,7 +74,7 @@ struct HomeView: View {
                                 HomeSmallCard(title: "Popüler", icon: "star.fill")
                             }
                             
-                            NavigationLink(destination: RepertoireListView()) {
+                            NavigationLink(destination: DiscoverView()) {
                                 HomeSmallCard(title: "Keşfet", icon: "safari.fill")
                             }
                         }
@@ -273,6 +273,15 @@ struct HomeSmallCard: View {
 
 struct FavoritesView: View {
     @EnvironmentObject var viewModel: ChordViewModel
+    @State private var searchText: String = ""
+    
+    var filtered: [Song] {
+        if searchText.isEmpty { return viewModel.favoriteSongs }
+        return viewModel.favoriteSongs.filter {
+            $0.songName.turkeyNormalized.contains(searchText.turkeyNormalized) ||
+            $0.artist.turkeyNormalized.contains(searchText.turkeyNormalized)
+        }
+    }
     
     var body: some View {
         Group {
@@ -290,19 +299,39 @@ struct FavoritesView: View {
                         .padding(.horizontal)
                 }
             } else {
-                List(viewModel.favoriteSongs, id: \.docId) { song in
+                List(filtered, id: \.docId) { song in
                     NavigationLink(destination: SongDetailView(song: song)) {
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text(song.songName)
-                                .font(.system(size: 15, weight: .medium))
-                            Text(song.artist)
-                                .font(.system(size: 13))
+                        HStack(spacing: 14) {
+                            ZStack {
+                                RoundedRectangle(cornerRadius: 8)
+                                    .fill(Color(.secondarySystemBackground))
+                                    .frame(width: 42, height: 42)
+                                Text(song.songName.prefix(1).uppercased())
+                                    .font(.system(size: 17, weight: .bold, design: .rounded))
+                                    .foregroundColor(.primary)
+                            }
+                            
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text(song.songName)
+                                    .font(.system(size: 15, weight: .medium))
+                                    .lineLimit(1)
+                                Text(song.artist)
+                                    .font(.system(size: 13))
+                                    .foregroundColor(.secondary)
+                                    .lineLimit(1)
+                            }
+                            
+                            Spacer()
+                            
+                            Text(song.originalKey)
+                                .font(.system(size: 12, weight: .medium))
                                 .foregroundColor(.secondary)
                         }
                         .padding(.vertical, 4)
                     }
                 }
                 .listStyle(.plain)
+                .searchable(text: $searchText, prompt: "Favorilerimde ara...")
             }
         }
         .navigationTitle("Favorilerim")
@@ -311,30 +340,98 @@ struct FavoritesView: View {
 
 struct AllArtistsView: View {
     @EnvironmentObject var viewModel: ChordViewModel
+    @State private var searchText: String = ""
+    
+    var filteredArtists: [String] {
+        if searchText.isEmpty { return viewModel.artists }
+        return viewModel.artists.filter { $0.turkeyNormalized.contains(searchText.turkeyNormalized) }
+    }
     
     var body: some View {
-        List(viewModel.artists, id: \.self) { artist in
+        List(filteredArtists, id: \.self) { artist in
             NavigationLink(destination: ArtistDetailView(artist: artist)) {
-                Text(artist)
+                HStack(spacing: 14) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(Color(.secondarySystemBackground))
+                            .frame(width: 42, height: 42)
+                        Text(artist.prefix(1).uppercased())
+                            .font(.system(size: 17, weight: .bold, design: .rounded))
+                            .foregroundColor(.primary)
+                    }
+                    
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(artist)
+                            .font(.system(size: 15, weight: .medium))
+                            .lineLimit(1)
+                        Text("\(viewModel.songsForArtist(artist).count) Şarkı")
+                            .font(.system(size: 13))
+                            .foregroundColor(.secondary)
+                            .lineLimit(1)
+                    }
+                    
+                    Spacer()
+                    
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundColor(Color(.systemGray4))
+                }
+                .padding(.vertical, 4)
             }
         }
+        .listStyle(.plain)
         .navigationTitle("Sanatçılar")
+        .searchable(text: $searchText, prompt: "Sanatçı ara...")
     }
 }
 
 struct PopularChordsView: View {
     @EnvironmentObject var viewModel: ChordViewModel
+    @State private var searchText: String = ""
+    
+    var filtered: [Song] {
+        if searchText.isEmpty { return viewModel.popularChords }
+        return viewModel.popularChords.filter {
+            $0.songName.turkeyNormalized.contains(searchText.turkeyNormalized) ||
+            $0.artist.turkeyNormalized.contains(searchText.turkeyNormalized)
+        }
+    }
     
     var body: some View {
-        List(viewModel.popularChords, id: \.docId) { song in
+        List(filtered, id: \.docId) { song in
             NavigationLink(destination: SongDetailView(song: song)) {
-                VStack(alignment: .leading) {
-                    Text(song.songName).font(.headline)
-                    Text(song.artist).font(.subheadline).foregroundColor(.secondary)
+                HStack(spacing: 14) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(Color(.secondarySystemBackground))
+                            .frame(width: 42, height: 42)
+                        Text(song.songName.prefix(1).uppercased())
+                            .font(.system(size: 17, weight: .bold, design: .rounded))
+                            .foregroundColor(.primary)
+                    }
+                    
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(song.songName)
+                            .font(.system(size: 15, weight: .medium))
+                            .lineLimit(1)
+                        Text(song.artist)
+                            .font(.system(size: 13))
+                            .foregroundColor(.secondary)
+                            .lineLimit(1)
+                    }
+                    
+                    Spacer()
+                    
+                    Text(song.originalKey)
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(.secondary)
                 }
+                .padding(.vertical, 4)
             }
         }
+        .listStyle(.plain)
         .navigationTitle("Popüler")
+        .searchable(text: $searchText, prompt: "Popülerlerde ara...")
     }
 }
 

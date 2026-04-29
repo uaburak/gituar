@@ -71,7 +71,24 @@ struct SongDetailView: View {
 
                     // Yazı Boyutu
                     HStack {
-                        Text("Yazı boyutu").font(.system(size: 13)).foregroundColor(.secondary)
+                        HStack(spacing: 8) {
+                            Button {
+                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                viewModel.toggleFavorite(song: song)
+                            } label: {
+                                Image(systemName: viewModel.isFavorite(song: song) ? "heart.fill" : "heart")
+                                    .font(.system(size: 12, weight: .semibold))
+                                    .foregroundColor(viewModel.isFavorite(song: song) ? .red : .primary)
+                                    .frame(width: 30, height: 30)
+                                    .background(.regularMaterial)
+                                    .clipShape(Circle())
+                                    .shadow(color: Color.black.opacity(0.1), radius: 3, x: 0, y: 1)
+                            }
+                            
+                            Text("Yazı boyutu")
+                                .font(.system(size: 13))
+                                .foregroundColor(.secondary)
+                        }
                         Spacer()
                         HStack(spacing: 16) {
                             Button { fontSize = max(10, fontSize - 1) } label: {
@@ -89,31 +106,126 @@ struct SongDetailView: View {
                 }
 
                 // Song Content
-                VStack(alignment: .leading, spacing: 4) {
-                    ForEach(Array(songLines.enumerated()), id: \.offset) { index, line in
-                        Group {
-                            if isChordLine(line) {
-                                Text(transposeLine(line, by: transposeOffset))
-                                    .font(.system(size: fontSize, weight: .semibold))
-                                    .tracking(-0.2)
-                                    .foregroundColor(.blue)
-                                    .lineLimit(1)
-                                    .fixedSize(horizontal: true, vertical: false)
-                            } else {
-                                Text(line)
-                                    .font(.system(size: fontSize))
-                                    .foregroundColor(.primary)
+                VStack(alignment: .leading, spacing: 0) {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            ForEach(Array(songLines.enumerated()), id: \.offset) { index, line in
+                                Group {
+                                    if isChordLine(line) {
+                                        Text(transposeLine(line, by: transposeOffset))
+                                            .font(.system(size: fontSize, weight: .semibold))
+                                            .tracking(-0.2)
+                                            .foregroundColor(.blue)
+                                            .lineLimit(1)
+                                            .fixedSize(horizontal: true, vertical: false)
+                                    } else {
+                                        Text(line)
+                                            .font(.system(size: fontSize))
+                                            .foregroundColor(.primary)
+                                            .fixedSize(horizontal: true, vertical: false)
+                                    }
+                                }
                             }
                         }
+                        .padding(.trailing, 20) // Give some space at the end of long lines
                     }
+                    
                     // Invisible finder that hands UIScrollView to autoScroller
                     ScrollViewFinder { sv in autoScroller.scrollView = sv }
                         .frame(width: 0, height: 0)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                
+
+                if !isFocusMode {
+                    VStack(alignment: .leading, spacing: 20) {
+                        Divider().padding(.top, 40)
+
+                        // Copyright Disclaimer
+                        Text("Bu içerik müzik eğitimi amacı ile yayımlanmış olup hakları kendi sahiplerine aittir. Telif ihlali içerdiğini düşünüyorsanız bizimle iletişime geçebilirsiniz.")
+                            .font(.system(size: 11))
+                            .foregroundColor(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+
+                        Divider()
+
+                        // Artist Section (Styled like AllArtistsView list item)
+                        NavigationLink(destination: ArtistDetailView(artist: song.artist)) {
+                            HStack(spacing: 14) {
+                                ZStack {
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .fill(Color(.secondarySystemBackground))
+                                        .frame(width: 42, height: 42)
+                                    Text(song.artist.prefix(1).uppercased())
+                                        .font(.system(size: 17, weight: .bold, design: .rounded))
+                                        .foregroundColor(.primary)
+                                }
+
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text(song.artist)
+                                        .font(.system(size: 15, weight: .medium))
+                                        .foregroundColor(.primary)
+                                        .lineLimit(1)
+                                    Text("\(viewModel.songsForArtist(song.artist).count) Şarkı")
+                                        .font(.system(size: 13))
+                                        .foregroundColor(.secondary)
+                                        .lineLimit(1)
+                                }
+
+                                Spacer()
+
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 12, weight: .bold))
+                                    .foregroundColor(Color(.systemGray4))
+                            }
+                            .padding(.vertical, 4)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(PlainButtonStyle())
+
+                        // Other Songs List
+                        let allArtistSongs = viewModel.songsForArtist(song.artist).filter { ($0.id ?? $0.docId) != (song.id ?? song.docId) }
+                        let artistSongs: [Song] = {
+                            if allArtistSongs.contains(where: { $0.popularityScore > 0 }) {
+                                return Array(allArtistSongs.sorted { $0.popularityScore > $1.popularityScore }.prefix(5))
+                            } else {
+                                return Array(allArtistSongs.shuffled().prefix(5))
+                            }
+                        }()
+                        
+                        if !artistSongs.isEmpty {
+                            VStack(alignment: .leading, spacing: 0) {
+                                ForEach(artistSongs, id: \.docId) { otherSong in
+                                    Divider()
+                                    
+                                    NavigationLink(destination: SongDetailView(song: otherSong)) {
+                                        HStack(spacing: 0) {
+                                            VStack(alignment: .leading, spacing: 3) {
+                                                Text(otherSong.songName)
+                                                    .font(.system(size: 15, weight: .medium))
+                                                    .foregroundColor(.primary)
+                                                    .lineLimit(1)
+                                                Text(otherSong.originalKey)
+                                                    .font(.system(size: 13))
+                                                    .foregroundColor(.secondary)
+                                                    .lineLimit(1)
+                                            }
+                                            Spacer()
+                                            Image(systemName: "chevron.right")
+                                                .font(.system(size: 12, weight: .bold))
+                                                .foregroundColor(Color(.systemGray4))
+                                        }
+                                        .padding(.vertical, 12)
+                                        .contentShape(Rectangle())
+                                    }
+                                    .buttonStyle(PlainButtonStyle())
+                                }
+                            }
+                        }
+                    }
+                }
             }
             .padding(.horizontal, 20)
+            .id(song.docId)
             // Add extra bottom padding in focus mode so the auto scroller can scroll past the text slightly
             .padding(.bottom, isFocusMode ? 100 : 20)
             .padding(.top, isFocusMode ? 200 : 20)
@@ -129,16 +241,6 @@ struct SongDetailView: View {
                     }
                 }
             }
-            ToolbarItem(placement: .primaryAction) {
-                Button {
-                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                    viewModel.toggleFavorite(song: song)
-                } label: {
-                    Image(systemName: viewModel.isFavorite(song: song) ? "heart.fill" : "heart")
-                        .foregroundColor(viewModel.isFavorite(song: song) ? .red : .primary)
-                }
-            }
-            ToolbarSpacer(.fixed, placement: .primaryAction)
             ToolbarItem(placement: .primaryAction) {
                 Button { showRepertoirePicker = true } label: {
                     Image(systemName: "bookmark").foregroundColor(.primary)
@@ -199,7 +301,9 @@ struct SongDetailView: View {
             }
         }
         .onAppear {
-            selectedKeyRoot = getRootNote(from: song.originalKey)
+            if selectedKeyRoot.isEmpty {
+                selectedKeyRoot = getRootNote(from: song.originalKey)
+            }
             viewModel.addToRecentlyPlayed(song)
             viewModel.incrementViewCount(for: song)
             autoScroller.pixelsPerSecond = CGFloat(autoScrollSpeed)

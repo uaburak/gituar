@@ -7,4 +7,6 @@ struct Repertoire: Identifiable, Codable {
     var songIds: [String]
     var ownerId: String // For future login
     var createdAt: Date
+    var isPublic: Bool?
+    var sourceId: String? // Orijinal repertuarın ID'si
 }

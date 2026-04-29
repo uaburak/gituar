@@ -1,5 +1,6 @@
 import Foundation
 import FirebaseFirestore
+import FirebaseAuth
 import Combine
 import SwiftUI
 
@@ -16,17 +17,26 @@ class ChordViewModel: ObservableObject {
     @Published var newArrivals: [Song] = []
     @Published var favoriteSongs: [Song] = []
     @Published var artists: [String] = [] // Sanatçı listesi
-    
-    private var allSongs: [Song] = []
+    @Published var allSongs: [Song] = [] // Tüm şarkılar (Cache)
+    @Published var publicRepertoires: [Repertoire] = [] // Paylaşılan repertuarlar
     private var db = Firestore.firestore()
     private var cancellables = Set<AnyCancellable>()
+    private var authListener: AuthStateDidChangeListenerHandle?
+    
     private let recentPlayedKey = "recentlyPlayedIds"
     private let repertoiresKey = "user_repertoires"
     private let favoritesKey = "favoriteSongIds"
     
+    var currentUserId: String? {
+        Auth.auth().currentUser?.uid
+    }
+    
+    private var userId: String? {
+        Auth.auth().currentUser?.uid
+    }
+    
     init() {
-        loadRepertoires()
-        loadFavorites()
+        setupAuthListener()
         fetchAllSongs()
         
         $searchText
@@ -36,9 +46,32 @@ class ChordViewModel: ObservableObject {
                 self?.filterSongs(query: text)
             }
             .store(in: &cancellables)
+            
+        fetchPublicRepertoires()
+    }
+    
+    private func setupAuthListener() {
+        authListener = Auth.auth().addStateDidChangeListener { [weak self] _, user in
+            DispatchQueue.main.async {
+                self?.loadUserData(userId: user?.uid)
+            }
+        }
+    }
+    
+    private func loadUserData(userId: String?) {
+        if let uid = userId {
+            fetchFavoritesFromFirestore(userId: uid)
+            fetchRepertoiresFromFirestore(userId: uid)
+        } else {
+            // Guest mode or Logged out
+            loadFavorites() 
+            loadRepertoires()
+        }
     }
     
     private func fetchAllSongs() {
+        guard allSongs.isEmpty && !isLoading else { return }
+        
         isLoading = true
         db.collection("chords").getDocuments { [weak self] snapshot, error in
             DispatchQueue.main.async {
@@ -46,8 +79,10 @@ class ChordViewModel: ObservableObject {
                 self.isLoading = false
                 
                 if let docs = snapshot?.documents {
-                    self.allSongs = docs.compactMap { try? $0.data(as: Song.self) }
+                    let fetchedSongs = docs.compactMap { try? $0.data(as: Song.self) }
+                    self.allSongs = fetchedSongs
                     self.processDashboardData()
+                    self.loadUserData(userId: self.userId)
                 }
             }
         }
@@ -102,28 +137,49 @@ class ChordViewModel: ObservableObject {
     private func loadFavorites() {
         let ids = UserDefaults.standard.stringArray(forKey: favoritesKey) ?? []
         self.favoriteSongs = ids.compactMap { id in
-            allSongs.first { ($0.id ?? $0.docId) == id }
+            self.allSongs.first { ($0.id ?? $0.docId) == id }
         }
     }
-    
+
+    private func fetchFavoritesFromFirestore(userId: String) {
+        db.collection("users").document(userId).collection("favorites").addSnapshotListener { [weak self] snapshot, _ in
+            guard let self = self, let docs = snapshot?.documents else { return }
+            let ids = docs.map { $0.documentID }
+            DispatchQueue.main.async {
+                self.favoriteSongs = ids.compactMap { id in
+                    self.allSongs.first { ($0.id ?? $0.docId) == id }
+                }
+            }
+        }
+    }
+
     func toggleFavorite(song: Song) {
-        var ids = UserDefaults.standard.stringArray(forKey: favoritesKey) ?? []
         let songId = song.id ?? song.docId
         
-        if ids.contains(songId) {
-            ids.removeAll { $0 == songId }
+        if let uid = userId {
+            let docRef = db.collection("users").document(uid).collection("favorites").document(songId)
+            
+            if isFavorite(song: song) {
+                docRef.delete()
+            } else {
+                docRef.setData(["addedAt": FieldValue.serverTimestamp()])
+            }
         } else {
-            ids.insert(songId, at: 0)
+            // Local fallback for guest
+            var ids = UserDefaults.standard.stringArray(forKey: favoritesKey) ?? []
+            if ids.contains(songId) {
+                ids.removeAll { $0 == songId }
+            } else {
+                ids.insert(songId, at: 0)
+            }
+            UserDefaults.standard.set(ids, forKey: favoritesKey)
+            loadFavorites()
         }
-        
-        UserDefaults.standard.set(ids, forKey: favoritesKey)
-        loadFavorites()
     }
     
     func isFavorite(song: Song) -> Bool {
-        let ids = UserDefaults.standard.stringArray(forKey: favoritesKey) ?? []
         let songId = song.id ?? song.docId
-        return ids.contains(songId)
+        return favoriteSongs.contains(where: { ($0.id ?? $0.docId) == songId })
     }
     
     func songsForArtist(_ artist: String) -> [Song] {
@@ -177,6 +233,15 @@ class ChordViewModel: ObservableObject {
 
     // MARK: - Repertoire Management
     
+    private func fetchRepertoiresFromFirestore(userId: String) {
+        db.collection("users").document(userId).collection("repertoires").addSnapshotListener { [weak self] snapshot, _ in
+            guard let self = self, let docs = snapshot?.documents else { return }
+            DispatchQueue.main.async {
+                self.repertoires = docs.compactMap { try? $0.data(as: Repertoire.self) }
+            }
+        }
+    }
+
     private func loadRepertoires() {
         if let data = UserDefaults.standard.data(forKey: repertoiresKey),
            let saved = try? JSONDecoder().decode([Repertoire].self, from: data) {
@@ -185,9 +250,23 @@ class ChordViewModel: ObservableObject {
     }
     
     private func saveRepertoires() {
-        if let data = try? JSONEncoder().encode(repertoires) {
-            UserDefaults.standard.set(data, forKey: repertoiresKey)
+        if userId == nil {
+            if let data = try? JSONEncoder().encode(repertoires) {
+                UserDefaults.standard.set(data, forKey: repertoiresKey)
+            }
         }
+    }
+
+    func fetchPublicRepertoires() {
+        db.collectionGroup("repertoires")
+            .whereField("isPublic", isEqualTo: true)
+            .addSnapshotListener { [weak self] snapshot, error in
+                guard let self = self, let docs = snapshot?.documents else { return }
+                DispatchQueue.main.async {
+                    self.publicRepertoires = docs.compactMap { try? $0.data(as: Repertoire.self) }
+                        .sorted { ($0.createdAt ) > ($1.createdAt ) }
+                }
+            }
     }
 
     func addRepertoire(name: String) {
@@ -195,16 +274,59 @@ class ChordViewModel: ObservableObject {
             id: UUID().uuidString,
             name: name,
             songIds: [],
-            ownerId: "local",
+            ownerId: userId ?? "local",
             createdAt: Date()
         )
-        repertoires.append(newRepertoire)
-        saveRepertoires()
+        
+        if let uid = userId {
+            do {
+                let docRef = db.collection("users").document(uid).collection("repertoires").document(newRepertoire.id ?? UUID().uuidString)
+                try docRef.setData(from: newRepertoire)
+            } catch {
+                print("Error adding repertoire to Firestore: \(error)")
+            }
+        } else {
+            repertoires.append(newRepertoire)
+            saveRepertoires()
+        }
     }
     
     func deleteRepertoire(at offsets: IndexSet) {
-        repertoires.remove(atOffsets: offsets)
-        saveRepertoires()
+        if let uid = userId {
+            offsets.forEach { index in
+                let repertoire = repertoires[index]
+                deleteRepertoire(repertoire)
+            }
+        } else {
+            repertoires.remove(atOffsets: offsets)
+            saveRepertoires()
+        }
+    }
+
+    func deleteRepertoire(_ repertoire: Repertoire) {
+        if let uid = userId {
+            if let id = repertoire.id {
+                db.collection("users").document(uid).collection("repertoires").document(id).delete()
+            }
+        } else {
+            if let index = repertoires.firstIndex(where: { $0.id == repertoire.id }) {
+                repertoires.remove(at: index)
+                saveRepertoires()
+            }
+        }
+    }
+
+    func renameRepertoire(_ repertoire: Repertoire, newName: String) {
+        guard repertoire.ownerId == (userId ?? "local") else { return }
+        if let uid = userId, let repId = repertoire.id {
+            db.collection("users").document(uid).collection("repertoires").document(repId).updateData([
+                "name": newName
+            ])
+        } else {
+            guard let index = repertoires.firstIndex(where: { $0.id == repertoire.id }) else { return }
+            repertoires[index].name = newName
+            saveRepertoires()
+        }
     }
 
     func songs(for repertoire: Repertoire) -> [Song] {
@@ -214,12 +336,83 @@ class ChordViewModel: ObservableObject {
     }
 
     func addSong(_ song: Song, to repertoire: Repertoire) {
-        guard let index = repertoires.firstIndex(where: { $0.id == repertoire.id }) else { return }
         let songId = song.id ?? song.docId
-        if !repertoires[index].songIds.contains(songId) {
-            repertoires[index].songIds.append(songId)
+        
+        if let uid = userId, let repId = repertoire.id {
+            var updatedSongIds = repertoire.songIds
+            if !updatedSongIds.contains(songId) {
+                updatedSongIds.append(songId)
+                db.collection("users").document(uid).collection("repertoires").document(repId).updateData([
+                    "songIds": updatedSongIds
+                ])
+            }
+        } else {
+            guard let index = repertoires.firstIndex(where: { $0.id == repertoire.id }) else { return }
+            if !repertoires[index].songIds.contains(songId) {
+                repertoires[index].songIds.append(songId)
+                saveRepertoires()
+            }
+        }
+    }
+
+    func removeSong(_ song: Song, from repertoire: Repertoire) {
+        guard repertoire.ownerId == (userId ?? "local") else { return }
+        let songId = song.id ?? song.docId
+        
+        if let uid = userId, let repId = repertoire.id {
+            var updatedSongIds = repertoire.songIds
+            updatedSongIds.removeAll { $0 == songId }
+            db.collection("users").document(uid).collection("repertoires").document(repId).updateData([
+                "songIds": updatedSongIds
+            ])
+        } else {
+            guard let index = repertoires.firstIndex(where: { $0.id == repertoire.id }) else { return }
+            repertoires[index].songIds.removeAll { $0 == songId }
             saveRepertoires()
         }
+    }
+
+    func setRepertoirePublic(_ repertoire: Repertoire, isPublic: Bool) {
+        guard repertoire.ownerId == (userId ?? "local") else { return }
+        if let uid = userId, let repId = repertoire.id {
+            db.collection("users").document(uid).collection("repertoires").document(repId).updateData([
+                "isPublic": isPublic
+            ])
+        } else {
+            guard let index = repertoires.firstIndex(where: { $0.id == repertoire.id }) else { return }
+            repertoires[index].isPublic = isPublic
+            saveRepertoires()
+        }
+    }
+
+    func duplicateRepertoire(_ repertoire: Repertoire) {
+        guard !isRepertoireCopied(repertoire) else { return }
+        let newId = UUID().uuidString
+        let copy = Repertoire(
+            id: newId,
+            name: repertoire.name,
+            songIds: repertoire.songIds,
+            ownerId: userId ?? "local",
+            createdAt: Date(),
+            isPublic: false,
+            sourceId: repertoire.id
+        )
+        
+        if let uid = userId {
+            do {
+                try db.collection("users").document(uid).collection("repertoires").document(newId).setData(from: copy)
+            } catch {
+                print("Error duplicating repertoire: \(error)")
+            }
+        } else {
+            repertoires.append(copy)
+            saveRepertoires()
+        }
+    }
+
+    func isRepertoireCopied(_ repertoire: Repertoire) -> Bool {
+        let targetId = repertoire.id ?? ""
+        return repertoires.contains { $0.sourceId == targetId }
     }
 
     // MARK: - User Songs Management

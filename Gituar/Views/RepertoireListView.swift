@@ -4,6 +4,9 @@ struct RepertoireListView: View {
     @EnvironmentObject var viewModel: ChordViewModel
     @State private var showingNew = false
     @State private var newName = ""
+    @State private var showingRename = false
+    @State private var repertoireToRename: Repertoire?
+    @State private var renamedName = ""
 
     var body: some View {
         List {
@@ -18,8 +21,23 @@ struct RepertoireListView: View {
                     }
                     .padding(.vertical, 4)
                 }
+                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                    Button(role: .destructive) {
+                        viewModel.deleteRepertoire(repertoire)
+                    } label: {
+                        Label("Sil", systemImage: "trash")
+                    }
+                    
+                    Button {
+                        repertoireToRename = repertoire
+                        renamedName = repertoire.name
+                        showingRename = true
+                    } label: {
+                        Label("Düzenle", systemImage: "pencil")
+                    }
+                    .tint(.orange)
+                }
             }
-            .onDelete(perform: viewModel.deleteRepertoire)
         }
         .listStyle(.plain)
         .navigationTitle("Repertuar")
@@ -31,9 +49,6 @@ struct RepertoireListView: View {
                     Image(systemName: "plus")
                 }
             }
-            ToolbarItem(placement: .navigationBarLeading) {
-                EditButton()
-            }
         }
         .alert("Yeni Repertuar", isPresented: $showingNew) {
             TextField("İsim", text: $newName)
@@ -42,6 +57,20 @@ struct RepertoireListView: View {
                 if !newName.trimmingCharacters(in: .whitespaces).isEmpty {
                     viewModel.addRepertoire(name: newName)
                     newName = ""
+                }
+            }
+        }
+        .alert("Repertuarı Düzenle", isPresented: $showingRename) {
+            TextField("İsim", text: $renamedName)
+            Button("İptal", role: .cancel) { 
+                repertoireToRename = nil
+                renamedName = ""
+            }
+            Button("Kaydet") {
+                if let repertoire = repertoireToRename, !renamedName.trimmingCharacters(in: .whitespaces).isEmpty {
+                    viewModel.renameRepertoire(repertoire, newName: renamedName)
+                    repertoireToRename = nil
+                    renamedName = ""
                 }
             }
         }
@@ -63,6 +92,11 @@ struct RepertoireListView: View {
 struct RepertoireDetailView: View {
     let repertoire: Repertoire
     @EnvironmentObject var viewModel: ChordViewModel
+    @State private var showingSavedAlert = false
+
+    var isOwner: Bool {
+        repertoire.ownerId == (viewModel.currentUserId ?? "local")
+    }
 
     var body: some View {
         let songs = viewModel.songs(for: repertoire)
@@ -84,10 +118,63 @@ struct RepertoireDetailView: View {
                         }
                         .padding(.vertical, 4)
                     }
+                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                        if isOwner {
+                            Button(role: .destructive) {
+                                viewModel.removeSong(song, from: repertoire)
+                            } label: {
+                                Label("Sil", systemImage: "trash")
+                            }
+                        }
+                    }
                 }
                 .listStyle(.plain)
             }
         }
         .navigationTitle(repertoire.name)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                if isOwner {
+                    Menu {
+                        Button {
+                            viewModel.setRepertoirePublic(repertoire, isPublic: true)
+                        } label: {
+                            HStack {
+                                Text("Herkesle Paylaş")
+                                if repertoire.isPublic == true {
+                                    Image(systemName: "checkmark")
+                                }
+                            }
+                        }
+                        
+                        Button {
+                            viewModel.setRepertoirePublic(repertoire, isPublic: false)
+                        } label: {
+                            HStack {
+                                Text("Gizli")
+                                if repertoire.isPublic == false || repertoire.isPublic == nil {
+                                    Image(systemName: "checkmark")
+                                }
+                            }
+                        }
+                    } label: {
+                        Image(systemName: "square.and.arrow.up")
+                    }
+                } else {
+                    Button {
+                        viewModel.duplicateRepertoire(repertoire)
+                        showingSavedAlert = true
+                    } label: {
+                        Image(systemName: viewModel.isRepertoireCopied(repertoire) ? "checkmark.circle.fill" : "plus.square.on.square")
+                    }
+                    .disabled(viewModel.isRepertoireCopied(repertoire))
+                }
+            }
+        }
+        .alert("Kaydedildi", isPresented: $showingSavedAlert) {
+            Button("Tamam", role: .cancel) { }
+        } message: {
+            Text("Repertuar listenize başarıyla eklendi.")
+        }
     }
 }

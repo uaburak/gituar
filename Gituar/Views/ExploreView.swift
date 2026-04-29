@@ -5,9 +5,8 @@ struct ExploreView: View {
     @State private var searchText: String = ""
 
     var filtered: [Song] {
-        let base = viewModel.popularChords + viewModel.newArrivals
-        guard !searchText.isEmpty else { return base }
-        return base.filter {
+        guard !searchText.isEmpty else { return viewModel.allSongs }
+        return viewModel.allSongs.filter {
             $0.songName.turkeyNormalized.contains(searchText.turkeyNormalized) ||
             $0.artist.turkeyNormalized.contains(searchText.turkeyNormalized)
         }
@@ -47,7 +46,7 @@ struct ExploreView: View {
             }
         }
         .listStyle(.plain)
-        .navigationTitle("Keşfet")
+        .navigationTitle("Tüm Şarkılar")
         .searchable(text: $searchText, prompt: "Ara")
     }
 }

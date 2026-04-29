@@ -28,8 +28,10 @@ struct SongDetailView: View {
     }
 
     var body: some View {
-        ScrollView {
-            ZStack {
+        GeometryReader { geo in
+            ZStack(alignment: .top) {
+                ScrollView {
+                    ZStack {
                 VStack(alignment: .leading, spacing: 24) {
                     if !isFocusMode {
                         // Ton Seçici
@@ -233,15 +235,19 @@ struct SongDetailView: View {
                 }
                 .background(Color(.systemBackground))
                 .padding(.horizontal, 20)
-                .id(currentSong.docId)
-                .transition(.asymmetric(
-                    insertion: .move(edge: slideDirection == .trailing ? .trailing : .leading),
-                    removal: .move(edge: slideDirection == .trailing ? .leading : .trailing)
-                ))
             }
             // Add extra bottom padding in focus mode so the auto scroller can scroll past the text slightly
             .padding(.bottom, isFocusMode ? 100 : 20)
             .padding(.top, isFocusMode ? 200 : 20)
+        }
+        .frame(width: geo.size.width, height: geo.size.height)
+        .id(currentSong.docId)
+        .transition(.asymmetric(
+            insertion: .move(edge: slideDirection == .trailing ? .trailing : .leading),
+            removal: .move(edge: slideDirection == .trailing ? .leading : .trailing)
+        ))
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .background(Color(.systemBackground))
         .navigationBarTitleDisplayMode(.inline)
@@ -356,15 +362,20 @@ struct SongDetailView: View {
                 isFinished = true
             }
         }
-        .onChange(of: currentSong.docId) { _ in
+        .onChange(of: currentSong.docId) { _, _ in
             selectedKeyRoot = getRootNote(from: currentSong.originalKey)
             viewModel.addToRecentlyPlayed(currentSong)
             viewModel.incrementViewCount(for: currentSong)
+            
+            // Giden ekranın scroll pozisyonunun sıfırlanmasını engellemek için
+            // eski ScrollView ile olan bağı koparıyoruz.
+            autoScroller.scrollView = nil
             autoScroller.reset()
+            
             isPaused = false
             isFinished = false
         }
-        .onChange(of: autoScrollSpeed) { newValue in
+        .onChange(of: autoScrollSpeed) { _, newValue in
             autoScroller.pixelsPerSecond = CGFloat(newValue)
         }
         .onDisappear { autoScroller.reset() }

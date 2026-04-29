@@ -145,93 +145,7 @@ struct SongDetailView: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-                if !isFocusMode {
-                    VStack(alignment: .leading, spacing: 20) {
-                        Divider().padding(.top, 40)
-
-                        // Copyright Disclaimer
-                        Text("Bu içerik müzik eğitimi amacı ile yayımlanmış olup hakları kendi sahiplerine aittir. Telif ihlali içerdiğini düşünüyorsanız bizimle iletişime geçebilirsiniz.")
-                            .font(.system(size: 11))
-                            .foregroundColor(.secondary)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-
-                        Divider()
-
-                        // Artist Section (Styled like AllArtistsView list item)
-                        NavigationLink(destination: ArtistDetailView(artist: currentSong.artist)) {
-                            HStack(spacing: 14) {
-                                ZStack {
-                                    RoundedRectangle(cornerRadius: 8)
-                                        .fill(Color(.secondarySystemBackground))
-                                        .frame(width: 42, height: 42)
-                                    Text(currentSong.artist.prefix(1).uppercased())
-                                        .font(.system(size: 17, weight: .bold, design: .rounded))
-                                        .foregroundColor(.primary)
-                                }
-
-                                VStack(alignment: .leading, spacing: 3) {
-                                    Text(currentSong.artist)
-                                        .font(.system(size: 15, weight: .medium))
-                                        .foregroundColor(.primary)
-                                        .lineLimit(1)
-                                    Text("\(viewModel.songsForArtist(currentSong.artist).count) Şarkı")
-                                        .font(.system(size: 13))
-                                        .foregroundColor(.secondary)
-                                        .lineLimit(1)
-                                }
-
-                                Spacer()
-
-                                Image(systemName: "chevron.right")
-                                    .font(.system(size: 12, weight: .bold))
-                                    .foregroundColor(Color(.systemGray4))
-                            }
-                            .padding(.vertical, 4)
-                            .contentShape(Rectangle())
-                        }
-                        .buttonStyle(PlainButtonStyle())
-
-                        // Other Songs List
-                        let allArtistSongs = viewModel.songsForArtist(currentSong.artist).filter { ($0.id ?? $0.docId) != (currentSong.id ?? currentSong.docId) }
-                        let artistSongs: [Song] = {
-                            if allArtistSongs.contains(where: { $0.popularityScore > 0 }) {
-                                return Array(allArtistSongs.sorted { $0.popularityScore > $1.popularityScore }.prefix(5))
-                            } else {
-                                return Array(allArtistSongs.shuffled().prefix(5))
-                            }
-                        }()
-                        
-                        if !artistSongs.isEmpty {
-                            VStack(alignment: .leading, spacing: 0) {
-                                ForEach(artistSongs, id: \.docId) { otherSong in
-                                    Divider()
-                                    
-                                    NavigationLink(destination: SongDetailView(song: otherSong)) {
-                                        HStack(spacing: 0) {
-                                            VStack(alignment: .leading, spacing: 3) {
-                                                Text(otherSong.songName)
-                                                    .font(.system(size: 15, weight: .medium))
-                                                    .foregroundColor(.primary)
-                                                    .lineLimit(1)
-                                                Text(otherSong.originalKey)
-                                                    .font(.system(size: 13))
-                                                    .foregroundColor(.secondary)
-                                                    .lineLimit(1)
-                                            }
-                                            Spacer()
-                                            Image(systemName: "chevron.right")
-                                                .font(.system(size: 12, weight: .bold))
-                                                .foregroundColor(Color(.systemGray4))
-                                        }
-                                        .padding(.vertical, 12)
-                                        .contentShape(Rectangle())
-                                    }
-                                    .buttonStyle(PlainButtonStyle())
-                                }
-                            }
-                        }
-                    }
-                }
+                footerView
                 }
                 .background(Color(.systemBackground))
                 .padding(.horizontal, 20)
@@ -258,6 +172,10 @@ struct SongDetailView: View {
                         Text(currentSong.songName).font(.system(size: 15, weight: .semibold)).lineLimit(1).foregroundColor(.primary)
                         Text(currentSong.artist).font(.system(size: 11)).foregroundColor(.secondary).lineLimit(1)
                     }
+                }
+                .buttonStyle(PlainButtonStyle())
+                .transaction { transaction in
+                    transaction.animation = nil
                 }
             }
             ToolbarItem(placement: .primaryAction) {
@@ -434,6 +352,106 @@ struct SongDetailView: View {
         isPaused = false
         isFinished = false
         withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) { isFocusMode = false }
+    }
+
+    @ViewBuilder
+    private var footerView: some View {
+        if !isFocusMode {
+            VStack(alignment: .leading, spacing: 20) {
+                Divider().padding(.top, 40)
+
+                // Copyright Disclaimer
+                NavigationLink(destination: LegalContactView()) {
+                    Text("Bu içerik müzik eğitimi amacı ile yayımlanmış olup hakları kendi sahiplerine aittir. Telif ihlali içerdiğini düşünüyorsanız bizimle ")
+                        .foregroundColor(.secondary)
+                    + Text("iletişime")
+                        .foregroundColor(.blue)
+                        .underline()
+                    + Text(" geçebilirsiniz.")
+                        .foregroundColor(.secondary)
+                }
+                .font(.system(size: 11))
+                .buttonStyle(.plain)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .multilineTextAlignment(.leading)
+
+                Divider()
+
+                // Artist Section (Styled like AllArtistsView list item)
+                NavigationLink(destination: ArtistDetailView(artist: currentSong.artist)) {
+                    HStack(spacing: 14) {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(Color(.secondarySystemBackground))
+                                .frame(width: 42, height: 42)
+                            Text(currentSong.artist.prefix(1).uppercased())
+                                .font(.system(size: 17, weight: .bold, design: .rounded))
+                                .foregroundColor(.primary)
+                        }
+
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(currentSong.artist)
+                                .font(.system(size: 15, weight: .medium))
+                                .foregroundColor(.primary)
+                                .lineLimit(1)
+                            Text("\(viewModel.songsForArtist(currentSong.artist).count) Şarkı")
+                                .font(.system(size: 13))
+                                .foregroundColor(.secondary)
+                                .lineLimit(1)
+                        }
+
+                        Spacer()
+
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundColor(Color(.systemGray4))
+                    }
+                    .padding(.vertical, 4)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(PlainButtonStyle())
+
+                // Other Songs List
+                let allArtistSongs = viewModel.songsForArtist(currentSong.artist).filter { ($0.id ?? $0.docId) != (currentSong.id ?? currentSong.docId) }
+                let artistSongs: [Song] = {
+                    if allArtistSongs.contains(where: { $0.popularityScore > 0 }) {
+                        return Array(allArtistSongs.sorted { $0.popularityScore > $1.popularityScore }.prefix(5))
+                    } else {
+                        return Array(allArtistSongs.shuffled().prefix(5))
+                    }
+                }()
+                
+                if !artistSongs.isEmpty {
+                    VStack(alignment: .leading, spacing: 0) {
+                        ForEach(artistSongs, id: \.docId) { otherSong in
+                            Divider()
+                            
+                            NavigationLink(destination: SongDetailView(song: otherSong)) {
+                                HStack(spacing: 0) {
+                                    VStack(alignment: .leading, spacing: 3) {
+                                        Text(otherSong.songName)
+                                            .font(.system(size: 15, weight: .medium))
+                                            .foregroundColor(.primary)
+                                            .lineLimit(1)
+                                        Text(otherSong.originalKey)
+                                            .font(.system(size: 13))
+                                            .foregroundColor(.secondary)
+                                            .lineLimit(1)
+                                    }
+                                    Spacer()
+                                    Image(systemName: "chevron.right")
+                                        .font(.system(size: 12, weight: .bold))
+                                        .foregroundColor(Color(.systemGray4))
+                                }
+                                .padding(.vertical, 12)
+                                .contentShape(Rectangle())
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                        }
+                    }
+                }
+            }
+        }
     }
 
     // MARK: - Transpose Logic

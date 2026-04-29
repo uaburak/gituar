@@ -68,8 +68,8 @@ struct HomeView: View {
                                 HomeSmallCard(title: "Popüler", icon: "flame.fill")
                             }
                             
-                            NavigationLink(destination: FavoritesView()) {
-                                HomeSmallCard(title: "Favoriler", icon: "heart.fill")
+                            NavigationLink(destination: DiscoverView()) {
+                                HomeSmallCard(title: "Keşfet", icon: "globe")
                             }
                         }
                         .padding(.horizontal, 20)

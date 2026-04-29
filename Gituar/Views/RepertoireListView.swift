@@ -1,4 +1,5 @@
 import SwiftUI
+import FirebaseFirestore
 
 struct RepertoireListView: View {
     @EnvironmentObject var viewModel: ChordViewModel
@@ -93,6 +94,7 @@ struct RepertoireDetailView: View {
     let repertoire: Repertoire
     @EnvironmentObject var viewModel: ChordViewModel
     @State private var showingSavedAlert = false
+    @State private var ownerUsername: String?
 
     var isOwner: Bool {
         repertoire.ownerId == (viewModel.currentUserId ?? "local")
@@ -130,6 +132,36 @@ struct RepertoireDetailView: View {
                 }
                 .listStyle(.plain)
             }
+        }
+        .safeAreaInset(edge: .top) {
+            VStack {
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Repertuar Sahibi")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundColor(.secondary)
+                        Text(isOwner ? "Ben" : (repertoire.ownerId == "local" ? "Ben" : (ownerUsername != nil ? "@\(ownerUsername!)" : "Yükleniyor...")))
+                            .font(.system(size: 15, weight: .bold))
+                            .foregroundColor(.primary)
+                            .lineLimit(1)
+                    }
+                    
+                    Spacer()
+                    
+                    VStack(alignment: .trailing, spacing: 4) {
+                        Text("Yayınlama Tarihi")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundColor(.secondary)
+                        Text(repertoire.createdAt, style: .date)
+                            .font(.system(size: 15, weight: .bold))
+                            .foregroundColor(.primary)
+                    }
+                }
+            }
+            .padding(16)
+            .glassEffect(in: .rect(cornerRadius: 20.0))
+            .padding(.horizontal, 16)
+            .padding(.bottom, 8)
         }
         .navigationTitle(repertoire.name)
         .toolbar {
@@ -175,6 +207,17 @@ struct RepertoireDetailView: View {
             Button("Tamam", role: .cancel) { }
         } message: {
             Text("Repertuar listenize başarıyla eklendi.")
+        }
+        .task {
+            guard !isOwner && repertoire.ownerId != "local" else { return }
+            do {
+                let doc = try await Firestore.firestore().collection("users").document(repertoire.ownerId).getDocument()
+                if let data = doc.data(), let username = data["username"] as? String {
+                    self.ownerUsername = username
+                }
+            } catch {
+                print("Error fetching username: \(error)")
+            }
         }
     }
 }

@@ -15,7 +15,6 @@ class ChordViewModel: ObservableObject {
     @Published var mostAdded: [Song] = []
     @Published var popularChords: [Song] = []
     @Published var newArrivals: [Song] = []
-    @Published var favoriteSongs: [Song] = []
     @Published var artists: [String] = [] // Sanatçı listesi
     @Published var allSongs: [Song] = [] // Tüm şarkılar (Cache)
     @Published var publicRepertoires: [Repertoire] = [] // Paylaşılan repertuarlar
@@ -27,7 +26,6 @@ class ChordViewModel: ObservableObject {
     
     private let recentPlayedKey = "recentlyPlayedIds"
     private let repertoiresKey = "user_repertoires"
-    private let favoritesKey = "favoriteSongIds"
     
     var currentUserId: String? {
         Auth.auth().currentUser?.uid
@@ -63,11 +61,9 @@ class ChordViewModel: ObservableObject {
     private func loadUserData(userId: String?) {
         songPreferences.removeAll()
         if let uid = userId {
-            fetchFavoritesFromFirestore(userId: uid)
             fetchRepertoiresFromFirestore(userId: uid)
         } else {
             // Guest mode or Logged out
-            loadFavorites() 
             loadRepertoires()
         }
     }
@@ -133,56 +129,6 @@ class ChordViewModel: ObservableObject {
         self.recentlyPlayed = ids.compactMap { id in
             allSongs.first { ($0.id ?? $0.docId) == id }
         }
-    }
-    
-    // MARK: - Favorites Management
-    
-    private func loadFavorites() {
-        let ids = UserDefaults.standard.stringArray(forKey: favoritesKey) ?? []
-        self.favoriteSongs = ids.compactMap { id in
-            self.allSongs.first { ($0.id ?? $0.docId) == id }
-        }
-    }
-
-    private func fetchFavoritesFromFirestore(userId: String) {
-        db.collection("users").document(userId).collection("favorites").addSnapshotListener { [weak self] snapshot, _ in
-            guard let self = self, let docs = snapshot?.documents else { return }
-            let ids = docs.map { $0.documentID }
-            DispatchQueue.main.async {
-                self.favoriteSongs = ids.compactMap { id in
-                    self.allSongs.first { ($0.id ?? $0.docId) == id }
-                }
-            }
-        }
-    }
-
-    func toggleFavorite(song: Song) {
-        let songId = song.id ?? song.docId
-        
-        if let uid = userId {
-            let docRef = db.collection("users").document(uid).collection("favorites").document(songId)
-            
-            if isFavorite(song: song) {
-                docRef.delete()
-            } else {
-                docRef.setData(["addedAt": FieldValue.serverTimestamp()])
-            }
-        } else {
-            // Local fallback for guest
-            var ids = UserDefaults.standard.stringArray(forKey: favoritesKey) ?? []
-            if ids.contains(songId) {
-                ids.removeAll { $0 == songId }
-            } else {
-                ids.insert(songId, at: 0)
-            }
-            UserDefaults.standard.set(ids, forKey: favoritesKey)
-            loadFavorites()
-        }
-    }
-    
-    func isFavorite(song: Song) -> Bool {
-        let songId = song.id ?? song.docId
-        return favoriteSongs.contains(where: { ($0.id ?? $0.docId) == songId })
     }
     
     func songsForArtist(_ artist: String) -> [Song] {

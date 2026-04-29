@@ -80,7 +80,7 @@ struct PrivacyPolicyView: View {
                 
                 Text("1. Toplanan Veriler")
                     .font(.headline)
-                Text("Uygulama deneyiminizi iyileştirmek amacıyla temel kullanım verileri (görüntülenen şarkılar, favoriler vb.) cihazınızda veya bulut sistemimizde güvenli bir şekilde saklanabilir.")
+                Text("Uygulama deneyiminizi iyileştirmek amacıyla temel kullanım verileri (görüntülenen şarkılar vb.) cihazınızda veya bulut sistemimizde güvenli bir şekilde saklanabilir.")
                 
                 Text("2. Çerezler ve Yerel Depolama")
                     .font(.headline)

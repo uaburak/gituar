@@ -346,46 +346,6 @@ struct GenericSongListView: View {
     }
 }
 
-struct FavoritesView: View {
-    @EnvironmentObject var viewModel: ChordViewModel
-    @State private var searchText: String = ""
-    
-    var filtered: [Song] {
-        if searchText.isEmpty { return viewModel.favoriteSongs }
-        return viewModel.favoriteSongs.filter {
-            $0.songName.turkeyNormalized.contains(searchText.turkeyNormalized) ||
-            $0.artist.turkeyNormalized.contains(searchText.turkeyNormalized)
-        }
-    }
-    
-    var body: some View {
-        Group {
-            if viewModel.favoriteSongs.isEmpty {
-                VStack(spacing: 16) {
-                    Image(systemName: "music.note")
-                        .font(.system(size: 48))
-                        .foregroundColor(.secondary)
-                    Text("Henüz kaydedilmiş şarkınız yok.")
-                        .font(.headline)
-                    Text("Şarkı detay ekranından kalp ikonuna basarak şarkıları buraya ekleyebilirsiniz.")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal)
-                }
-            } else {
-                List(filtered, id: \.docId) { song in
-                    NavigationLink(destination: SongDetailView(song: song, playlist: filtered)) {
-                        SongRowCard(song: song)
-                    }
-                }
-                .listStyle(.plain)
-                .searchable(text: $searchText, prompt: "Şarkılarımda ara...")
-            }
-        }
-        .navigationTitle("Şarkılarım")
-    }
-}
 
 struct AllArtistsView: View {
     @EnvironmentObject var viewModel: ChordViewModel

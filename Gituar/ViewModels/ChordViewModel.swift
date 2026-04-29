@@ -19,6 +19,8 @@ class ChordViewModel: ObservableObject {
     @Published var artists: [String] = [] // Sanatçı listesi
     @Published var allSongs: [Song] = [] // Tüm şarkılar (Cache)
     @Published var publicRepertoires: [Repertoire] = [] // Paylaşılan repertuarlar
+    @Published var songPreferences: [String: UserSongPreference] = [:] // Kullanıcıya özel şarkı ayarları
+    
     private var db = Firestore.firestore()
     private var cancellables = Set<AnyCancellable>()
     private var authListener: AuthStateDidChangeListenerHandle?
@@ -59,6 +61,7 @@ class ChordViewModel: ObservableObject {
     }
     
     private func loadUserData(userId: String?) {
+        songPreferences.removeAll()
         if let uid = userId {
             fetchFavoritesFromFirestore(userId: uid)
             fetchRepertoiresFromFirestore(userId: uid)
@@ -437,6 +440,70 @@ class ChordViewModel: ObservableObject {
             print("Error saving song: \(error)")
         }
     }
+
+    // MARK: - User Song Preferences
+    
+    private func getPrefKey(for songId: String) -> String {
+        if let uid = userId {
+            return "pref_\(uid)_\(songId)"
+        }
+        return "pref_guest_\(songId)"
+    }
+    
+    func fetchSongPreference(for songId: String) {
+        let prefKey = getPrefKey(for: songId)
+        // Load locally first
+        if let data = UserDefaults.standard.data(forKey: prefKey),
+           let pref = try? JSONDecoder().decode(UserSongPreference.self, from: data) {
+            self.songPreferences[songId] = pref
+        }
+        
+        // Fetch from Firebase
+        if let uid = userId {
+            db.collection("users").document(uid).collection("preferences").document(songId).getDocument { [weak self] snapshot, _ in
+                if let data = try? snapshot?.data(as: UserSongPreference.self) {
+                    DispatchQueue.main.async {
+                        self?.songPreferences[songId] = data
+                        // Update local cache
+                        let currentPrefKey = self?.getPrefKey(for: songId) ?? "pref_guest_\(songId)"
+                        if let encoded = try? JSONEncoder().encode(data) {
+                            UserDefaults.standard.set(encoded, forKey: currentPrefKey)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    func saveSongPreference(songId: String, key: String, capo: Int, note: String) {
+        let pref = UserSongPreference(songId: songId, selectedKeyRoot: key, capoFret: capo, note: note)
+        self.songPreferences[songId] = pref
+        
+        // Save locally
+        let prefKey = getPrefKey(for: songId)
+        if let encoded = try? JSONEncoder().encode(pref) {
+            UserDefaults.standard.set(encoded, forKey: prefKey)
+        }
+        
+        // Save to Firebase
+        if let uid = userId {
+            do {
+                try db.collection("users").document(uid).collection("preferences").document(songId).setData(from: pref)
+            } catch {
+                print("Error saving preference: \(error)")
+            }
+        }
+    }
+    
+    func deleteSongPreference(songId: String) {
+        self.songPreferences.removeValue(forKey: songId)
+        let prefKey = getPrefKey(for: songId)
+        UserDefaults.standard.removeObject(forKey: prefKey)
+        
+        if let uid = userId {
+            db.collection("users").document(uid).collection("preferences").document(songId).delete()
+        }
+    }
 }
 
 
@@ -456,5 +523,12 @@ extension String {
         }
         return result.folding(options: .diacriticInsensitive, locale: Locale(identifier: "tr-TR"))
     }
+}
+
+struct UserSongPreference: Codable, Equatable {
+    var songId: String
+    var selectedKeyRoot: String
+    var capoFret: Int
+    var note: String
 }
 

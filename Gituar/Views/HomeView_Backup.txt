@@ -13,59 +13,65 @@ struct HomeView: View {
             if !searchText.isEmpty {
                 List(viewModel.songs, id: \.docId) { song in
                     NavigationLink(destination: SongDetailView(song: song, playlist: viewModel.songs)) {
-                        SongRowCard(song: song)
+                        HStack(spacing: 14) {
+                            ZStack {
+                                RoundedRectangle(cornerRadius: 8)
+                                    .fill(Color(.secondarySystemBackground))
+                                    .frame(width: 42, height: 42)
+                                Text(song.songName.prefix(1).uppercased())
+                                    .font(.system(size: 17, weight: .bold, design: .rounded))
+                                    .foregroundColor(.primary)
+                            }
+
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text(song.songName)
+                                    .font(.system(size: 15, weight: .medium))
+                                    .lineLimit(1)
+                                Text(song.artist)
+                                    .font(.system(size: 13))
+                                    .foregroundColor(.secondary)
+                                    .lineLimit(1)
+                            }
+
+                            Spacer()
+
+                            Text(song.originalKey)
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundColor(.secondary)
+                        }
+                        .padding(.vertical, 4)
                     }
                 }
                 .listStyle(.plain)
             } else {
-                ScrollView(showsIndicators: false) {
+                ScrollView {
                     VStack(alignment: .leading, spacing: 32) {
                         
-                        // Top Ad Banner
-                        VStack(spacing: 0) {
-                            AdBannerView()
-                                .frame(height: 50)
-                                .frame(maxWidth: .infinity)
-                                .background(Color(.systemGray6))
-                                .cornerRadius(12)
+                        // 1. Favorites & Repertoire Cards (Big)
+                        HStack(spacing: 16) {
+                            NavigationLink(destination: FavoritesView()) {
+                                HomeBigCard(title: "Favoriler", icon: "heart.fill", color: .red)
+                            }
+                            
+                            NavigationLink(destination: RepertoireListView()) {
+                                HomeBigCard(title: "Repertuarlarım", icon: "music.note.list", color: .blue)
+                            }
                         }
                         .padding(.horizontal, 20)
                         .padding(.top, 16)
                         
-                        // Hero Section
-                        HStack(spacing: 16) {
-                            NavigationLink(destination: FavoritesView()) {
-                                MinimalCategoryCard(
-                                    title: "Şarkılarım",
-                                    subtitle: "\(viewModel.favoriteSongs.count) Kayıtlı",
-                                    icon: "music.note",
-                                    color: .indigo
-                                )
-                            }
-                            
-                            NavigationLink(destination: RepertoireListView()) {
-                                MinimalCategoryCard(
-                                    title: "Repertuarlarım",
-                                    subtitle: "Listeler",
-                                    icon: "music.mic",
-                                    color: .orange
-                                )
-                            }
-                        }
-                        .padding(.horizontal, 20)
-                        
-                        // Action Row (Small Cards)
+                        // 2. Action Row (Small Cards - Equal Width, 12px spacing)
                         HStack(alignment: .top, spacing: 12) {
                             NavigationLink(destination: AllArtistsView()) {
                                 HomeSmallCard(title: "Sanatçılar", icon: "person.2.fill")
                             }
                             
                             NavigationLink(destination: ExploreView()) {
-                                HomeSmallCard(title: "Tüm Şarkılar", icon: "music.note.list")
+                                HomeSmallCard(title: "Şarkılar", icon: "music.note.list")
                             }
                             
                             NavigationLink(destination: PopularChordsView()) {
-                                HomeSmallCard(title: "Popüler", icon: "flame.fill")
+                                HomeSmallCard(title: "Popüler", icon: "star.fill")
                             }
                             
                             NavigationLink(destination: DiscoverView()) {
@@ -74,32 +80,24 @@ struct HomeView: View {
                         }
                         .padding(.horizontal, 20)
                         
-                        // Listeler
-                        VStack(alignment: .leading, spacing: 16) {
-
-                                
-                            let columns = [GridItem(.flexible(), spacing: 16), GridItem(.flexible(), spacing: 16)]
-                            
-                            LazyVGrid(columns: columns, spacing: 16) {
-                                NavigationLink(destination: GenericSongListView(title: "Son Çalınanlar", songs: viewModel.recentlyPlayed)) {
-                                    MinimalListCard(title: "Son Çalınanlar", icon: "clock.fill")
-                                }
-                                NavigationLink(destination: GenericSongListView(title: "Yeni Eklenenler", songs: viewModel.newArrivals)) {
-                                    MinimalListCard(title: "Yeni Eklenenler", icon: "arrow.down.circle.fill")
-                                }
-                                NavigationLink(destination: GenericSongListView(title: "En Çok Eklenenler", songs: viewModel.mostAdded)) {
-                                    MinimalListCard(title: "Çok Eklenenler", icon: "star.fill")
-                                }
-                            }
-                            .padding(.horizontal, 20)
-                        }
+                        // 3. Recently Played
+                        HorizontalSongScroll(title: "Son Çalınanlar", songs: viewModel.recentlyPlayed)
+                        
+                        // 4. Popular Chords
+                        HorizontalSongScroll(title: "Popüler Şarkılar", songs: viewModel.popularChords)
+                        
+                        // 5. New Arrivals
+                        HorizontalSongScroll(title: "Yeni Eklenenler", songs: viewModel.newArrivals)
+                        
+                        // 6. Most Added
+                        HorizontalSongScroll(title: "En Çok Eklenenler", songs: viewModel.mostAdded)
                     }
-                    .padding(.bottom, 40)
+                    .padding(.bottom, 32)
                 }
             }
         }
         .background(Color(.systemBackground))
-        .navigationTitle("")
+        .navigationTitle("") // Keep title for scroll edge effects
         .navigationBarTitleDisplayMode(.inline)
         .searchable(text: $searchText, prompt: "Şarkı, sanatçı veya akor ara...")
         .onChange(of: searchText) { _, newValue in
@@ -122,9 +120,9 @@ struct HomeView: View {
                                     .scaledToFill()
                             case .failure:
                                 ZStack {
-                                    Circle().fill(Color.accentColor.opacity(0.15))
+                                    Circle().fill(Color.accentColor.opacity(0.1))
                                     Text(authViewModel.userInitials)
-                                        .font(.system(size: 15, weight: .bold))
+                                        .font(.system(size: 14, weight: .bold))
                                         .foregroundColor(.accentColor)
                                 }
                             @unknown default:
@@ -136,9 +134,9 @@ struct HomeView: View {
                     } else {
                         ZStack {
                             Circle()
-                                .fill(Color.accentColor.opacity(0.15))
+                                .fill(Color.accentColor.opacity(0.1))
                             Text(authViewModel.userInitials)
-                                .font(.system(size: 15, weight: .bold))
+                                .font(.system(size: 14, weight: .bold))
                                 .foregroundColor(.accentColor)
                         }
                         .frame(width: 36, height: 36)
@@ -152,49 +150,70 @@ struct HomeView: View {
                 }
             }
             
-            ToolbarSpacer(.fixed, placement: .topBarLeading)
-            
-            ToolbarItem(placement: .topBarLeading) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Hoş geldin, \(authViewModel.displayName.split(separator: " ").first ?? "")")
+            ToolbarItem(placement: .principal) {
+                VStack(spacing: 0) {
+                    Text("Hoş geldin, \(authViewModel.displayName)")
                         .font(.system(size: 16, weight: .bold))
-                    Text("Bugün ne çalıyoruz?")
-                        .font(.system(size: 12, weight: .medium))
+                    Text("Bugün ne çalmak istersin?")
+                        .font(.system(size: 12))
                         .foregroundColor(.secondary)
                 }
-                .fixedSize(horizontal: true, vertical: false)
             }
-            .sharedBackgroundVisibility(.hidden)
         }
     }
 }
 
 // MARK: - Components
 
-struct MinimalCategoryCard: View {
+struct MinimalSongCard: View {
+    let song: Song
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color(.secondarySystemBackground))
+                    .frame(width: 130, height: 80)
+
+                Text(song.songName.prefix(1).uppercased())
+                    .font(.system(size: 28, weight: .bold, design: .rounded))
+                    .foregroundColor(.primary)
+            }
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(song.songName)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(.primary)
+                    .lineLimit(1)
+                Text(song.artist)
+                    .font(.system(size: 11))
+                    .foregroundColor(.secondary)
+                    .lineLimit(1)
+            }
+        }
+        .frame(width: 130)
+    }
+}
+
+struct HomeBigCard: View {
     let title: String
-    let subtitle: String
     let icon: String
     let color: Color
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 12) {
             Image(systemName: icon)
                 .font(.system(size: 24))
                 .foregroundColor(color)
             
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .font(.system(size: 16, weight: .bold))
-                    .foregroundColor(.primary)
-                Text(subtitle)
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundColor(.secondary)
-            }
+            Text(title)
+                .font(.system(size: 15, weight: .bold))
+                .foregroundColor(.primary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(16)
-        .glassEffect(in: .rect(cornerRadius: 20.0))
+        .padding()
+        .background(color.opacity(0.1))
+        .cornerRadius(16)
     }
 }
 
@@ -206,11 +225,12 @@ struct HomeSmallCard: View {
     
     var body: some View {
         if sizeClass == .compact {
+            // Portrait / Compact Layout: Text below, outside the icon box
             VStack(spacing: 8) {
                 ZStack {
-                    Color.clear
-                        .glassEffect(in: .rect(cornerRadius: 20.0))
-                        .frame(height: 56)
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .fill(Color(.secondarySystemBackground))
+                        .frame(height: 56) // Reduced height from square
                     
                     Image(systemName: icon)
                         .font(.system(size: 20))
@@ -225,6 +245,7 @@ struct HomeSmallCard: View {
             }
             .frame(maxWidth: .infinity)
         } else {
+            // Landscape / Tablet Layout: Icon and Text side-by-side inside the card
             HStack(spacing: 12) {
                 Image(systemName: icon)
                     .font(.system(size: 18))
@@ -241,110 +262,14 @@ struct HomeSmallCard: View {
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
-            .glassEffect(in: .rect(cornerRadius: 20.0))
+            .background(Color(.secondarySystemBackground))
+            .cornerRadius(14)
             .frame(maxWidth: .infinity)
         }
     }
 }
 
-struct MinimalListCard: View {
-    let title: String
-    let icon: String
-    
-    var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: icon)
-                .font(.system(size: 18))
-                .foregroundColor(.primary)
-                .frame(width: 24)
-            
-            Text(title)
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundColor(.primary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
-            
-            Spacer(minLength: 0)
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 14)
-        .glassEffect(in: .rect(cornerRadius: 20.0))
-    }
-}
-
-struct SongRowCard: View {
-    let song: Song
-    
-    var body: some View {
-        HStack(spacing: 14) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(Color(.secondarySystemBackground))
-                    .frame(width: 48, height: 48)
-                Text(song.songName.prefix(1).uppercased())
-                    .font(.system(size: 18, weight: .bold, design: .rounded))
-                    .foregroundColor(.primary)
-            }
-
-            VStack(alignment: .leading, spacing: 3) {
-                Text(song.songName)
-                    .font(.system(size: 15, weight: .semibold))
-                    .lineLimit(1)
-                Text(song.artist)
-                    .font(.system(size: 13, weight: .regular))
-                    .foregroundColor(.secondary)
-                    .lineLimit(1)
-            }
-
-            Spacer()
-
-            Text(song.originalKey)
-                .font(.system(size: 12, weight: .medium))
-                .foregroundColor(.secondary)
-        }
-        .padding(.vertical, 4)
-    }
-}
-
 // MARK: - Navigation Views
-
-struct GenericSongListView: View {
-    let title: String
-    let songs: [Song]
-    @State private var searchText: String = ""
-    
-    var filtered: [Song] {
-        if searchText.isEmpty { return songs }
-        return songs.filter {
-            $0.songName.turkeyNormalized.contains(searchText.turkeyNormalized) ||
-            $0.artist.turkeyNormalized.contains(searchText.turkeyNormalized)
-        }
-    }
-
-    var body: some View {
-        Group {
-            if songs.isEmpty {
-                VStack(spacing: 16) {
-                    Image(systemName: "music.note.list")
-                        .font(.system(size: 48))
-                        .foregroundColor(.secondary)
-                    Text("Bu listede henüz şarkı yok.")
-                        .font(.headline)
-                        .foregroundColor(.secondary)
-                }
-            } else {
-                List(filtered, id: \.docId) { song in
-                    NavigationLink(destination: SongDetailView(song: song, playlist: filtered)) {
-                        SongRowCard(song: song)
-                    }
-                }
-                .listStyle(.plain)
-                .searchable(text: $searchText, prompt: "Ara...")
-            }
-        }
-        .navigationTitle(title)
-    }
-}
 
 struct FavoritesView: View {
     @EnvironmentObject var viewModel: ChordViewModel
@@ -362,12 +287,12 @@ struct FavoritesView: View {
         Group {
             if viewModel.favoriteSongs.isEmpty {
                 VStack(spacing: 16) {
-                    Image(systemName: "music.note")
+                    Image(systemName: "heart.slash")
                         .font(.system(size: 48))
                         .foregroundColor(.secondary)
-                    Text("Henüz kaydedilmiş şarkınız yok.")
+                    Text("Henüz favori şarkınız yok.")
                         .font(.headline)
-                    Text("Şarkı detay ekranından kalp ikonuna basarak şarkıları buraya ekleyebilirsiniz.")
+                    Text("Şarkı detay ekranından kalp ikonuna basarak favorilere ekleyebilirsiniz.")
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)
@@ -376,14 +301,40 @@ struct FavoritesView: View {
             } else {
                 List(filtered, id: \.docId) { song in
                     NavigationLink(destination: SongDetailView(song: song, playlist: filtered)) {
-                        SongRowCard(song: song)
+                        HStack(spacing: 14) {
+                            ZStack {
+                                RoundedRectangle(cornerRadius: 8)
+                                    .fill(Color(.secondarySystemBackground))
+                                    .frame(width: 42, height: 42)
+                                Text(song.songName.prefix(1).uppercased())
+                                    .font(.system(size: 17, weight: .bold, design: .rounded))
+                                    .foregroundColor(.primary)
+                            }
+                            
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text(song.songName)
+                                    .font(.system(size: 15, weight: .medium))
+                                    .lineLimit(1)
+                                Text(song.artist)
+                                    .font(.system(size: 13))
+                                    .foregroundColor(.secondary)
+                                    .lineLimit(1)
+                            }
+                            
+                            Spacer()
+                            
+                            Text(song.originalKey)
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundColor(.secondary)
+                        }
+                        .padding(.vertical, 4)
                     }
                 }
                 .listStyle(.plain)
-                .searchable(text: $searchText, prompt: "Şarkılarımda ara...")
+                .searchable(text: $searchText, prompt: "Favorilerimde ara...")
             }
         }
-        .navigationTitle("Şarkılarım")
+        .navigationTitle("Favorilerim")
     }
 }
 
@@ -401,17 +352,17 @@ struct AllArtistsView: View {
             NavigationLink(destination: ArtistDetailView(artist: artist)) {
                 HStack(spacing: 14) {
                     ZStack {
-                        RoundedRectangle(cornerRadius: 12)
+                        RoundedRectangle(cornerRadius: 8)
                             .fill(Color(.secondarySystemBackground))
-                            .frame(width: 48, height: 48)
+                            .frame(width: 42, height: 42)
                         Text(artist.prefix(1).uppercased())
-                            .font(.system(size: 18, weight: .bold, design: .rounded))
+                            .font(.system(size: 17, weight: .bold, design: .rounded))
                             .foregroundColor(.primary)
                     }
                     
                     VStack(alignment: .leading, spacing: 3) {
                         Text(artist)
-                            .font(.system(size: 15, weight: .semibold))
+                            .font(.system(size: 15, weight: .medium))
                             .lineLimit(1)
                         Text("\(viewModel.songsForArtist(artist).count) Şarkı")
                             .font(.system(size: 13))
@@ -449,7 +400,33 @@ struct PopularChordsView: View {
     var body: some View {
         List(filtered, id: \.docId) { song in
             NavigationLink(destination: SongDetailView(song: song, playlist: filtered)) {
-                SongRowCard(song: song)
+                HStack(spacing: 14) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(Color(.secondarySystemBackground))
+                            .frame(width: 42, height: 42)
+                        Text(song.songName.prefix(1).uppercased())
+                            .font(.system(size: 17, weight: .bold, design: .rounded))
+                            .foregroundColor(.primary)
+                    }
+                    
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(song.songName)
+                            .font(.system(size: 15, weight: .medium))
+                            .lineLimit(1)
+                        Text(song.artist)
+                            .font(.system(size: 13))
+                            .foregroundColor(.secondary)
+                            .lineLimit(1)
+                    }
+                    
+                    Spacer()
+                    
+                    Text(song.originalKey)
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(.secondary)
+                }
+                .padding(.vertical, 4)
             }
         }
         .listStyle(.plain)
@@ -457,6 +434,8 @@ struct PopularChordsView: View {
         .searchable(text: $searchText, prompt: "Popülerlerde ara...")
     }
 }
+
+
 
 struct ArtistDetailView: View {
     let artist: String
@@ -466,10 +445,45 @@ struct ArtistDetailView: View {
         let songs = viewModel.songsForArtist(artist)
         List(songs, id: \.docId) { song in
             NavigationLink(destination: SongDetailView(song: song, playlist: songs)) {
-                SongRowCard(song: song)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(song.songName)
+                        .font(.system(size: 15, weight: .medium))
+                    Text(song.originalKey)
+                        .font(.system(size: 12))
+                        .foregroundColor(.secondary)
+                }
+                .padding(.vertical, 4)
             }
         }
         .listStyle(.plain)
         .navigationTitle(artist)
+    }
+}
+
+// MARK: - Reusable Horizontal Scroll
+struct HorizontalSongScroll: View {
+    let title: String
+    let songs: [Song]
+    
+    var body: some View {
+        if !songs.isEmpty {
+            VStack(alignment: .leading, spacing: 16) {
+                Text(title)
+                    .font(.system(size: 18, weight: .semibold))
+                    .padding(.horizontal, 20)
+                
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 12) {
+                        ForEach(songs, id: \.docId) { song in
+                            NavigationLink(destination: SongDetailView(song: song, playlist: songs)) {
+                                MinimalSongCard(song: song)
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                }
+            }
+        }
     }
 }

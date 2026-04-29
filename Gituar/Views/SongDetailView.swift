@@ -8,6 +8,9 @@ struct SongDetailView: View {
     @State private var selectedKeyRoot: String = ""
     @State private var fontSize: CGFloat = 14
     @State private var showRepertoirePicker = false
+    @State private var capoFret: Int = 0
+    @State private var isNoteEditing: Bool = false
+    @State private var songNote: String = ""
     @State private var isFocusMode = false
     @State private var isPaused = false
     @State private var isFinished = false
@@ -51,12 +54,8 @@ struct SongDetailView: View {
                                         .foregroundColor(.blue)
                                 }
                             }
-                            if selectedKeyRoot != getRootNote(from: currentSong.originalKey) {
-                                Button("Sıfırla") { selectedKeyRoot = getRootNote(from: currentSong.originalKey) }
-                                    .font(.system(size: 13))
-                                    .foregroundColor(.primary)
-                            }
                         }
+                        // Üstteki Sıfırla butonu aşağıya taşındığı için buradan kaldırıldı.
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 8) {
                                 ForEach(allNotes, id: \.self) { note in
@@ -64,8 +63,8 @@ struct SongDetailView: View {
                                         Text(note)
                                             .font(.system(size: 13, weight: .medium))
                                             .padding(.horizontal, 16).padding(.vertical, 8)
-                                            .background(selectedKeyRoot == note ? Color.primary : Color(.secondarySystemBackground))
-                                            .foregroundColor(selectedKeyRoot == note ? Color(.systemBackground) : Color.primary)
+                                            .background(selectedKeyRoot == note ? Color.blue : Color(.secondarySystemBackground))
+                                            .foregroundColor(selectedKeyRoot == note ? .white : .primary)
                                             .clipShape(Capsule())
                                     }
                                 }
@@ -78,37 +77,128 @@ struct SongDetailView: View {
 
                     Divider().transition(.opacity)
 
-                    // Yazı Boyutu
-                    HStack {
+                    // Araçlar (Kapo, Not Ekle, Yazı Boyutu)
+                    // TODO: Bu satırın padding (iç boşluk) değerlerini kendinize göre düzenleyebilirsiniz. 
+                    // Ana VStack spacing'i 24 olduğu için divider'lar arası geniş görünebilir.
+                    VStack(spacing: 0) {
                         HStack(spacing: 8) {
-                            Button {
-                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                                viewModel.toggleFavorite(song: currentSong)
+                            // Kapo
+                            Menu {
+                                ForEach(0...12, id: \.self) { fret in
+                                    Button {
+                                        capoFret = fret
+                                    } label: {
+                                        Text(fret == 0 ? "Kapo Yok" : "Kapo: \(fret)")
+                                    }
+                                }
                             } label: {
-                                Image(systemName: viewModel.isFavorite(song: currentSong) ? "heart.fill" : "heart")
-                                    .font(.system(size: 12, weight: .semibold))
-                                    .foregroundColor(viewModel.isFavorite(song: currentSong) ? .red : .primary)
-                                    .frame(width: 30, height: 30)
-                                    .background(.regularMaterial)
-                                    .clipShape(Circle())
-                                    .shadow(color: Color.black.opacity(0.1), radius: 3, x: 0, y: 1)
+                                Text("Kapo : \(capoFret)")
+                                    .font(.system(size: 13, weight: .medium))
+                                    .foregroundColor(.primary)
+                                    .padding(.horizontal, 16)
+                                    .padding(.vertical, 10)
+                                    .background(Color(.secondarySystemBackground))
+                                    .clipShape(Capsule())
                             }
                             
-                            Text("Yazı boyutu")
-                                .font(.system(size: 13))
-                                .foregroundColor(.secondary)
-                        }
-                        Spacer()
-                        HStack(spacing: 16) {
-                            Button { fontSize = max(10, fontSize - 1) } label: {
-                                Image(systemName: "minus").font(.system(size: 14)).foregroundColor(.primary)
+                            // Not Ekle
+                            Button {
+                                withAnimation {
+                                    isNoteEditing.toggle()
+                                }
+                            } label: {
+                                Text("Not ekle")
+                                    .font(.system(size: 13, weight: .medium))
+                                    .foregroundColor(.primary)
+                                    .padding(.horizontal, 16)
+                                    .padding(.vertical, 10)
+                                    .background(Color(.secondarySystemBackground))
+                                    .clipShape(Capsule())
                             }
-                            Text("\(Int(fontSize))pt").font(.system(size: 13, design: .rounded)).foregroundColor(.secondary).frame(width: 36)
-                            Button { fontSize = min(22, fontSize + 1) } label: {
-                                Image(systemName: "plus").font(.system(size: 14)).foregroundColor(.primary)
+                            
+                            // Yazı Boyutu Stepper (Custom)
+                            HStack(spacing: 0) {
+                                Button { fontSize = max(10, fontSize - 1) } label: {
+                                    Image(systemName: "minus")
+                                        .font(.system(size: 13, weight: .semibold))
+                                        .foregroundColor(.primary)
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 10)
+                                }
+                                Divider().frame(height: 14)
+                                Button { fontSize = min(30, fontSize + 1) } label: {
+                                    Image(systemName: "plus")
+                                        .font(.system(size: 13, weight: .semibold))
+                                        .foregroundColor(.primary)
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 10)
+                                }
+                            }
+                            .background(Color(.secondarySystemBackground))
+                            .clipShape(Capsule())
+                            
+                            Spacer()
+                            
+                            // Kaydet / Sıfırla Butonu Mantığı
+                            let isModifiedFromOriginal = selectedKeyRoot != getRootNote(from: currentSong.originalKey) || capoFret != 0 || !songNote.isEmpty
+                            let hasSavedPreference = viewModel.songPreferences[currentSong.docId] != nil
+                            
+                            let isModifiedFromSaved: Bool = {
+                                if let pref = viewModel.songPreferences[currentSong.docId] {
+                                    return selectedKeyRoot != pref.selectedKeyRoot || capoFret != pref.capoFret || songNote != pref.note
+                                }
+                                return false
+                            }()
+                            
+                            if hasSavedPreference && !isModifiedFromSaved {
+                                // Veri kaydedilmiş ve değişiklik yapılmamışsa "Sıfırla" butonu gösterilir
+                                Button {
+                                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                                    selectedKeyRoot = getRootNote(from: currentSong.originalKey)
+                                    capoFret = 0
+                                    songNote = ""
+                                    viewModel.deleteSongPreference(songId: currentSong.docId)
+                                } label: {
+                                    Text("Sıfırla")
+                                        .font(.system(size: 13, weight: .medium))
+                                        .foregroundColor(.white)
+                                        .padding(.horizontal, 16)
+                                        .padding(.vertical, 10)
+                                        .background(Color(.systemRed)) // Rengi istediğiniz gibi düzenleyebilirsiniz
+                                        .clipShape(Capsule())
+                                }
+                            } else {
+                                // Veri yok veya değişiklik varsa "Kaydet" butonu
+                                let canSave = hasSavedPreference ? isModifiedFromSaved : isModifiedFromOriginal
+                                
+                                Button {
+                                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                                    viewModel.saveSongPreference(songId: currentSong.docId, key: selectedKeyRoot, capo: capoFret, note: songNote)
+                                } label: {
+                                    Text("Kaydet")
+                                        .font(.system(size: 13, weight: .medium))
+                                        .foregroundColor(canSave ? .white : Color(.systemGray))
+                                        .padding(.horizontal, 16)
+                                        .padding(.vertical, 10)
+                                        .background(canSave ? Color.blue : Color(.secondarySystemBackground))
+                                        .clipShape(Capsule())
+                                }
+                                .disabled(!canSave)
+                            }
+                        }
+                        
+                        // Not Alanı
+                        VStack(spacing: 0) {
+                            if isNoteEditing {
+                                TextField("Notunuzu buraya yazın...", text: $songNote, axis: .vertical)
+                                    .font(.system(size: 14))
+                                    .padding(.vertical, 8)
+                                    .padding(.horizontal, 8)
+                                    .transition(.opacity)
                             }
                         }
                     }
+                    .animation(.spring(response: 0.3, dampingFraction: 0.8), value: isNoteEditing)
                     .transition(.move(edge: .top).combined(with: .opacity))
 
                     Divider().transition(.opacity)
@@ -235,13 +325,8 @@ struct SongDetailView: View {
             } else {
                 if let playlist = playlist, playlist.count > 1 {
                     ToolbarItem(placement: .bottomBar) {
-                        Button {
+                        Button("Geri", systemImage: "chevron.left") {
                             previousSong()
-                        } label: {
-                            Image(systemName: "chevron.left")
-                                .font(.system(size: 20, weight: .medium))
-                                .frame(width: 44, height: 44)
-                                .contentShape(Rectangle())
                         }
                     }
                 }
@@ -256,22 +341,24 @@ struct SongDetailView: View {
                 
                 if let playlist = playlist, playlist.count > 1 {
                     ToolbarItem(placement: .bottomBar) {
-                        Button {
+                        Button("İleri", systemImage: "chevron.right") {
                             nextSong()
-                        } label: {
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 20, weight: .medium))
-                                .frame(width: 44, height: 44)
-                                .contentShape(Rectangle())
                         }
                     }
                 }
             }
         }
         .onAppear {
-            if selectedKeyRoot.isEmpty {
+            viewModel.fetchSongPreference(for: currentSong.docId)
+            
+            if let pref = viewModel.songPreferences[currentSong.docId] {
+                selectedKeyRoot = pref.selectedKeyRoot
+                capoFret = pref.capoFret
+                songNote = pref.note
+            } else if selectedKeyRoot.isEmpty {
                 selectedKeyRoot = getRootNote(from: currentSong.originalKey)
             }
+            
             viewModel.addToRecentlyPlayed(currentSong)
             viewModel.incrementViewCount(for: currentSong)
             autoScroller.pixelsPerSecond = CGFloat(autoScrollSpeed)
@@ -280,8 +367,27 @@ struct SongDetailView: View {
                 isFinished = true
             }
         }
+        .onChange(of: viewModel.songPreferences[currentSong.docId]) { _, newValue in
+            if let pref = newValue {
+                selectedKeyRoot = pref.selectedKeyRoot
+                capoFret = pref.capoFret
+                songNote = pref.note
+            }
+        }
         .onChange(of: currentSong.docId) { _, _ in
-            selectedKeyRoot = getRootNote(from: currentSong.originalKey)
+            viewModel.fetchSongPreference(for: currentSong.docId)
+            
+            if let pref = viewModel.songPreferences[currentSong.docId] {
+                selectedKeyRoot = pref.selectedKeyRoot
+                capoFret = pref.capoFret
+                songNote = pref.note
+            } else {
+                selectedKeyRoot = getRootNote(from: currentSong.originalKey)
+                capoFret = 0
+                songNote = ""
+                isNoteEditing = false
+            }
+            
             viewModel.addToRecentlyPlayed(currentSong)
             viewModel.incrementViewCount(for: currentSong)
             

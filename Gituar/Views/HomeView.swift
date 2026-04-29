@@ -12,7 +12,7 @@ struct HomeView: View {
         Group {
             if !searchText.isEmpty {
                 List(viewModel.songs, id: \.docId) { song in
-                    NavigationLink(destination: SongDetailView(song: song)) {
+                    NavigationLink(destination: SongDetailView(song: song, playlist: viewModel.songs)) {
                         HStack(spacing: 14) {
                             ZStack {
                                 RoundedRectangle(cornerRadius: 8)
@@ -300,7 +300,7 @@ struct FavoritesView: View {
                 }
             } else {
                 List(filtered, id: \.docId) { song in
-                    NavigationLink(destination: SongDetailView(song: song)) {
+                    NavigationLink(destination: SongDetailView(song: song, playlist: filtered)) {
                         HStack(spacing: 14) {
                             ZStack {
                                 RoundedRectangle(cornerRadius: 8)
@@ -399,7 +399,7 @@ struct PopularChordsView: View {
     
     var body: some View {
         List(filtered, id: \.docId) { song in
-            NavigationLink(destination: SongDetailView(song: song)) {
+            NavigationLink(destination: SongDetailView(song: song, playlist: filtered)) {
                 HStack(spacing: 14) {
                     ZStack {
                         RoundedRectangle(cornerRadius: 8)
@@ -442,8 +442,9 @@ struct ArtistDetailView: View {
     @EnvironmentObject var viewModel: ChordViewModel
 
     var body: some View {
-        List(viewModel.songsForArtist(artist), id: \.docId) { song in
-            NavigationLink(destination: SongDetailView(song: song)) {
+        let songs = viewModel.songsForArtist(artist)
+        List(songs, id: \.docId) { song in
+            NavigationLink(destination: SongDetailView(song: song, playlist: songs)) {
                 VStack(alignment: .leading, spacing: 3) {
                     Text(song.songName)
                         .font(.system(size: 15, weight: .medium))
@@ -474,7 +475,7 @@ struct HorizontalSongScroll: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 12) {
                         ForEach(songs, id: \.docId) { song in
-                            NavigationLink(destination: SongDetailView(song: song)) {
+                            NavigationLink(destination: SongDetailView(song: song, playlist: songs)) {
                                 MinimalSongCard(song: song)
                             }
                             .buttonStyle(PlainButtonStyle())

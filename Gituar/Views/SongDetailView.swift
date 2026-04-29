@@ -1,7 +1,8 @@
 import SwiftUI
 
 struct SongDetailView: View {
-    let song: Song
+    @State private var currentSong: Song
+    let playlist: [Song]?
     @EnvironmentObject var viewModel: ChordViewModel
 
     @State private var selectedKeyRoot: String = ""
@@ -12,28 +13,34 @@ struct SongDetailView: View {
     @State private var isFinished = false
     @StateObject private var autoScroller = AutoScroller()
     @AppStorage("autoScrollSpeed") private var autoScrollSpeed: Double = 14.0
+    @State private var slideDirection: Edge = .trailing
+
+    init(song: Song, playlist: [Song]? = nil) {
+        _currentSong = State(initialValue: song)
+        self.playlist = playlist
+    }
 
     private let allNotes = ["C", "C#", "Db", "D", "D#", "Eb", "E", "F", "F#", "Gb", "G", "G#", "Ab", "A", "A#", "Bb", "B"]
     private let chromatic = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
 
     private var songLines: [String] {
-        song.content.components(separatedBy: "\n")
+        currentSong.content.components(separatedBy: "\n")
     }
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
-
-                if !isFocusMode {
-                    // Ton Seçici
-                    VStack(alignment: .leading, spacing: 12) {
+            ZStack {
+                VStack(alignment: .leading, spacing: 24) {
+                    if !isFocusMode {
+                        // Ton Seçici
+                        VStack(alignment: .leading, spacing: 12) {
                         HStack {
                             Text("Ton")
                                 .font(.system(size: 13, weight: .medium))
                                 .foregroundColor(.secondary)
                             Spacer()
                             HStack(spacing: 4) {
-                                Text("Orijinal: \(song.originalKey)")
+                                Text("Orijinal: \(currentSong.originalKey)")
                                     .font(.system(size: 12, weight: .medium))
                                     .foregroundColor(.secondary)
                                 if transposeOffset != 0 {
@@ -42,8 +49,8 @@ struct SongDetailView: View {
                                         .foregroundColor(.blue)
                                 }
                             }
-                            if selectedKeyRoot != getRootNote(from: song.originalKey) {
-                                Button("Sıfırla") { selectedKeyRoot = getRootNote(from: song.originalKey) }
+                            if selectedKeyRoot != getRootNote(from: currentSong.originalKey) {
+                                Button("Sıfırla") { selectedKeyRoot = getRootNote(from: currentSong.originalKey) }
                                     .font(.system(size: 13))
                                     .foregroundColor(.primary)
                             }
@@ -74,11 +81,11 @@ struct SongDetailView: View {
                         HStack(spacing: 8) {
                             Button {
                                 UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                                viewModel.toggleFavorite(song: song)
+                                viewModel.toggleFavorite(song: currentSong)
                             } label: {
-                                Image(systemName: viewModel.isFavorite(song: song) ? "heart.fill" : "heart")
+                                Image(systemName: viewModel.isFavorite(song: currentSong) ? "heart.fill" : "heart")
                                     .font(.system(size: 12, weight: .semibold))
-                                    .foregroundColor(viewModel.isFavorite(song: song) ? .red : .primary)
+                                    .foregroundColor(viewModel.isFavorite(song: currentSong) ? .red : .primary)
                                     .frame(width: 30, height: 30)
                                     .background(.regularMaterial)
                                     .clipShape(Circle())
@@ -149,23 +156,23 @@ struct SongDetailView: View {
                         Divider()
 
                         // Artist Section (Styled like AllArtistsView list item)
-                        NavigationLink(destination: ArtistDetailView(artist: song.artist)) {
+                        NavigationLink(destination: ArtistDetailView(artist: currentSong.artist)) {
                             HStack(spacing: 14) {
                                 ZStack {
                                     RoundedRectangle(cornerRadius: 8)
                                         .fill(Color(.secondarySystemBackground))
                                         .frame(width: 42, height: 42)
-                                    Text(song.artist.prefix(1).uppercased())
+                                    Text(currentSong.artist.prefix(1).uppercased())
                                         .font(.system(size: 17, weight: .bold, design: .rounded))
                                         .foregroundColor(.primary)
                                 }
 
                                 VStack(alignment: .leading, spacing: 3) {
-                                    Text(song.artist)
+                                    Text(currentSong.artist)
                                         .font(.system(size: 15, weight: .medium))
                                         .foregroundColor(.primary)
                                         .lineLimit(1)
-                                    Text("\(viewModel.songsForArtist(song.artist).count) Şarkı")
+                                    Text("\(viewModel.songsForArtist(currentSong.artist).count) Şarkı")
                                         .font(.system(size: 13))
                                         .foregroundColor(.secondary)
                                         .lineLimit(1)
@@ -183,7 +190,7 @@ struct SongDetailView: View {
                         .buttonStyle(PlainButtonStyle())
 
                         // Other Songs List
-                        let allArtistSongs = viewModel.songsForArtist(song.artist).filter { ($0.id ?? $0.docId) != (song.id ?? song.docId) }
+                        let allArtistSongs = viewModel.songsForArtist(currentSong.artist).filter { ($0.id ?? $0.docId) != (currentSong.id ?? currentSong.docId) }
                         let artistSongs: [Song] = {
                             if allArtistSongs.contains(where: { $0.popularityScore > 0 }) {
                                 return Array(allArtistSongs.sorted { $0.popularityScore > $1.popularityScore }.prefix(5))
@@ -223,9 +230,15 @@ struct SongDetailView: View {
                         }
                     }
                 }
+                }
+                .background(Color(.systemBackground))
+                .padding(.horizontal, 20)
+                .id(currentSong.docId)
+                .transition(.asymmetric(
+                    insertion: .move(edge: slideDirection == .trailing ? .trailing : .leading),
+                    removal: .move(edge: slideDirection == .trailing ? .leading : .trailing)
+                ))
             }
-            .padding(.horizontal, 20)
-            .id(song.docId)
             // Add extra bottom padding in focus mode so the auto scroller can scroll past the text slightly
             .padding(.bottom, isFocusMode ? 100 : 20)
             .padding(.top, isFocusMode ? 200 : 20)
@@ -234,10 +247,10 @@ struct SongDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .principal) {
-                NavigationLink(destination: ArtistDetailView(artist: song.artist)) {
+                NavigationLink(destination: ArtistDetailView(artist: currentSong.artist)) {
                     VStack(spacing: 1) {
-                        Text(song.songName).font(.system(size: 15, weight: .semibold)).lineLimit(1).foregroundColor(.primary)
-                        Text(song.artist).font(.system(size: 11)).foregroundColor(.secondary).lineLimit(1)
+                        Text(currentSong.songName).font(.system(size: 15, weight: .semibold)).lineLimit(1).foregroundColor(.primary)
+                        Text(currentSong.artist).font(.system(size: 11)).foregroundColor(.secondary).lineLimit(1)
                     }
                 }
             }
@@ -293,31 +306,93 @@ struct SongDetailView: View {
                     Button("Kapat", systemImage: "xmark") { stopAndReset() }
                 }
                 
-            } else {
                 ToolbarItem(placement: .bottomBar) { Spacer() }
+                
+            } else {
+                if let playlist = playlist, playlist.count > 1 {
+                    ToolbarItem(placement: .bottomBar) {
+                        Button {
+                            previousSong()
+                        } label: {
+                            Image(systemName: "chevron.left")
+                                .font(.system(size: 20, weight: .medium))
+                                .frame(width: 44, height: 44)
+                                .contentShape(Rectangle())
+                        }
+                    }
+                }
+                
+                ToolbarItem(placement: .bottomBar) { Spacer() }
+                
                 ToolbarItem(placement: .bottomBar) {
                     Button("Çal", systemImage: "play.fill") { startFocusMode() }
+                }
+                
+                ToolbarItem(placement: .bottomBar) { Spacer() }
+                
+                if let playlist = playlist, playlist.count > 1 {
+                    ToolbarItem(placement: .bottomBar) {
+                        Button {
+                            nextSong()
+                        } label: {
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 20, weight: .medium))
+                                .frame(width: 44, height: 44)
+                                .contentShape(Rectangle())
+                        }
+                    }
                 }
             }
         }
         .onAppear {
             if selectedKeyRoot.isEmpty {
-                selectedKeyRoot = getRootNote(from: song.originalKey)
+                selectedKeyRoot = getRootNote(from: currentSong.originalKey)
             }
-            viewModel.addToRecentlyPlayed(song)
-            viewModel.incrementViewCount(for: song)
+            viewModel.addToRecentlyPlayed(currentSong)
+            viewModel.incrementViewCount(for: currentSong)
             autoScroller.pixelsPerSecond = CGFloat(autoScrollSpeed)
             autoScroller.onFinish = {
                 isPaused = true
                 isFinished = true
             }
         }
+        .onChange(of: currentSong.docId) { _ in
+            selectedKeyRoot = getRootNote(from: currentSong.originalKey)
+            viewModel.addToRecentlyPlayed(currentSong)
+            viewModel.incrementViewCount(for: currentSong)
+            autoScroller.reset()
+            isPaused = false
+            isFinished = false
+        }
         .onChange(of: autoScrollSpeed) { newValue in
             autoScroller.pixelsPerSecond = CGFloat(newValue)
         }
         .onDisappear { autoScroller.reset() }
         .sheet(isPresented: $showRepertoirePicker) {
-            RepertoirePickerSheet(song: song)
+            RepertoirePickerSheet(song: currentSong)
+        }
+    }
+
+    // MARK: - Navigation Control
+    private func nextSong() {
+        guard let playlist = playlist,
+              let currentIndex = playlist.firstIndex(where: { ($0.id ?? $0.docId) == (currentSong.id ?? currentSong.docId) }) else { return }
+        let nextIndex = (currentIndex + 1) % playlist.count
+        slideDirection = .trailing
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        withAnimation(.interpolatingSpring(stiffness: 300, damping: 30)) {
+            currentSong = playlist[nextIndex]
+        }
+    }
+
+    private func previousSong() {
+        guard let playlist = playlist,
+              let currentIndex = playlist.firstIndex(where: { ($0.id ?? $0.docId) == (currentSong.id ?? currentSong.docId) }) else { return }
+        let prevIndex = (currentIndex - 1 + playlist.count) % playlist.count
+        slideDirection = .leading
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        withAnimation(.interpolatingSpring(stiffness: 300, damping: 30)) {
+            currentSong = playlist[prevIndex]
         }
     }
 
@@ -353,7 +428,7 @@ struct SongDetailView: View {
     // MARK: - Transpose Logic
 
     private var transposeOffset: Int {
-        let orig = normalizeNote(getRootNote(from: song.originalKey))
+        let orig = normalizeNote(getRootNote(from: currentSong.originalKey))
         let sel  = normalizeNote(selectedKeyRoot)
         guard let oi = chromatic.firstIndex(of: orig),
               let si = chromatic.firstIndex(of: sel) else { return 0 }

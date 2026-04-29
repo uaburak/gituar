@@ -14,7 +14,7 @@ struct ExploreView: View {
 
     var body: some View {
         List(filtered) { song in
-            NavigationLink(destination: SongDetailView(song: song)) {
+            NavigationLink(destination: SongDetailView(song: song, playlist: filtered)) {
                 HStack(spacing: 14) {
                     // Harf avatar
                     ZStack {

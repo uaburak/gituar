@@ -108,7 +108,7 @@ struct RepertoireDetailView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 List(songs, id: \.docId) { song in
-                    NavigationLink(destination: SongDetailView(song: song)) {
+                    NavigationLink(destination: SongDetailView(song: song, playlist: songs)) {
                         VStack(alignment: .leading, spacing: 3) {
                             Text(song.songName)
                                 .font(.system(size: 15, weight: .medium))

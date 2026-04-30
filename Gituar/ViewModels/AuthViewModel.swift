@@ -13,6 +13,11 @@ class AuthViewModel: ObservableObject {
     @Published var isGuestMode: Bool = false
     @Published var isProfileComplete: Bool = false
     @Published var isCheckingProfile: Bool = false
+    @Published var userProfile: UserProfile? = nil
+
+    var isAdmin: Bool {
+        userProfile?.isAdmin ?? false
+    }
 
     private var currentNonce: String?
     private var authStateHandle: AuthStateDidChangeListenerHandle?
@@ -36,6 +41,7 @@ class AuthViewModel: ObservableObject {
         Task { [weak self] in
             let profile = try? await UserService.shared.fetchUserProfile(uid: uid)
             DispatchQueue.main.async {
+                self?.userProfile = profile
                 self?.isProfileComplete = (profile != nil)
                 self?.isCheckingProfile = false
             }

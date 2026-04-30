@@ -19,6 +19,7 @@ class ChordViewModel: ObservableObject {
     @Published var allSongs: [Song] = [] // Tüm şarkılar (Cache)
     @Published var publicRepertoires: [Repertoire] = [] // Paylaşılan repertuarlar
     @Published var songPreferences: [String: UserSongPreference] = [:] // Kullanıcıya özel şarkı ayarları
+    @Published var pendingSongs: [Song] = [] // Onay bekleyen şarkılar
     
     private var db = Firestore.firestore()
     private var cancellables = Set<AnyCancellable>()
@@ -82,26 +83,39 @@ class ChordViewModel: ObservableObject {
                     self.allSongs = fetchedSongs
                     self.processDashboardData()
                     self.loadUserData(userId: self.userId)
+                    self.fetchPendingSongs()
                 }
             }
         }
     }
     
+    func fetchPendingSongs() {
+        // Sadece bekleyenleri çek (Gerçek uygulamada sadece admin çekebilmeli ama şimdilik client-side da olabilir)
+        // Ya da admin ise fetchPendingSongs() çağrılır.
+        self.pendingSongs = allSongs.filter { $0.status == "pending" }
+    }
+    
     private func processDashboardData() {
+        // Sadece onaylı şarkıları dashboard ve arama için kullan (status nil olan eski şarkıları da dahil ediyoruz)
+        let approvedSongs = allSongs.filter { $0.status == "approved" || $0.status == nil }
+        
         // Sanatçıları alfabetik listele
-        self.artists = Array(Set(allSongs.map { $0.artist })).sorted()
+        self.artists = Array(Set(approvedSongs.map { $0.artist })).sorted()
         
         // En çok eklenenler (repertoireAdds'e göre)
-        self.mostAdded = allSongs.sorted { ($0.repertoireAdds ?? 0) > ($1.repertoireAdds ?? 0) }.prefix(10).map { $0 }
+        self.mostAdded = approvedSongs.sorted { ($0.repertoireAdds ?? 0) > ($1.repertoireAdds ?? 0) }.prefix(10).map { $0 }
         
         // Popülerler (Ağırlıklı Algoritma - popularityScore'a göre)
         // Score = (TotalViews * 0.1) + (RecentViews * 0.6) + (RepertoireAdds * 0.3)
-        self.popularChords = allSongs.sorted { $0.popularityScore > $1.popularityScore }.prefix(10).map { $0 }
+        self.popularChords = approvedSongs.sorted { $0.popularityScore > $1.popularityScore }.prefix(10).map { $0 }
         
         // Yeni Gelenler (Son 3 ay)
         let threeMonthsAgo = Calendar.current.date(byAdding: .month, value: -3, to: Date()) ?? Date()
-        self.newArrivals = allSongs.filter { ($0.createdAt ?? Date(timeIntervalSince1970: 0)) > threeMonthsAgo }
+        self.newArrivals = approvedSongs.filter { ($0.createdAt ?? Date(timeIntervalSince1970: 0)) > threeMonthsAgo }
             .sorted { ($0.createdAt ?? Date()) > ($1.createdAt ?? Date()) }
+        
+        // Onay bekleyenleri de güncelle
+        self.fetchPendingSongs()
         
         // Son Çalınanlar (UserDefaults'tan yükle)
         loadRecentlyPlayed()
@@ -145,7 +159,8 @@ class ChordViewModel: ObservableObject {
         let normalizedQuery = cleanedQuery.turkeyNormalized
         let queryWords = normalizedQuery.components(separatedBy: .whitespaces).filter { !$0.isEmpty }
         
-        let filtered = allSongs.filter { song in
+        let approvedSongs = allSongs.filter { $0.status == "approved" }
+        let filtered = approvedSongs.filter { song in
             let normalizedArtist = song.artist.turkeyNormalized
             let normalizedSongName = song.songName.turkeyNormalized
             
@@ -394,6 +409,52 @@ class ChordViewModel: ObservableObject {
                 DispatchQueue.main.async {
                     self?.allSongs.removeAll { $0.docId == songId || $0.id == songId }
                     self?.processDashboardData()
+                }
+            }
+        }
+    }
+    
+    func approveSong(_ song: Song) {
+        let songId = song.id ?? song.docId
+        print("Approving song: \(song.songName) with ID: \(songId)")
+        
+        db.collection("chords").document(songId).updateData(["status": "approved"]) { [weak self] error in
+            if let error = error {
+                print("Error approving song: \(error.localizedDescription)")
+                return
+            }
+            
+            print("Successfully approved in Firestore")
+            DispatchQueue.main.async {
+                if let index = self?.allSongs.firstIndex(where: { ($0.id ?? $0.docId) == songId }) {
+                    self?.allSongs[index].status = "approved"
+                    self?.processDashboardData()
+                    print("Local state updated for approval")
+                } else {
+                    print("Could not find song in allSongs to update locally")
+                }
+            }
+        }
+    }
+    
+    func rejectSong(_ song: Song) {
+        let songId = song.id ?? song.docId
+        print("Rejecting song: \(song.songName) with ID: \(songId)")
+        
+        db.collection("chords").document(songId).updateData(["status": "rejected"]) { [weak self] error in
+            if let error = error {
+                print("Error rejecting song: \(error.localizedDescription)")
+                return
+            }
+            
+            print("Successfully rejected in Firestore")
+            DispatchQueue.main.async {
+                if let index = self?.allSongs.firstIndex(where: { ($0.id ?? $0.docId) == songId }) {
+                    self?.allSongs[index].status = "rejected"
+                    self?.processDashboardData()
+                    print("Local state updated for rejection")
+                } else {
+                    print("Could not find song in allSongs to update locally")
                 }
             }
         }

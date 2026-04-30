@@ -10,4 +10,5 @@ struct UserProfile: Identifiable, Codable {
     var email: String?
     var photoUrl: String?
     var createdAt: Date?
+    var isAdmin: Bool?
 }

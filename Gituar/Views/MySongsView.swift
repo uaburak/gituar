@@ -280,6 +280,12 @@ struct EditSongView: View {
     private func saveSong(asStatus targetStatus: String) {
         guard let userId = authViewModel.currentUser?.uid else { return }
         
+        var finalStatus = targetStatus
+        // Eğer admin yayınla (pending) derse direkt onaylı (approved) olarak kaydet
+        if targetStatus == "pending" && authViewModel.isAdmin {
+            finalStatus = "approved"
+        }
+        
         let songToSave = Song(
             id: song?.id,
             docId: song?.docId ?? UUID().uuidString,
@@ -292,7 +298,7 @@ struct EditSongView: View {
             recentViews: song?.recentViews ?? 0,
             repertoireAdds: song?.repertoireAdds ?? 0,
             ownerId: userId,
-            status: targetStatus
+            status: finalStatus
         )
         
         viewModel.saveSong(songToSave)

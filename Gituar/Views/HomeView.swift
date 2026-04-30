@@ -90,6 +90,12 @@ struct HomeView: View {
                                 NavigationLink(destination: GenericSongListView(title: "En Çok Eklenenler", songs: viewModel.mostAdded)) {
                                     MinimalListCard(title: "Çok Eklenenler", icon: "star.fill")
                                 }
+                                
+                                if authViewModel.isAdmin {
+                                    NavigationLink(destination: PendingApprovalListView()) {
+                                        MinimalListCard(title: "Onay Bekleyenler", icon: "checkmark.seal.fill")
+                                    }
+                                }
                             }
                             .padding(.horizontal, 20)
                         }

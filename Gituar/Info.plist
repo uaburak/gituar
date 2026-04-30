@@ -21,5 +21,16 @@
 		</dict>
 		<dict/>
 	</array>
+	<key>GADApplicationIdentifier</key>
+	<string>ca-app-pub-9748717269838207~8786045485</string>
+
+	<key>SKAdNetworkItems</key>
+	<array>
+		<dict>
+			<key>SKAdNetworkIdentifier</key>
+			<string>cstr6suwn9.skadnetwork</string>
+		</dict>
+	</array>
 </dict>
 </plist>
+

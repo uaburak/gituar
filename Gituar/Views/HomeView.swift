@@ -25,11 +25,12 @@ struct HomeView: View {
                         // Top Ad Banner
                         VStack(spacing: 0) {
                             AdBannerView()
-                                .frame(height: 50)
+                                .frame(height: 100)
                                 .frame(maxWidth: .infinity)
                                 .background(Color(.systemGray6))
                                 .cornerRadius(12)
                         }
+
                         .padding(.horizontal, 20)
                         .padding(.top, 16)
                         

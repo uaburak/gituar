@@ -4,6 +4,7 @@ import FirebaseAuth
 import Combine
 import SwiftUI
 
+@MainActor
 class ChordViewModel: ObservableObject {
     @Published var songs: [Song] = [] // Arama sonuçları
     @Published var searchText: String = ""
@@ -23,6 +24,7 @@ class ChordViewModel: ObservableObject {
     
     private let collectionChords = "chords"
     private let collectionUserChords = "user-chords"
+    private let collectionPublicRepertoires = "public-repertoires"
     private let metadataCollection = "metadata"
     private let countersDocument = "counters"
     
@@ -78,40 +80,29 @@ class ChordViewModel: ObservableObject {
     
     private func fetchAllSongs() {
         guard !isLoading else { return }
-        
         isLoading = true
         
-        // Fetch from both collections in parallel
-        let group = DispatchGroup()
-        var allFetchedSongs: [Song] = []
-        
-        // 1. Official Chords
-        group.enter()
-        db.collection(collectionChords).getDocuments { snapshot, _ in
-            if let docs = snapshot?.documents {
-                let songs = docs.compactMap { try? $0.data(as: Song.self) }
-                allFetchedSongs.append(contentsOf: songs)
+        Task { @MainActor in
+            do {
+                // Fetch from both collections in parallel using async let
+                async let officialSnapshot = db.collection(collectionChords).getDocuments()
+                async let userSnapshot = db.collection(collectionUserChords).getDocuments()
+                
+                let (official, user) = try await (officialSnapshot, userSnapshot)
+                
+                // Decoding on MainActor as required by Swift 6 for these models
+                let officialSongs = official.documents.compactMap { try? $0.data(as: Song.self) }
+                let userSongs = user.documents.compactMap { try? $0.data(as: Song.self) }
+                
+                self.allSongs = officialSongs + userSongs
+                self.isLoading = false
+                self.processDashboardData()
+                self.loadUserData(userId: self.userId)
+                self.fetchPendingSongs()
+            } catch {
+                print("Error fetching all songs: \(error)")
+                self.isLoading = false
             }
-            group.leave()
-        }
-        
-        // 2. User Chords
-        group.enter()
-        db.collection(collectionUserChords).getDocuments { snapshot, _ in
-            if let docs = snapshot?.documents {
-                let songs = docs.compactMap { try? $0.data(as: Song.self) }
-                allFetchedSongs.append(contentsOf: songs)
-            }
-            group.leave()
-        }
-        
-        group.notify(queue: .main) { [weak self] in
-            guard let self = self else { return }
-            self.isLoading = false
-            self.allSongs = allFetchedSongs
-            self.processDashboardData()
-            self.loadUserData(userId: self.userId)
-            self.fetchPendingSongs()
         }
     }
     
@@ -175,7 +166,6 @@ class ChordViewModel: ObservableObject {
         allSongs.filter { $0.artist == artist }.sorted { $0.songName < $1.songName }
     }
     
-    @MainActor
     func filterSongs(query: String) async {
         let cleanedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !cleanedQuery.isEmpty else {
@@ -234,10 +224,35 @@ class ChordViewModel: ObservableObject {
     // MARK: - Repertoire Management
     
     private func fetchRepertoiresFromFirestore(userId: String) {
+        // Clear old listeners if any (in a real app you might want to store ListenerRegistration)
+        
+        // 1. Private Repertoires
         db.collection("users").document(userId).collection("repertoires").addSnapshotListener { [weak self] snapshot, _ in
-            guard let self = self, let docs = snapshot?.documents else { return }
-            DispatchQueue.main.async {
-                self.repertoires = docs.compactMap { try? $0.data(as: Repertoire.self) }
+            self?.combineAndSyncRepertoires()
+        }
+        
+        // 2. Public Repertoires owned by me
+        db.collection(collectionPublicRepertoires).whereField("ownerId", isEqualTo: userId).addSnapshotListener { [weak self] snapshot, _ in
+            self?.combineAndSyncRepertoires()
+        }
+    }
+
+    private func combineAndSyncRepertoires() {
+        guard let uid = userId else { return }
+        
+        Task { @MainActor in
+            do {
+                async let privateSnapshot = db.collection("users").document(uid).collection("repertoires").getDocuments()
+                async let publicSnapshot = db.collection(collectionPublicRepertoires).whereField("ownerId", isEqualTo: uid).getDocuments()
+                
+                let (pSnapshot, pubSnapshot) = try await (privateSnapshot, publicSnapshot)
+                
+                let privateReps = pSnapshot.documents.compactMap { try? $0.data(as: Repertoire.self) }
+                let publicReps = pubSnapshot.documents.compactMap { try? $0.data(as: Repertoire.self) }
+                
+                self.repertoires = (privateReps + publicReps).sorted { ($0.createdAt ) > ($1.createdAt ) }
+            } catch {
+                print("Error combining repertoires: \(error)")
             }
         }
     }
@@ -258,11 +273,10 @@ class ChordViewModel: ObservableObject {
     }
 
     func fetchPublicRepertoires() {
-        db.collectionGroup("repertoires")
-            .whereField("isPublic", isEqualTo: true)
+        db.collection(collectionPublicRepertoires)
             .addSnapshotListener { [weak self] snapshot, error in
                 guard let self = self, let docs = snapshot?.documents else { return }
-                DispatchQueue.main.async {
+                Task {
                     self.publicRepertoires = docs.compactMap { try? $0.data(as: Repertoire.self) }
                         .sorted { ($0.createdAt ) > ($1.createdAt ) }
                 }
@@ -304,8 +318,10 @@ class ChordViewModel: ObservableObject {
     }
 
     func deleteRepertoire(_ repertoire: Repertoire) {
-        if let uid = userId {
-            if let id = repertoire.id {
+        if let uid = userId, let id = repertoire.id {
+            if repertoire.isPublic ?? false {
+                db.collection(collectionPublicRepertoires).document(id).delete()
+            } else {
                 db.collection("users").document(uid).collection("repertoires").document(id).delete()
             }
         } else {
@@ -319,7 +335,8 @@ class ChordViewModel: ObservableObject {
     func renameRepertoire(_ repertoire: Repertoire, newName: String) {
         guard repertoire.ownerId == (userId ?? "local") else { return }
         if let uid = userId, let repId = repertoire.id {
-            db.collection("users").document(uid).collection("repertoires").document(repId).updateData([
+            let collection = (repertoire.isPublic ?? false) ? collectionPublicRepertoires : "users/\(uid)/repertoires"
+            db.collection(collection).document(repId).updateData([
                 "name": newName
             ])
         } else {
@@ -342,7 +359,8 @@ class ChordViewModel: ObservableObject {
             var updatedSongIds = repertoire.songIds
             if !updatedSongIds.contains(songId) {
                 updatedSongIds.append(songId)
-                db.collection("users").document(uid).collection("repertoires").document(repId).updateData([
+                let collection = (repertoire.isPublic ?? false) ? collectionPublicRepertoires : "users/\(uid)/repertoires"
+                db.collection(collection).document(repId).updateData([
                     "songIds": updatedSongIds
                 ])
             }
@@ -362,7 +380,8 @@ class ChordViewModel: ObservableObject {
         if let uid = userId, let repId = repertoire.id {
             var updatedSongIds = repertoire.songIds
             updatedSongIds.removeAll { $0 == songId }
-            db.collection("users").document(uid).collection("repertoires").document(repId).updateData([
+            let collection = (repertoire.isPublic ?? false) ? collectionPublicRepertoires : "users/\(uid)/repertoires"
+            db.collection(collection).document(repId).updateData([
                 "songIds": updatedSongIds
             ])
         } else {
@@ -373,20 +392,29 @@ class ChordViewModel: ObservableObject {
     }
 
     func setRepertoirePublic(_ repertoire: Repertoire, isPublic: Bool) {
-        guard repertoire.ownerId == (userId ?? "local") else { return }
-        if let uid = userId, let repId = repertoire.id {
-            db.collection("users").document(uid).collection("repertoires").document(repId).updateData([
-                "isPublic": isPublic
-            ])
-        } else {
-            guard let index = repertoires.firstIndex(where: { $0.id == repertoire.id }) else { return }
-            repertoires[index].isPublic = isPublic
-            saveRepertoires()
+        guard let uid = userId, let repId = repertoire.id else { return }
+        guard repertoire.ownerId == uid else { return }
+        
+        let oldCollection = (repertoire.isPublic ?? false) ? collectionPublicRepertoires : "users/\(uid)/repertoires"
+        let newCollection = isPublic ? collectionPublicRepertoires : "users/\(uid)/repertoires"
+        
+        if oldCollection == newCollection { return }
+        
+        var updatedRepertoire = repertoire
+        updatedRepertoire.isPublic = isPublic
+        
+        // 1. New collection'a yaz
+        do {
+            try db.collection(newCollection).document(repId).setData(from: updatedRepertoire)
+            // 2. Old collection'dan sil
+            db.collection(oldCollection).document(repId).delete()
+        } catch {
+            print("Error toggling repertoire visibility: \(error)")
         }
     }
 
     func duplicateRepertoire(_ repertoire: Repertoire) {
-        guard !isRepertoireCopied(repertoire) else { return }
+        // Kopyalama her zaman kullanıcının private alanına yapılır (isPublic: false)
         let newId = UUID().uuidString
         let copy = Repertoire(
             id: newId,
@@ -401,6 +429,7 @@ class ChordViewModel: ObservableObject {
         if let uid = userId {
             do {
                 try db.collection("users").document(uid).collection("repertoires").document(newId).setData(from: copy)
+                // Local state Snapshot listener ile güncellenecektir
             } catch {
                 print("Error duplicating repertoire: \(error)")
             }
@@ -480,12 +509,12 @@ class ChordViewModel: ObservableObject {
         }) { [weak self] (result, error) in
             if let error = error {
                 print("❌ Transaction failed: \(error.localizedDescription)")
-                // Hata mesajını kullanıcıya göstermek için bir uyarı mekanizması eklenebilir
             } else if let newSong = result as? Song {
                 print("✅ Transaction successful! New song ID: \(newSong.docId)")
-                DispatchQueue.main.async {
-                    self?.allSongs.append(newSong)
-                    self?.processDashboardData()
+                guard let self = self else { return }
+                Task {
+                    self.allSongs.append(newSong)
+                    self.processDashboardData()
                 }
             } else {
                 print("⚠️ Transaction finished but result is unexpected")
@@ -512,12 +541,13 @@ class ChordViewModel: ObservableObject {
         let songId = song.id ?? song.docId
         let collection = songId.hasPrefix("u") ? collectionUserChords : collectionChords
         
-        db.collection(collection).document(songId).delete() { [weak self] error in
-            if error == nil {
-                DispatchQueue.main.async {
-                    self?.allSongs.removeAll { $0.docId == songId || $0.id == songId }
-                    self?.processDashboardData()
-                }
+        Task {
+            do {
+                try await db.collection(collection).document(songId).delete()
+                self.allSongs.removeAll { $0.docId == songId || $0.id == songId }
+                self.processDashboardData()
+            } catch {
+                print("Error deleting song: \(error)")
             }
         }
     }
@@ -526,14 +556,15 @@ class ChordViewModel: ObservableObject {
         let songId = song.id ?? song.docId
         let collection = songId.hasPrefix("u") ? collectionUserChords : collectionChords
         
-        db.collection(collection).document(songId).updateData(["status": "approved"]) { [weak self] error in
-            if error == nil {
-                DispatchQueue.main.async {
-                    if let index = self?.allSongs.firstIndex(where: { ($0.id ?? $0.docId) == songId }) {
-                        self?.allSongs[index].status = "approved"
-                        self?.processDashboardData()
-                    }
+        Task {
+            do {
+                try await db.collection(collection).document(songId).updateData(["status": "approved"])
+                if let index = self.allSongs.firstIndex(where: { ($0.id ?? $0.docId) == songId }) {
+                    self.allSongs[index].status = "approved"
+                    self.processDashboardData()
                 }
+            } catch {
+                print("Error approving song: \(error)")
             }
         }
     }
@@ -542,14 +573,15 @@ class ChordViewModel: ObservableObject {
         let songId = song.id ?? song.docId
         let collection = songId.hasPrefix("u") ? collectionUserChords : collectionChords
         
-        db.collection(collection).document(songId).updateData(["status": "rejected"]) { [weak self] error in
-            if error == nil {
-                DispatchQueue.main.async {
-                    if let index = self?.allSongs.firstIndex(where: { ($0.id ?? $0.docId) == songId }) {
-                        self?.allSongs[index].status = "rejected"
-                        self?.processDashboardData()
-                    }
+        Task {
+            do {
+                try await db.collection(collection).document(songId).updateData(["status": "rejected"])
+                if let index = self.allSongs.firstIndex(where: { ($0.id ?? $0.docId) == songId }) {
+                    self.allSongs[index].status = "rejected"
+                    self.processDashboardData()
                 }
+            } catch {
+                print("Error rejecting song: \(error)")
             }
         }
     }
@@ -572,18 +604,21 @@ class ChordViewModel: ObservableObject {
         }
         
         // Fetch from Firebase
-        if let uid = userId {
-            db.collection("users").document(uid).collection("preferences").document(songId).getDocument { [weak self] snapshot, _ in
-                DispatchQueue.main.async {
-                    if let data = try? snapshot?.data(as: UserSongPreference.self) {
-                        self?.songPreferences[songId] = data
-                        // Update local cache
-                        let currentPrefKey = self?.getPrefKey(for: songId) ?? "pref_guest_\(songId)"
-                        if let encoded = try? JSONEncoder().encode(data) {
-                            UserDefaults.standard.set(encoded, forKey: currentPrefKey)
-                        }
+        guard let uid = userId else { return }
+        
+        Task {
+            do {
+                let snapshot = try await db.collection("users").document(uid).collection("preferences").document(songId).getDocument()
+                if let data = try? snapshot.data(as: UserSongPreference.self) {
+                    self.songPreferences[songId] = data
+                    // Update local cache
+                    let currentPrefKey = self.getPrefKey(for: songId)
+                    if let encoded = try? JSONEncoder().encode(data) {
+                        UserDefaults.standard.set(encoded, forKey: currentPrefKey)
                     }
                 }
+            } catch {
+                print("Error fetching preference: \(error)")
             }
         }
     }

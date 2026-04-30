@@ -1,20 +1,21 @@
 import SwiftUI
+import Combine
 
 struct ExploreView: View {
     @EnvironmentObject var viewModel: ChordViewModel
     @State private var searchText: String = ""
 
-    var filtered: [Song] {
-        guard !searchText.isEmpty else { return viewModel.allSongs }
-        return viewModel.allSongs.filter {
-            $0.songName.turkeyNormalized.contains(searchText.turkeyNormalized) ||
-            $0.artist.turkeyNormalized.contains(searchText.turkeyNormalized)
+    var displaySongs: [Song] {
+        if searchText.isEmpty {
+            return viewModel.allSongs
+        } else {
+            return viewModel.songs
         }
     }
 
     var body: some View {
-        List(filtered) { song in
-            NavigationLink(destination: SongDetailView(song: song, playlist: filtered)) {
+        List(displaySongs) { song in
+            NavigationLink(destination: SongDetailView(song: song, playlist: displaySongs)) {
                 HStack(spacing: 14) {
                     // Harf avatar
                     ZStack {
@@ -48,5 +49,8 @@ struct ExploreView: View {
         .listStyle(.plain)
         .navigationTitle("Tüm Şarkılar")
         .searchable(text: $searchText, prompt: "Ara")
+        .onChange(of: searchText) { _, newValue in
+            viewModel.searchText = newValue
+        }
     }
 }

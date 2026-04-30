@@ -288,7 +288,7 @@ struct EditSongView: View {
         
         let songToSave = Song(
             id: song?.id,
-            docId: song?.docId ?? UUID().uuidString,
+            docId: song?.docId ?? "",
             artist: artist.trimmingCharacters(in: .whitespaces),
             songName: songName.trimmingCharacters(in: .whitespaces),
             originalKey: originalKey,

@@ -1,5 +1,6 @@
 import SwiftUI
 import FirebaseAuth
+import Combine
 
 struct HomeView: View {
     @EnvironmentObject var viewModel: ChordViewModel
@@ -318,12 +319,15 @@ struct GenericSongListView: View {
     let title: String
     let songs: [Song]
     @State private var searchText: String = ""
+    @State private var debouncedSearchText: String = ""
+    private let searchPublisher = PassthroughSubject<String, Never>()
     
     var filtered: [Song] {
-        if searchText.isEmpty { return songs }
+        if debouncedSearchText.isEmpty { return songs }
+        let query = debouncedSearchText.turkeyNormalized
         return songs.filter {
-            $0.songName.turkeyNormalized.contains(searchText.turkeyNormalized) ||
-            $0.artist.turkeyNormalized.contains(searchText.turkeyNormalized)
+            $0.songName.turkeyNormalized.contains(query) ||
+            $0.artist.turkeyNormalized.contains(query)
         }
     }
 
@@ -346,6 +350,12 @@ struct GenericSongListView: View {
                 }
                 .listStyle(.plain)
                 .searchable(text: $searchText, prompt: "Ara...")
+                .onReceive(searchPublisher.debounce(for: .milliseconds(500), scheduler: RunLoop.main)) { newValue in
+                    debouncedSearchText = newValue
+                }
+                .onChange(of: searchText) { _, newValue in
+                    searchPublisher.send(newValue)
+                }
             }
         }
         .navigationTitle(title)
@@ -356,10 +366,13 @@ struct GenericSongListView: View {
 struct AllArtistsView: View {
     @EnvironmentObject var viewModel: ChordViewModel
     @State private var searchText: String = ""
+    @State private var debouncedSearchText: String = ""
+    private let searchPublisher = PassthroughSubject<String, Never>()
     
     var filteredArtists: [String] {
-        if searchText.isEmpty { return viewModel.artists }
-        return viewModel.artists.filter { $0.turkeyNormalized.contains(searchText.turkeyNormalized) }
+        if debouncedSearchText.isEmpty { return viewModel.artists }
+        let query = debouncedSearchText.turkeyNormalized
+        return viewModel.artists.filter { $0.turkeyNormalized.contains(query) }
     }
     
     var body: some View {
@@ -397,6 +410,12 @@ struct AllArtistsView: View {
         .listStyle(.plain)
         .navigationTitle("Sanatçılar")
         .searchable(text: $searchText, prompt: "Sanatçı ara...")
+        .onReceive(searchPublisher.debounce(for: .milliseconds(500), scheduler: RunLoop.main)) { newValue in
+            debouncedSearchText = newValue
+        }
+        .onChange(of: searchText) { _, newValue in
+            searchPublisher.send(newValue)
+        }
     }
 }
 

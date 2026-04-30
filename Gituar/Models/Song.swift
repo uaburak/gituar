@@ -1,7 +1,7 @@
 import Foundation
 import FirebaseFirestore
 
-struct Song: Identifiable, Codable, Hashable {
+struct Song: Identifiable, Codable, Hashable, Sendable {
     @DocumentID var id: String?
     var docId: String
     var artist: String

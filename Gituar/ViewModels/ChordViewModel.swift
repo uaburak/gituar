@@ -21,6 +21,11 @@ class ChordViewModel: ObservableObject {
     @Published var songPreferences: [String: UserSongPreference] = [:] // Kullanıcıya özel şarkı ayarları
     @Published var pendingSongs: [Song] = [] // Onay bekleyen şarkılar
     
+    private let collectionChords = "chords"
+    private let collectionUserChords = "user-chords"
+    private let metadataCollection = "metadata"
+    private let countersDocument = "counters"
+    
     private var db = Firestore.firestore()
     private var cancellables = Set<AnyCancellable>()
     private var authListener: AuthStateDidChangeListenerHandle?
@@ -41,10 +46,12 @@ class ChordViewModel: ObservableObject {
         fetchAllSongs()
         
         $searchText
-            .debounce(for: .milliseconds(300), scheduler: RunLoop.main)
+            .debounce(for: .milliseconds(600), scheduler: RunLoop.main)
             .removeDuplicates()
             .sink { [weak self] text in
-                self?.filterSongs(query: text)
+                Task {
+                    await self?.filterSongs(query: text)
+                }
             }
             .store(in: &cancellables)
             
@@ -70,22 +77,41 @@ class ChordViewModel: ObservableObject {
     }
     
     private func fetchAllSongs() {
-        guard allSongs.isEmpty && !isLoading else { return }
+        guard !isLoading else { return }
         
         isLoading = true
-        db.collection("chords").getDocuments { [weak self] snapshot, error in
-            DispatchQueue.main.async {
-                guard let self = self else { return }
-                self.isLoading = false
-                
-                if let docs = snapshot?.documents {
-                    let fetchedSongs = docs.compactMap { try? $0.data(as: Song.self) }
-                    self.allSongs = fetchedSongs
-                    self.processDashboardData()
-                    self.loadUserData(userId: self.userId)
-                    self.fetchPendingSongs()
-                }
+        
+        // Fetch from both collections in parallel
+        let group = DispatchGroup()
+        var allFetchedSongs: [Song] = []
+        
+        // 1. Official Chords
+        group.enter()
+        db.collection(collectionChords).getDocuments { snapshot, _ in
+            if let docs = snapshot?.documents {
+                let songs = docs.compactMap { try? $0.data(as: Song.self) }
+                allFetchedSongs.append(contentsOf: songs)
             }
+            group.leave()
+        }
+        
+        // 2. User Chords
+        group.enter()
+        db.collection(collectionUserChords).getDocuments { snapshot, _ in
+            if let docs = snapshot?.documents {
+                let songs = docs.compactMap { try? $0.data(as: Song.self) }
+                allFetchedSongs.append(contentsOf: songs)
+            }
+            group.leave()
+        }
+        
+        group.notify(queue: .main) { [weak self] in
+            guard let self = self else { return }
+            self.isLoading = false
+            self.allSongs = allFetchedSongs
+            self.processDashboardData()
+            self.loadUserData(userId: self.userId)
+            self.fetchPendingSongs()
         }
     }
     
@@ -149,7 +175,8 @@ class ChordViewModel: ObservableObject {
         allSongs.filter { $0.artist == artist }.sorted { $0.songName < $1.songName }
     }
     
-    func filterSongs(query: String) {
+    @MainActor
+    func filterSongs(query: String) async {
         let cleanedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !cleanedQuery.isEmpty else {
             self.songs = []
@@ -159,35 +186,44 @@ class ChordViewModel: ObservableObject {
         let normalizedQuery = cleanedQuery.turkeyNormalized
         let queryWords = normalizedQuery.components(separatedBy: .whitespaces).filter { !$0.isEmpty }
         
-        let approvedSongs = allSongs.filter { $0.status == "approved" }
-        let filtered = approvedSongs.filter { song in
-            let normalizedArtist = song.artist.turkeyNormalized
-            let normalizedSongName = song.songName.turkeyNormalized
-            
-            return queryWords.allSatisfy { word in
-                normalizedArtist.contains(word) || normalizedSongName.contains(word)
-            }
-        }
+        // Capture data for background thread to avoid actor isolation issues
+        let songsToFilter = self.allSongs
         
-        self.songs = filtered.sorted { s1, s2 in
-            let n1A = s1.artist.turkeyNormalized
-            let n1S = s1.songName.turkeyNormalized
-            let n2A = s2.artist.turkeyNormalized
-            let n2S = s2.songName.turkeyNormalized
+        // Veriyi arka planda işle
+        let filtered = await Task.detached(priority: .userInitiated) { [normalizedQuery, queryWords] in
+            // status nil olan eski şarkıları da dahil ediyoruz
+            let approvedSongs = songsToFilter.filter { $0.status == "approved" || $0.status == nil }
             
-            let s1Starts = n1S.hasPrefix(normalizedQuery) || n1A.hasPrefix(normalizedQuery)
-            let s2Starts = n2S.hasPrefix(normalizedQuery) || n2A.hasPrefix(normalizedQuery)
-            
-            if s1Starts && !s2Starts { return true }
-            if !s1Starts && s2Starts { return false }
-            
-            return n1S < n2S
-        }
+            return approvedSongs.filter { song in
+                let normalizedArtist = song.artist.turkeyNormalized
+                let normalizedSongName = song.songName.turkeyNormalized
+                
+                return queryWords.allSatisfy { word in
+                    normalizedArtist.contains(word) || normalizedSongName.contains(word)
+                }
+            }.sorted { s1, s2 in
+                let n1A = s1.artist.turkeyNormalized
+                let n1S = s1.songName.turkeyNormalized
+                let n2A = s2.artist.turkeyNormalized
+                let n2S = s2.songName.turkeyNormalized
+                
+                let s1Starts = n1S.hasPrefix(normalizedQuery) || n1A.hasPrefix(normalizedQuery)
+                let s2Starts = n2S.hasPrefix(normalizedQuery) || n2A.hasPrefix(normalizedQuery)
+                
+                if s1Starts && !s2Starts { return true }
+                if !s1Starts && s2Starts { return false }
+                
+                return n1S < n2S
+            }
+        }.value
+        
+        self.songs = filtered
     }
     
     func incrementViewCount(for song: Song) {
         let songId = song.id ?? song.docId
-        let docRef = db.collection("chords").document(songId)
+        let collection = songId.hasPrefix("u") ? collectionUserChords : collectionChords
+        let docRef = db.collection(collection).document(songId)
         
         docRef.updateData([
             "totalViews": FieldValue.increment(Int64(1)),
@@ -386,25 +422,97 @@ class ChordViewModel: ObservableObject {
     }
 
     func saveSong(_ song: Song) {
+        // Eğer docId boşsa veya yeni bir şarkıysa Transaction ile uX ID'si alacağız
+        if song.docId.isEmpty {
+            saveNewUserSong(song)
+        } else {
+            // Varolan şarkıyı güncelle
+            updateExistingSong(song)
+        }
+    }
+    
+    private func saveNewUserSong(_ song: Song) {
+        let counterRef = db.collection(metadataCollection).document(countersDocument)
+        let userChordsRef = db.collection(collectionUserChords)
+        
+        print("Starting transaction for new song: \(song.songName)")
+        
+        db.runTransaction({ (transaction, errorPointer) -> Any? in
+            let counterSnapshot: DocumentSnapshot
+            do {
+                try counterSnapshot = transaction.getDocument(counterRef)
+            } catch let fetchError as NSError {
+                print("Error fetching counter: \(fetchError.localizedDescription)")
+                errorPointer?.pointee = fetchError
+                return nil
+            }
+            
+            var currentCount = 0
+            if counterSnapshot.exists {
+                currentCount = counterSnapshot.data()?["userSongCount"] as? Int ?? 0
+            }
+            currentCount += 1
+            
+            let newDocId = "u\(currentCount)"
+            var newSong = song
+            newSong.docId = newDocId
+            
+            print("Generated new ID: \(newDocId)")
+            
+            // Transaction içinde counter'ı güncelle veya oluştur
+            if counterSnapshot.exists {
+                transaction.updateData(["userSongCount": currentCount], forDocument: counterRef)
+            } else {
+                transaction.setData(["userSongCount": currentCount], forDocument: counterRef)
+            }
+            
+            // Transaction içinde yeni şarkıyı oluştur
+            do {
+                let newDocRef = userChordsRef.document(newDocId)
+                try transaction.setData(from: newSong, forDocument: newDocRef)
+            } catch let encodeError as NSError {
+                print("Error encoding song: \(encodeError.localizedDescription)")
+                errorPointer?.pointee = encodeError
+                return nil
+            }
+            
+            return newSong
+        }) { [weak self] (result, error) in
+            if let error = error {
+                print("❌ Transaction failed: \(error.localizedDescription)")
+                // Hata mesajını kullanıcıya göstermek için bir uyarı mekanizması eklenebilir
+            } else if let newSong = result as? Song {
+                print("✅ Transaction successful! New song ID: \(newSong.docId)")
+                DispatchQueue.main.async {
+                    self?.allSongs.append(newSong)
+                    self?.processDashboardData()
+                }
+            } else {
+                print("⚠️ Transaction finished but result is unexpected")
+            }
+        }
+    }
+    
+    private func updateExistingSong(_ song: Song) {
+        let collection = song.docId.hasPrefix("u") ? collectionUserChords : collectionChords
         do {
-            let docRef = db.collection("chords").document(song.docId)
+            let docRef = db.collection(collection).document(song.docId)
             try docRef.setData(from: song)
             
-            // Update local state
             if let index = allSongs.firstIndex(where: { $0.docId == song.docId }) {
                 allSongs[index] = song
-            } else {
-                allSongs.append(song)
+                processDashboardData()
             }
-            processDashboardData()
         } catch {
-            print("Error saving song: \(error)")
+            print("Error updating song: \(error)")
         }
     }
 
     func deleteSong(_ song: Song) {
         let songId = song.id ?? song.docId
-        db.collection("chords").document(songId).delete() { [weak self] error in
+        let collection = songId.hasPrefix("u") ? collectionUserChords : collectionChords
+        
+        db.collection(collection).document(songId).delete() { [weak self] error in
             if error == nil {
                 DispatchQueue.main.async {
                     self?.allSongs.removeAll { $0.docId == songId || $0.id == songId }
@@ -416,22 +524,15 @@ class ChordViewModel: ObservableObject {
     
     func approveSong(_ song: Song) {
         let songId = song.id ?? song.docId
-        print("Approving song: \(song.songName) with ID: \(songId)")
+        let collection = songId.hasPrefix("u") ? collectionUserChords : collectionChords
         
-        db.collection("chords").document(songId).updateData(["status": "approved"]) { [weak self] error in
-            if let error = error {
-                print("Error approving song: \(error.localizedDescription)")
-                return
-            }
-            
-            print("Successfully approved in Firestore")
-            DispatchQueue.main.async {
-                if let index = self?.allSongs.firstIndex(where: { ($0.id ?? $0.docId) == songId }) {
-                    self?.allSongs[index].status = "approved"
-                    self?.processDashboardData()
-                    print("Local state updated for approval")
-                } else {
-                    print("Could not find song in allSongs to update locally")
+        db.collection(collection).document(songId).updateData(["status": "approved"]) { [weak self] error in
+            if error == nil {
+                DispatchQueue.main.async {
+                    if let index = self?.allSongs.firstIndex(where: { ($0.id ?? $0.docId) == songId }) {
+                        self?.allSongs[index].status = "approved"
+                        self?.processDashboardData()
+                    }
                 }
             }
         }
@@ -439,22 +540,15 @@ class ChordViewModel: ObservableObject {
     
     func rejectSong(_ song: Song) {
         let songId = song.id ?? song.docId
-        print("Rejecting song: \(song.songName) with ID: \(songId)")
+        let collection = songId.hasPrefix("u") ? collectionUserChords : collectionChords
         
-        db.collection("chords").document(songId).updateData(["status": "rejected"]) { [weak self] error in
-            if let error = error {
-                print("Error rejecting song: \(error.localizedDescription)")
-                return
-            }
-            
-            print("Successfully rejected in Firestore")
-            DispatchQueue.main.async {
-                if let index = self?.allSongs.firstIndex(where: { ($0.id ?? $0.docId) == songId }) {
-                    self?.allSongs[index].status = "rejected"
-                    self?.processDashboardData()
-                    print("Local state updated for rejection")
-                } else {
-                    print("Could not find song in allSongs to update locally")
+        db.collection(collection).document(songId).updateData(["status": "rejected"]) { [weak self] error in
+            if error == nil {
+                DispatchQueue.main.async {
+                    if let index = self?.allSongs.firstIndex(where: { ($0.id ?? $0.docId) == songId }) {
+                        self?.allSongs[index].status = "rejected"
+                        self?.processDashboardData()
+                    }
                 }
             }
         }
@@ -527,7 +621,7 @@ class ChordViewModel: ObservableObject {
 
 
 extension String {
-    var turkeyNormalized: String {
+    nonisolated var turkeyNormalized: String {
         let replacements: [String: String] = [
             "ç": "c", "Ç": "c",
             "ğ": "g", "Ğ": "g",
@@ -544,7 +638,7 @@ extension String {
     }
 }
 
-struct UserSongPreference: Codable, Equatable {
+struct UserSongPreference: Codable, Equatable, Sendable {
     var songId: String
     var selectedKeyRoot: String
     var capoFret: Int

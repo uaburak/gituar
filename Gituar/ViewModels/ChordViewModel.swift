@@ -4,6 +4,8 @@ import FirebaseAuth
 import Combine
 import SwiftUI
 
+// MARK: - ChordViewModel (Offline-First)
+
 @MainActor
 class ChordViewModel: ObservableObject {
     @Published var songs: [Song] = [] // Arama sonuçları
@@ -78,31 +80,83 @@ class ChordViewModel: ObservableObject {
         }
     }
     
+    // MARK: - Offline-First Song Loading
+
     private func fetchAllSongs() {
         guard !isLoading else { return }
         isLoading = true
-        
+
         Task { @MainActor in
-            do {
-                // Fetch from both collections in parallel using async let
-                async let officialSnapshot = db.collection(collectionChords).getDocuments()
-                async let userSnapshot = db.collection(collectionUserChords).getDocuments()
-                
-                let (official, user) = try await (officialSnapshot, userSnapshot)
-                
-                // Decoding on MainActor as required by Swift 6 for these models
-                let officialSongs = official.documents.compactMap { try? $0.data(as: Song.self) }
-                let userSongs = user.documents.compactMap { try? $0.data(as: Song.self) }
-                
-                self.allSongs = officialSongs + userSongs
+            let syncManager = SyncManager.shared
+
+            // 1. Load from local cache immediately (zero Firestore reads)
+            if let cached = syncManager.loadSongsFromCache() {
+                self.allSongs = cached
                 self.isLoading = false
                 self.processDashboardData()
                 self.loadUserData(userId: self.userId)
-                self.fetchPendingSongs()
-            } catch {
-                print("Error fetching all songs: \(error)")
-                self.isLoading = false
+                print("📦 ChordViewModel: Loaded \(cached.count) songs from local cache.")
             }
+
+            // 2. Only hit Firestore if cache is stale (>24 hours old)
+            if syncManager.isCacheStale() {
+                print("🔄 ChordViewModel: Cache stale – syncing from Firestore…")
+                if self.allSongs.isEmpty { self.isLoading = true }
+                do {
+                    let fresh = try await syncManager.performFullSync(
+                        collectionChords: collectionChords,
+                        collectionUserChords: collectionUserChords
+                    )
+                    self.allSongs = fresh
+                    self.processDashboardData()
+                    self.loadUserData(userId: self.userId)
+                } catch {
+                    print("❌ ChordViewModel: Firestore sync failed: \(error)")
+                }
+                self.isLoading = false
+            } else {
+                print("✅ ChordViewModel: Cache is fresh – skipping Firestore read.")
+                if self.allSongs.isEmpty {
+                    // Cache file missing but timestamp present — force sync
+                    do {
+                        let fresh = try await syncManager.performFullSync(
+                            collectionChords: collectionChords,
+                            collectionUserChords: collectionUserChords
+                        )
+                        self.allSongs = fresh
+                        self.processDashboardData()
+                        self.loadUserData(userId: self.userId)
+                    } catch {
+                        print("❌ ChordViewModel: Forced sync failed: \(error)")
+                    }
+                    self.isLoading = false
+                }
+            }
+
+            // 3. Flush any pending writes once per day
+            if SyncManager.shared.shouldFlushWrites() {
+                await SyncManager.shared.flushPendingWrites()
+            }
+        }
+    }
+
+    /// Call this to force a fresh sync (e.g., pull-to-refresh).
+    func forceSync() {
+        guard !isLoading else { return }
+        isLoading = true
+        Task { @MainActor in
+            do {
+                let fresh = try await SyncManager.shared.performFullSync(
+                    collectionChords: collectionChords,
+                    collectionUserChords: collectionUserChords
+                )
+                self.allSongs = fresh
+                self.processDashboardData()
+                self.loadUserData(userId: self.userId)
+            } catch {
+                print("❌ ChordViewModel: forceSync failed: \(error)")
+            }
+            self.isLoading = false
         }
     }
     
@@ -213,12 +267,29 @@ class ChordViewModel: ObservableObject {
     func incrementViewCount(for song: Song) {
         let songId = song.id ?? song.docId
         let collection = songId.hasPrefix("u") ? collectionUserChords : collectionChords
-        let docRef = db.collection(collection).document(songId)
-        
-        docRef.updateData([
-            "totalViews": FieldValue.increment(Int64(1)),
-            "recentViews": FieldValue.increment(Int64(1))
-        ])
+
+        // Update local cache immediately
+        if let index = allSongs.firstIndex(where: { ($0.id ?? $0.docId) == songId }) {
+            allSongs[index].totalViews  = (allSongs[index].totalViews  ?? 0) + 1
+            allSongs[index].recentViews = (allSongs[index].recentViews ?? 0) + 1
+            SyncManager.shared.saveSongsToCache(allSongs)
+        }
+
+        // Queue the Firestore write — will be flushed next daily sync
+        // NOTE: FieldValue.increment cannot be serialised, so we compute the new counts
+        // from the local cache and write absolute values.
+        let totalViews  = allSongs.first(where: { ($0.id ?? $0.docId) == songId })?.totalViews  ?? 1
+        let recentViews = allSongs.first(where: { ($0.id ?? $0.docId) == songId })?.recentViews ?? 1
+        let write = PendingWrite(
+            collection: collection,
+            documentId: songId,
+            operation: .update,
+            fields: [
+                "totalViews":  .int(totalViews),
+                "recentViews": .int(recentViews)
+            ]
+        )
+        SyncManager.shared.enqueuePendingWrite(write)
     }
 
     // MARK: - Repertoire Management
@@ -461,127 +532,174 @@ class ChordViewModel: ObservableObject {
     }
     
     private func saveNewUserSong(_ song: Song) {
-        let counterRef = db.collection(metadataCollection).document(countersDocument)
-        let userChordsRef = db.collection(collectionUserChords)
-        
-        print("Starting transaction for new song: \(song.songName)")
-        
-        db.runTransaction({ (transaction, errorPointer) -> Any? in
-            let counterSnapshot: DocumentSnapshot
-            do {
-                try counterSnapshot = transaction.getDocument(counterRef)
-            } catch let fetchError as NSError {
-                print("Error fetching counter: \(fetchError.localizedDescription)")
-                errorPointer?.pointee = fetchError
-                return nil
-            }
-            
-            var currentCount = 0
-            if counterSnapshot.exists {
-                currentCount = counterSnapshot.data()?["userSongCount"] as? Int ?? 0
-            }
-            currentCount += 1
-            
-            let newDocId = "u\(currentCount)"
-            var newSong = song
-            newSong.docId = newDocId
-            
-            print("Generated new ID: \(newDocId)")
-            
-            // Transaction içinde counter'ı güncelle veya oluştur
-            if counterSnapshot.exists {
-                transaction.updateData(["userSongCount": currentCount], forDocument: counterRef)
-            } else {
-                transaction.setData(["userSongCount": currentCount], forDocument: counterRef)
-            }
-            
-            // Transaction içinde yeni şarkıyı oluştur
-            do {
-                let newDocRef = userChordsRef.document(newDocId)
-                try transaction.setData(from: newSong, forDocument: newDocRef)
-            } catch let encodeError as NSError {
-                print("Error encoding song: \(encodeError.localizedDescription)")
-                errorPointer?.pointee = encodeError
-                return nil
-            }
-            
-            return newSong
-        }) { [weak self] (result, error) in
-            if let error = error {
-                print("❌ Transaction failed: \(error.localizedDescription)")
-            } else if let newSong = result as? Song {
-                print("✅ Transaction successful! New song ID: \(newSong.docId)")
-                guard let self = self else { return }
-                Task {
-                    self.allSongs.append(newSong)
-                    self.processDashboardData()
+        // Generate a temporary local ID using timestamp to avoid collisions.
+        // The real uX ID is assigned when the write is flushed to Firestore via transaction.
+        // For now we store it locally with a "tmp_" prefix and queue the actual
+        // Firestore transaction as a set operation.
+        let tmpId = "tmp_\(Int(Date().timeIntervalSince1970))"
+        var newSong = song
+        newSong.docId = tmpId
+
+        // 1. Save locally immediately
+        allSongs.append(newSong)
+        SyncManager.shared.saveSongsToCache(allSongs)
+        processDashboardData()
+        print("✅ saveNewUserSong: Saved locally with tmpId=\(tmpId)")
+
+        // 2. Immediately write to Firestore to get real uX ID (this is one write only)
+        Task { @MainActor in
+            let counterRef = db.collection(metadataCollection).document(countersDocument)
+            let userChordsRef = db.collection(collectionUserChords)
+
+            db.runTransaction({ (transaction, errorPointer) -> Any? in
+                let counterSnapshot: DocumentSnapshot
+                do {
+                    try counterSnapshot = transaction.getDocument(counterRef)
+                } catch let fetchError as NSError {
+                    errorPointer?.pointee = fetchError
+                    return nil
                 }
-            } else {
-                print("⚠️ Transaction finished but result is unexpected")
+
+                var currentCount = counterSnapshot.exists
+                    ? (counterSnapshot.data()?["userSongCount"] as? Int ?? 0)
+                    : 0
+                currentCount += 1
+                let newDocId = "u\(currentCount)"
+                var finalSong = song
+                finalSong.docId = newDocId
+
+                if counterSnapshot.exists {
+                    transaction.updateData(["userSongCount": currentCount], forDocument: counterRef)
+                } else {
+                    transaction.setData(["userSongCount": currentCount], forDocument: counterRef)
+                }
+                do {
+                    try transaction.setData(from: finalSong, forDocument: userChordsRef.document(newDocId))
+                } catch let encodeError as NSError {
+                    errorPointer?.pointee = encodeError
+                    return nil
+                }
+                return finalSong
+            }) { [weak self] (result, error) in
+                guard let self = self else { return }
+                Task { @MainActor in
+                    if let error = error {
+                        print("❌ saveNewUserSong transaction failed: \(error.localizedDescription)")
+                    } else if let finalSong = result as? Song {
+                        // Replace tmp entry with the real one
+                        self.allSongs.removeAll { $0.docId == tmpId }
+                        self.allSongs.append(finalSong)
+                        SyncManager.shared.saveSongsToCache(self.allSongs)
+                        self.processDashboardData()
+                        print("✅ saveNewUserSong: Firestore ID assigned: \(finalSong.docId)")
+                    }
+                }
             }
         }
     }
     
     private func updateExistingSong(_ song: Song) {
-        let collection = song.docId.hasPrefix("u") ? collectionUserChords : collectionChords
-        do {
-            let docRef = db.collection(collection).document(song.docId)
-            try docRef.setData(from: song)
-            
-            if let index = allSongs.firstIndex(where: { $0.docId == song.docId }) {
-                allSongs[index] = song
-                processDashboardData()
-            }
-        } catch {
-            print("Error updating song: \(error)")
+        // 1. Update local cache immediately
+        if let index = allSongs.firstIndex(where: { $0.docId == song.docId }) {
+            allSongs[index] = song
+            SyncManager.shared.saveSongsToCache(allSongs)
+            processDashboardData()
         }
+
+        // 2. Queue Firestore write for daily flush
+        let collection = song.docId.hasPrefix("u") ? collectionUserChords : collectionChords
+        guard let fields = encodeSongToCodableFields(song) else {
+            print("⚠️ updateExistingSong: Failed to encode song fields.")
+            return
+        }
+        let write = PendingWrite(
+            collection: collection,
+            documentId: song.docId,
+            operation: .set,
+            fields: fields
+        )
+        SyncManager.shared.enqueuePendingWrite(write)
+    }
+
+    /// Encodes a Song to a [String: CodableValue] dict for use in PendingWrite.
+    private func encodeSongToCodableFields(_ song: Song) -> [String: CodableValue]? {
+        guard let data = try? JSONEncoder().encode(song),
+              let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+        else { return nil }
+
+        var fields: [String: CodableValue] = [:]
+        for (key, value) in dict {
+            switch value {
+            case let v as String:  fields[key] = .string(v)
+            case let v as Int:     fields[key] = .int(v)
+            case let v as Double:  fields[key] = .double(v)
+            case let v as Bool:    fields[key] = .bool(v)
+            default:               break
+            }
+        }
+        return fields
     }
 
     func deleteSong(_ song: Song) {
         let songId = song.id ?? song.docId
         let collection = songId.hasPrefix("u") ? collectionUserChords : collectionChords
-        
-        Task {
-            do {
-                try await db.collection(collection).document(songId).delete()
-                self.allSongs.removeAll { $0.docId == songId || $0.id == songId }
-                self.processDashboardData()
-            } catch {
-                print("Error deleting song: \(error)")
-            }
-        }
+
+        // 1. Remove from local cache immediately
+        allSongs.removeAll { $0.docId == songId || $0.id == songId }
+        SyncManager.shared.saveSongsToCache(allSongs)
+        processDashboardData()
+
+        // 2. Queue Firestore delete for daily flush
+        let write = PendingWrite(
+            collection: collection,
+            documentId: songId,
+            operation: .delete
+        )
+        SyncManager.shared.enqueuePendingWrite(write)
     }
     
     func approveSong(_ song: Song) {
         let songId = song.id ?? song.docId
         let collection = songId.hasPrefix("u") ? collectionUserChords : collectionChords
-        
+
+        // Update local cache
+        if let index = allSongs.firstIndex(where: { ($0.id ?? $0.docId) == songId }) {
+            allSongs[index].status = "approved"
+            SyncManager.shared.saveSongsToCache(allSongs)
+            processDashboardData()
+        }
+        // Queue write — admin approval must reach Firestore promptly, so flush immediately
         Task {
             do {
                 try await db.collection(collection).document(songId).updateData(["status": "approved"])
-                if let index = self.allSongs.firstIndex(where: { ($0.id ?? $0.docId) == songId }) {
-                    self.allSongs[index].status = "approved"
-                    self.processDashboardData()
-                }
             } catch {
-                print("Error approving song: \(error)")
+                // On failure, queue for later
+                let write = PendingWrite(collection: collection, documentId: songId,
+                                         operation: .update, fields: ["status": .string("approved")])
+                SyncManager.shared.enqueuePendingWrite(write)
+                print("⚠️ approveSong: Direct write failed, queued. \(error)")
             }
         }
     }
-    
+
     func rejectSong(_ song: Song) {
         let songId = song.id ?? song.docId
         let collection = songId.hasPrefix("u") ? collectionUserChords : collectionChords
-        
+
+        // Update local cache
+        if let index = allSongs.firstIndex(where: { ($0.id ?? $0.docId) == songId }) {
+            allSongs[index].status = "rejected"
+            SyncManager.shared.saveSongsToCache(allSongs)
+            processDashboardData()
+        }
         Task {
             do {
                 try await db.collection(collection).document(songId).updateData(["status": "rejected"])
-                if let index = self.allSongs.firstIndex(where: { ($0.id ?? $0.docId) == songId }) {
-                    self.allSongs[index].status = "rejected"
-                    self.processDashboardData()
-                }
             } catch {
-                print("Error rejecting song: \(error)")
+                let write = PendingWrite(collection: collection, documentId: songId,
+                                         operation: .update, fields: ["status": .string("rejected")])
+                SyncManager.shared.enqueuePendingWrite(write)
+                print("⚠️ rejectSong: Direct write failed, queued. \(error)")
             }
         }
     }

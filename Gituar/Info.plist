@@ -31,6 +31,8 @@
 			<string>cstr6suwn9.skadnetwork</string>
 		</dict>
 	</array>
+	<key>NSUserTrackingUsageDescription</key>
+	<string>Size daha iyi ve ilgi alanlarınıza uygun reklamlar gösterebilmemiz için verilerinizi kullanmamıza izin verin.</string>
 </dict>
 </plist>
 

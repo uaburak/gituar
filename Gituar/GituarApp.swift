@@ -7,7 +7,6 @@ class AppDelegate: NSObject, UIApplicationDelegate {
     func application(_ application: UIApplication,
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
         FirebaseApp.configure()
-        MobileAds.shared.start(completionHandler: nil)
         return true
     }
 }
@@ -23,6 +22,9 @@ struct GituarApp: App {
             ContentView()
                 .environmentObject(viewModel)
                 .environmentObject(authViewModel)
+                .onAppear {
+                    AdMobManager.shared.updateConsent()
+                }
                 .onOpenURL { url in
                     GIDSignIn.sharedInstance.handle(url)
                 }

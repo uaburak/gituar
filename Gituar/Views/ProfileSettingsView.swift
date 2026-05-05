@@ -65,6 +65,7 @@ struct ProfileSettingsView: View {
                 }
             }
             
+
             Section {
                 Button(role: .destructive) {
                     authViewModel.signOut()

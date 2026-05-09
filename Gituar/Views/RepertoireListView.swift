@@ -10,37 +10,60 @@ struct RepertoireListView: View {
     @State private var renamedName = ""
 
     var body: some View {
-        List {
-            ForEach(viewModel.repertoires) { repertoire in
-                NavigationLink(destination: RepertoireDetailView(repertoire: repertoire)) {
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text(repertoire.name)
-                            .font(.system(size: 15, weight: .medium))
-                        Text("\(repertoire.songIds.count) şarkı")
-                            .font(.system(size: 13))
-                            .foregroundColor(.secondary)
-                    }
-                    .padding(.vertical, 4)
+        Group {
+            if viewModel.repertoires.isEmpty {
+                VStack(spacing: 8) {
+                    Text("Repertuar yok")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundColor(.secondary)
+                    Text("+ butonuna bas")
+                        .font(.system(size: 13))
+                        .foregroundColor(.secondary)
                 }
-                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                    Button(role: .destructive) {
-                        viewModel.deleteRepertoire(repertoire)
-                    } label: {
-                        Label("Sil", systemImage: "trash")
-                    }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                ScrollView(showsIndicators: false) {
+                    let columns = [GridItem(.flexible(), spacing: 16), GridItem(.flexible(), spacing: 16)]
                     
-                    Button {
-                        repertoireToRename = repertoire
-                        renamedName = repertoire.name
-                        showingRename = true
-                    } label: {
-                        Label("Düzenle", systemImage: "pencil")
+                    LazyVGrid(columns: columns, spacing: 16) {
+                        ForEach(viewModel.repertoires) { repertoire in
+                            NavigationLink(destination: RepertoireDetailView(repertoire: repertoire)) {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(repertoire.name)
+                                        .font(.system(size: 16, weight: .bold))
+                                        .foregroundColor(.primary)
+                                        .lineLimit(2)
+                                        .multilineTextAlignment(.leading)
+                                    
+                                    Text("\(repertoire.songIds.count) Şarkı")
+                                        .font(.system(size: 13, weight: .medium))
+                                        .foregroundColor(.secondary)
+                                }
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(16)
+                                .glassEffect(in: .rect(cornerRadius: 20.0))
+                            }
+                            .contextMenu {
+                                Button {
+                                    repertoireToRename = repertoire
+                                    renamedName = repertoire.name
+                                    showingRename = true
+                                } label: {
+                                    Label("Düzenle", systemImage: "pencil")
+                                }
+                                
+                                Button(role: .destructive) {
+                                    viewModel.deleteRepertoire(repertoire)
+                                } label: {
+                                    Label("Sil", systemImage: "trash")
+                                }
+                            }
+                        }
                     }
-                    .tint(.orange)
+                    .padding(20)
                 }
             }
         }
-        .listStyle(.plain)
         .navigationTitle("Repertuar")
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
@@ -72,18 +95,6 @@ struct RepertoireListView: View {
                     viewModel.renameRepertoire(repertoire, newName: renamedName)
                     repertoireToRename = nil
                     renamedName = ""
-                }
-            }
-        }
-        .overlay {
-            if viewModel.repertoires.isEmpty {
-                VStack(spacing: 8) {
-                    Text("Repertuar yok")
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(.secondary)
-                    Text("+ butonuna bas")
-                        .font(.system(size: 13))
-                        .foregroundColor(.secondary)
                 }
             }
         }

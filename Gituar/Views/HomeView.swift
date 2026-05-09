@@ -11,10 +11,40 @@ struct HomeView: View {
     var body: some View {
         VStack(spacing: 0) {
             ScrollView(showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 32) {
+                VStack(alignment: .leading, spacing: 12) {
+                    
+                    // Editor's Choice Banner
+                    if !viewModel.editorRepertoires.isEmpty {
+                        NavigationLink(destination: GenericRepertoireListView(title: "Editörün Seçimleri", repertoires: viewModel.editorRepertoires)) {
+                            VStack(alignment: .leading, spacing: 14) {
+                                Image(systemName: "star.fill")
+                                    .font(.system(size: 24))
+                                    .foregroundColor(.yellow)
+                                
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Editörün Seçimleri")
+                                        .font(.system(size: 16, weight: .bold))
+                                        .foregroundColor(.white)
+                                    Text("\(viewModel.editorRepertoires.count) Özel Liste")
+                                        .font(.system(size: 13, weight: .medium))
+                                        .foregroundColor(.white.opacity(0.8))
+                                }
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(16)
+                            .background(
+                                Image("EditorChoiceImage")
+                                    .resizable()
+                                    .scaledToFill()
+                            )
+                            .clipShape(RoundedRectangle(cornerRadius: 20))
+                            .glassEffect(in: .rect(cornerRadius: 20.0))
+                        }
+                        .padding(.horizontal, 20)
+                    }
                     
                     // Hero Section
-                        HStack(spacing: 16) {
+                        HStack(spacing: 12) {
                             NavigationLink(destination: MySongsView()) {
                                 MinimalCategoryCard(
                                     title: "Şarkılarım",
@@ -56,12 +86,12 @@ struct HomeView: View {
                         .padding(.horizontal, 20)
                         
                         // Listeler
-                        VStack(alignment: .leading, spacing: 16) {
+                        VStack(alignment: .leading, spacing: 12) {
 
                                 
-                            let columns = [GridItem(.flexible(), spacing: 16), GridItem(.flexible(), spacing: 16)]
+                            let columns = [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)]
                             
-                            LazyVGrid(columns: columns, spacing: 16) {
+                            LazyVGrid(columns: columns, spacing: 12) {
                                 NavigationLink(destination: GenericSongListView(title: "Son Çalınanlar", songs: viewModel.recentlyPlayed)) {
                                     MinimalListCard(title: "Son Çalınanlar", icon: "clock.fill")
                                 }
@@ -342,6 +372,54 @@ struct GenericSongListView: View {
             }
         }
         .navigationTitle(title)
+    }
+}
+
+struct GenericRepertoireListView: View {
+    let title: String
+    let repertoires: [Repertoire]
+    
+    var body: some View {
+        Group {
+            if repertoires.isEmpty {
+                VStack(spacing: 16) {
+                    Image(systemName: "music.mic")
+                        .font(.system(size: 48))
+                        .foregroundColor(.secondary)
+                    Text("Bu listede henüz repertuar yok.")
+                        .font(.headline)
+                        .foregroundColor(.secondary)
+                }
+            } else {
+                ScrollView(showsIndicators: false) {
+                    let columns = [GridItem(.flexible(), spacing: 16), GridItem(.flexible(), spacing: 16)]
+                    
+                    LazyVGrid(columns: columns, spacing: 16) {
+                        ForEach(repertoires) { repertoire in
+                            NavigationLink(destination: RepertoireDetailView(repertoire: repertoire)) {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(repertoire.name)
+                                        .font(.system(size: 16, weight: .bold))
+                                        .foregroundColor(.primary)
+                                        .lineLimit(2)
+                                        .multilineTextAlignment(.leading)
+                                    
+                                    Text("\(repertoire.songIds.count) Şarkı")
+                                        .font(.system(size: 13, weight: .medium))
+                                        .foregroundColor(.secondary)
+                                }
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(16)
+                                .glassEffect(in: .rect(cornerRadius: 20.0))
+                            }
+                        }
+                    }
+                    .padding(20)
+                }
+            }
+        }
+        .navigationTitle(title)
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
 

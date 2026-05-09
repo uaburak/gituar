@@ -348,15 +348,31 @@ class ChordViewModel: ObservableObject {
         }
     }
 
+    @Published var editorRepertoires: [Repertoire] = [] // Editörün seçtiği repertuarlar (Admins)
+
     func fetchPublicRepertoires() {
         db.collection(collectionPublicRepertoires)
             .addSnapshotListener { [weak self] snapshot, error in
                 guard let self = self, let docs = snapshot?.documents else { return }
-                Task {
-                    self.publicRepertoires = docs.compactMap { try? $0.data(as: Repertoire.self) }
+                Task { @MainActor in
+                    let repertoires = docs.compactMap { try? $0.data(as: Repertoire.self) }
                         .sorted { ($0.createdAt ) > ($1.createdAt ) }
+                    self.publicRepertoires = repertoires
+                    self.fetchEditorRepertoires(from: repertoires)
                 }
             }
+    }
+
+    private func fetchEditorRepertoires(from allPublic: [Repertoire]) {
+        Task { @MainActor in
+            do {
+                let snapshot = try await db.collection("users").whereField("isAdmin", isEqualTo: true).getDocuments()
+                let adminIds = snapshot.documents.map { $0.documentID }
+                self.editorRepertoires = allPublic.filter { adminIds.contains($0.ownerId) }
+            } catch {
+                print("Error fetching admins: \(error)")
+            }
+        }
     }
 
     func addRepertoire(name: String) {

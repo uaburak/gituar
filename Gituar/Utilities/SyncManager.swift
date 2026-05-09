@@ -254,30 +254,47 @@ final class SyncManager {
         print("✅ SyncManager: Flush complete. \(flushedIds.count) succeeded, \(remaining.count) remaining.")
     }
 
-    // MARK: - Full Sync
+    // MARK: - Bundle Songs
 
-    /// Fetches both collections from Firestore and updates the local cache.
+    /// Loads the bundled chords_data.json — zero Firestore reads, always fast.
+    func loadBundleSongs() -> [Song] {
+        guard let url = Bundle.main.url(forResource: "chords_data", withExtension: "json") else {
+            print("⚠️ SyncManager: chords_data.json not found in bundle.")
+            return []
+        }
+        do {
+            let data = try Data(contentsOf: url)
+            // Bundle JSON uses simple ISO8601 dates (or no dates); use a flexible decoder
+            let bundleDecoder = JSONDecoder()
+            bundleDecoder.dateDecodingStrategy = .iso8601
+            let songs = try bundleDecoder.decode([Song].self, from: data)
+            print("📦 SyncManager: Loaded \(songs.count) bundle songs from chords_data.json")
+            return songs
+        } catch {
+            print("❌ SyncManager: Failed to decode chords_data.json: \(error)")
+            return []
+        }
+    }
+
+    // MARK: - Full Sync (user-chords only — official songs come from bundle)
+
+    /// Fetches ONLY the user-chords collection from Firestore and updates the local cache.
+    /// Official/system songs are always loaded from the bundled chords_data.json.
     func performFullSync(collectionChords: String, collectionUserChords: String) async throws -> [Song] {
-        print("🔄 SyncManager: Performing full Firestore sync…")
+        print("🔄 SyncManager: Syncing user-chords from Firestore (bundle songs are local)…")
 
-        async let officialSnap = db.collection(collectionChords).getDocuments()
-        async let userSnap     = db.collection(collectionUserChords).getDocuments()
+        let userSnap = try await db.collection(collectionUserChords).getDocuments()
+        let userSongs = userSnap.documents.compactMap { try? $0.data(as: Song.self) }
 
-        let (official, user) = try await (officialSnap, userSnap)
-
-        let officialSongs = official.documents.compactMap { try? $0.data(as: Song.self) }
-        let userSongs     = user.documents.compactMap { try? $0.data(as: Song.self) }
-        let allSongs      = officialSongs + userSongs
-
-        // Only mark sync complete if cache write actually succeeds
-        let saved = saveSongsToCache(allSongs)
+        // Only cache user-chords — bundle songs don't need caching
+        let saved = saveSongsToCache(userSongs)
         if saved {
             markSyncCompleted()
         } else {
             print("⚠️ SyncManager: Cache write failed — sync timestamp NOT updated to force retry next launch")
         }
 
-        print("✅ SyncManager: Sync complete. \(officialSongs.count) official + \(userSongs.count) user songs cached.")
-        return allSongs
+        print("✅ SyncManager: Sync complete. \(userSongs.count) user songs fetched from Firestore.")
+        return userSongs
     }
 }

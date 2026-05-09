@@ -275,10 +275,11 @@ struct SongDetailView: View {
             }
 
             // MARK: Bottom Bar
+            // MARK: Bottom Bar
             if isFocusMode {
-                ToolbarItem(placement: .bottomBar) { Spacer() }
-                
-                ToolbarItem(placement: .bottomBar) {
+                ToolbarItemGroup(placement: .bottomBar) {
+                    Spacer()
+                    
                     Menu {
                         Picker("Hız", selection: $autoScrollSpeed) {
                             Text("Çok Yavaş").tag(6.0)
@@ -290,17 +291,14 @@ struct SongDetailView: View {
                     } label: {
                         Image(systemName: "gearshape")
                     }
-                }
-
-                ToolbarSpacer(.fixed, placement: .bottomBar)
-                
-                ToolbarItem(placement: .bottomBar) {
+                    
+                    Spacer()
+                    
                     Button(isPaused ? "Devam" : "Durdur", systemImage: isPaused ? "play.fill" : "pause.fill") {
                         if isPaused {
                             if isFinished {
                                 autoScroller.reset(animated: true)
                                 isFinished = false
-                                // Süreyi 0.8'e çıkardık ki en başa kayma animasyonu tamamen bitsin
                                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
                                     resumeScroll()
                                 }
@@ -312,35 +310,28 @@ struct SongDetailView: View {
                         }
                         isPaused.toggle()
                     }
-                }
-                
-                ToolbarSpacer(.fixed, placement: .bottomBar)
+                    
+                    Spacer()
 
-                ToolbarItem(placement: .bottomBar) {
                     Button("Kapat", systemImage: "xmark") { stopAndReset() }
+                    
+                    Spacer()
                 }
-                
-                ToolbarItem(placement: .bottomBar) { Spacer() }
-                
             } else {
-                if let playlist = playlist, playlist.count > 1 {
-                    ToolbarItem(placement: .bottomBar) {
+                ToolbarItemGroup(placement: .bottomBar) {
+                    if let playlist = playlist, playlist.count > 1 {
                         Button("Geri", systemImage: "chevron.left") {
                             previousSong()
                         }
                     }
-                }
-                
-                ToolbarItem(placement: .bottomBar) { Spacer() }
-                
-                ToolbarItem(placement: .bottomBar) {
+                    
+                    Spacer()
+                    
                     Button("Çal", systemImage: "play.fill") { startFocusMode() }
-                }
-                
-                ToolbarItem(placement: .bottomBar) { Spacer() }
-                
-                if let playlist = playlist, playlist.count > 1 {
-                    ToolbarItem(placement: .bottomBar) {
+                    
+                    Spacer()
+                    
+                    if let playlist = playlist, playlist.count > 1 {
                         Button("İleri", systemImage: "chevron.right") {
                             nextSong()
                         }
@@ -411,7 +402,7 @@ struct SongDetailView: View {
     // MARK: - Navigation Control
     private func nextSong() {
         guard let playlist = playlist,
-              let currentIndex = playlist.firstIndex(where: { ($0.id ?? $0.docId) == (currentSong.id ?? currentSong.docId) }) else { return }
+              let currentIndex = playlist.firstIndex(where: { $0.id == currentSong.id }) else { return }
         let nextIndex = (currentIndex + 1) % playlist.count
         slideDirection = .trailing
         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
@@ -422,7 +413,7 @@ struct SongDetailView: View {
 
     private func previousSong() {
         guard let playlist = playlist,
-              let currentIndex = playlist.firstIndex(where: { ($0.id ?? $0.docId) == (currentSong.id ?? currentSong.docId) }) else { return }
+              let currentIndex = playlist.firstIndex(where: { $0.id == currentSong.id }) else { return }
         let prevIndex = (currentIndex - 1 + playlist.count) % playlist.count
         slideDirection = .leading
         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
@@ -465,6 +456,12 @@ struct SongDetailView: View {
         if !isFocusMode {
             VStack(alignment: .leading, spacing: 20) {
                 Divider().padding(.top, 40)
+
+                // Ad Banner
+                let bannerWidth = UIScreen.main.bounds.width - 40
+                AdBannerView(viewWidth: bannerWidth)
+                .frame(height: 60)
+                .padding(.bottom, 8)
 
                 // Copyright Disclaimer
                 NavigationLink(destination: LegalContactView()) {
@@ -512,7 +509,7 @@ struct SongDetailView: View {
                 .buttonStyle(PlainButtonStyle())
 
                 // Other Songs List
-                let allArtistSongs = viewModel.songsForArtist(currentSong.artist).filter { ($0.id ?? $0.docId) != (currentSong.id ?? currentSong.docId) }
+                let allArtistSongs = viewModel.songsForArtist(currentSong.artist).filter { $0.id != currentSong.id }
                 let artistSongs: [Song] = {
                     if allArtistSongs.contains(where: { $0.popularityScore > 0 }) {
                         return Array(allArtistSongs.sorted { $0.popularityScore > $1.popularityScore }.prefix(5))

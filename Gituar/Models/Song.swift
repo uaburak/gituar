@@ -2,8 +2,14 @@ import Foundation
 import FirebaseFirestore
 
 struct Song: Identifiable, Codable, Hashable, Sendable {
-    @DocumentID var id: String?
+    /// Firestore document ID — set automatically by Firestore when reading from DB.
+    /// When decoded from local JSON (bundle / cache), this is nil (to avoid [I-FST000002] warnings).
+    @DocumentID var firestoreId: String?
+    /// Stable local identity used for Identifiable, caching, and all in-memory operations.
     var docId: String
+    /// Identifiable conformance — always uses docId so SwiftUI never sees nil.
+    var id: String { docId }
+
     var artist: String
     var songName: String
     var originalKey: String
@@ -36,7 +42,7 @@ struct Song: Identifiable, Codable, Hashable, Sendable {
         ownerId: String? = nil,
         status: String? = nil
     ) {
-        _id          = DocumentID(wrappedValue: id)
+        _firestoreId = DocumentID(wrappedValue: id)
         self.docId        = docId
         self.artist       = artist
         self.songName     = songName
@@ -60,12 +66,7 @@ struct Song: Identifiable, Codable, Hashable, Sendable {
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        // Decode docId first so we can use it as fallback for id.
-        // @DocumentID is only populated by Firestore; JSON cache stores it as plain String?.
-        // When id is nil (cache load), SwiftUI Identifiable breaks — every row shows the same item.
         docId      = try c.decode(String.self,  forKey: .docId)
-        let rawId  = try c.decodeIfPresent(String.self, forKey: .id)
-        _id        = DocumentID(wrappedValue: rawId ?? docId)   // ← fallback keeps id unique
         artist     = try c.decode(String.self,  forKey: .artist)
         songName   = try c.decode(String.self,  forKey: .songName)
         originalKey = try c.decode(String.self, forKey: .originalKey)
@@ -76,12 +77,18 @@ struct Song: Identifiable, Codable, Hashable, Sendable {
         repertoireAdds = try c.decodeIfPresent(Int.self,   forKey: .repertoireAdds)
         ownerId    = try c.decodeIfPresent(String.self, forKey: .ownerId)
         status     = try c.decodeIfPresent(String.self, forKey: .status)
+        // @DocumentID is ONLY set by Firestore when reading from the database.
+        // When decoding from local JSON (cache or bundle), we always leave id = nil.
+        // Identity is handled exclusively via docId — this eliminates the Firestore warning
+        // "[I-FST000002] Attempting to initialize or set a @DocumentID property with a non-nil value".
+        _firestoreId = DocumentID(wrappedValue: nil)
     }
+
 
 
     func encode(to encoder: Encoder) throws {
         var c = encoder.container(keyedBy: CodingKeys.self)
-        try c.encodeIfPresent(id,          forKey: .id)
+        try c.encodeIfPresent(firestoreId, forKey: .id)
         try c.encode(docId,               forKey: .docId)
         try c.encode(artist,              forKey: .artist)
         try c.encode(songName,            forKey: .songName)

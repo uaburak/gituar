@@ -293,9 +293,9 @@ struct SongApprovalDetailView: View {
             
             // MARK: Bottom Bar
             if isFocusMode {
-                ToolbarItem(placement: .bottomBar) { Spacer() }
-                
-                ToolbarItem(placement: .bottomBar) {
+                ToolbarItemGroup(placement: .bottomBar) {
+                    Spacer()
+                    
                     Menu {
                         Picker("Hız", selection: $autoScrollSpeed) {
                             Text("Çok Yavaş").tag(6.0)
@@ -307,17 +307,14 @@ struct SongApprovalDetailView: View {
                     } label: {
                         Image(systemName: "gearshape")
                     }
-                }
-
-                ToolbarSpacer(.fixed, placement: .bottomBar)
-                
-                ToolbarItem(placement: .bottomBar) {
+                    
+                    Spacer()
+                    
                     Button(isPaused ? "Devam" : "Durdur", systemImage: isPaused ? "play.fill" : "pause.fill") {
                         if isPaused {
                             if isFinished {
                                 autoScroller.reset(animated: true)
                                 isFinished = false
-                                // Süreyi 0.8'e çıkardık ki en başa kayma animasyonu tamamen bitsin
                                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
                                     resumeScroll()
                                 }
@@ -329,34 +326,27 @@ struct SongApprovalDetailView: View {
                         }
                         isPaused.toggle()
                     }
-                }
-                
-                ToolbarSpacer(.fixed, placement: .bottomBar)
+                    
+                    Spacer()
 
-                ToolbarItem(placement: .bottomBar) {
                     Button("Kapat", systemImage: "xmark") { stopAndReset() }
+                    
+                    Spacer()
                 }
-                
-                ToolbarItem(placement: .bottomBar) { Spacer() }
-                
             } else {
-                ToolbarItem(placement: .bottomBar) {
+                ToolbarItemGroup(placement: .bottomBar) {
                     Button("Reddet", systemImage: "xmark.circle") {
                         viewModel.rejectSong(currentSong)
                         dismiss()
                     }
                     .tint(.red)
-                }
-                
-                ToolbarItem(placement: .bottomBar) { Spacer() }
-                
-                ToolbarItem(placement: .bottomBar) {
+                    
+                    Spacer()
+                    
                     Button("Çal", systemImage: "play.fill") { startFocusMode() }
-                }
-                
-                ToolbarItem(placement: .bottomBar) { Spacer() }
-                
-                ToolbarItem(placement: .bottomBar) {
+                    
+                    Spacer()
+                    
                     Button("Onayla", systemImage: "checkmark.circle") {
                         viewModel.approveSong(currentSong)
                         dismiss()
@@ -428,7 +418,7 @@ struct SongApprovalDetailView: View {
     // MARK: - Navigation Control
     private func nextSong() {
         guard let playlist = playlist,
-              let currentIndex = playlist.firstIndex(where: { ($0.id ?? $0.docId) == (currentSong.id ?? currentSong.docId) }) else { return }
+              let currentIndex = playlist.firstIndex(where: { $0.id == currentSong.id }) else { return }
         let nextIndex = (currentIndex + 1) % playlist.count
         slideDirection = .trailing
         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
@@ -439,7 +429,7 @@ struct SongApprovalDetailView: View {
 
     private func previousSong() {
         guard let playlist = playlist,
-              let currentIndex = playlist.firstIndex(where: { ($0.id ?? $0.docId) == (currentSong.id ?? currentSong.docId) }) else { return }
+              let currentIndex = playlist.firstIndex(where: { $0.id == currentSong.id }) else { return }
         let prevIndex = (currentIndex - 1 + playlist.count) % playlist.count
         slideDirection = .leading
         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
@@ -529,7 +519,7 @@ struct SongApprovalDetailView: View {
                 .buttonStyle(PlainButtonStyle())
 
                 // Other Songs List
-                let allArtistSongs = viewModel.songsForArtist(currentSong.artist).filter { ($0.id ?? $0.docId) != (currentSong.id ?? currentSong.docId) }
+                let allArtistSongs = viewModel.songsForArtist(currentSong.artist).filter { $0.id != currentSong.id }
                 let artistSongs: [Song] = {
                     if allArtistSongs.contains(where: { $0.popularityScore > 0 }) {
                         return Array(allArtistSongs.sorted { $0.popularityScore > $1.popularityScore }.prefix(5))

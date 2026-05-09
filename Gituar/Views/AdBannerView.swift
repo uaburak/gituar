@@ -3,14 +3,37 @@ import SwiftUI
 import GoogleMobileAds
 
 struct AdBannerView: UIViewControllerRepresentable {
-    // Gerçek Ad Unit ID (ca-app-pub-9748717269838207/3275621944)
-    let adUnitID: String = "ca-app-pub-9748717269838207/3275621944" 
+    let viewWidth: CGFloat
+    
+    // Sadece Banner reklam birimini kullanacağız. Test cihazları eklendiği için gerçek ID kullanılıyor.
+    var adUnitID: String {
+        return "ca-app-pub-9748717269838207/3275621944"
+    }
 
     func makeUIViewController(context: Context) -> UIViewController {
         let viewController = UIViewController()
-        // Daha yüksek bir alan için AdSizeLargeBanner (100pt) kullanıyoruz.
-        let bannerView = BannerView(adSize: AdSizeLargeBanner)
+        viewController.view.backgroundColor = .clear // Arkaplanı şeffaf yapıyoruz
         
+        // Ekranda hatayı görebilmen için hata etiketi
+        let errorLabel = UILabel()
+        errorLabel.text = "Reklam yükleniyor..."
+        errorLabel.textColor = .systemRed
+        errorLabel.font = .systemFont(ofSize: 12, weight: .medium)
+        errorLabel.numberOfLines = 0
+        errorLabel.textAlignment = .center
+        errorLabel.translatesAutoresizingMaskIntoConstraints = false
+        viewController.view.addSubview(errorLabel)
+        
+        NSLayoutConstraint.activate([
+            errorLabel.centerXAnchor.constraint(equalTo: viewController.view.centerXAnchor),
+            errorLabel.centerYAnchor.constraint(equalTo: viewController.view.centerYAnchor),
+            errorLabel.leadingAnchor.constraint(equalTo: viewController.view.leadingAnchor, constant: 16),
+            errorLabel.trailingAnchor.constraint(equalTo: viewController.view.trailingAnchor, constant: -16)
+        ])
+        
+        // Adaptive Banner kullanımı
+        let adSize = largeAnchoredAdaptiveBanner(width: viewWidth)
+        let bannerView = BannerView(adSize: adSize)
         bannerView.adUnitID = adUnitID
         bannerView.rootViewController = viewController
         bannerView.delegate = context.coordinator
@@ -19,10 +42,14 @@ struct AdBannerView: UIViewControllerRepresentable {
         viewController.view.addSubview(bannerView)
         
         NSLayoutConstraint.activate([
-            bannerView.bottomAnchor.constraint(equalTo: viewController.view.safeAreaLayoutGuide.bottomAnchor),
+            bannerView.bottomAnchor.constraint(equalTo: viewController.view.bottomAnchor),
             bannerView.centerXAnchor.constraint(equalTo: viewController.view.centerXAnchor)
         ])
         
+        // Reklam başlatılmamış olma ihtimaline karşı zorunlu başlatma
+        MobileAds.shared.start(completionHandler: nil)
+        
+        context.coordinator.errorLabel = errorLabel
         bannerView.load(Request())
 
         return viewController
@@ -35,12 +62,17 @@ struct AdBannerView: UIViewControllerRepresentable {
     }
 
     class Coordinator: NSObject, BannerViewDelegate {
+        weak var errorLabel: UILabel?
+        
         func bannerViewDidReceiveAd(_ bannerView: BannerView) {
-            print("Reklam başarıyla yüklendi.")
+            print("🟢 REKLAM BAŞARIYLA YÜKLENDİ 🟢")
+            errorLabel?.isHidden = true
         }
 
         func bannerView(_ bannerView: BannerView, didFailToReceiveAdWithError error: Error) {
-            print("Reklam yükleme hatası: \(error.localizedDescription)")
+            let errorMsg = "🔴 REKLAM YÜKLENEMEDİ: \(error.localizedDescription)"
+            print(errorMsg)
+            errorLabel?.text = errorMsg
         }
     }
 }

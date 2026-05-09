@@ -44,6 +44,13 @@ class ChordViewModel: ObservableObject {
     private var userId: String? {
         Auth.auth().currentUser?.uid
     }
+
+    /// Only the songs added by users (docId starts with "u" or "tmp_").
+    /// Bundle/system songs are excluded — they don't need to be cached or synced.
+    private var allUserSongs: [Song] {
+        allSongs.filter { $0.docId.hasPrefix("u") || $0.docId.hasPrefix("tmp_") }
+    }
+
     
     init() {
         setupAuthListener()
@@ -79,8 +86,8 @@ class ChordViewModel: ObservableObject {
             loadRepertoires()
         }
     }
-    
-    // MARK: - Offline-First Song Loading
+
+    // MARK: - Bundle-First Song Loading
 
     private func fetchAllSongs() {
         guard !isLoading else { return }
@@ -89,68 +96,60 @@ class ChordViewModel: ObservableObject {
         Task { @MainActor in
             let syncManager = SyncManager.shared
 
-            // 1. Load from local cache immediately (zero Firestore reads)
-            if let cached = syncManager.loadSongsFromCache() {
-                self.allSongs = cached
-                self.isLoading = false
-                self.processDashboardData()
-                self.loadUserData(userId: self.userId)
-                print("📦 ChordViewModel: Loaded \(cached.count) songs from local cache.")
-            }
+            // 1. Load system/official songs from bundle (zero Firestore reads, instant)
+            let bundleSongs = syncManager.loadBundleSongs()
+            print("📦 ChordViewModel: \(bundleSongs.count) songs loaded from bundle.")
 
-            // 2. Only hit Firestore if cache is stale (>24 hours old)
+            // 2. Load cached user-chords from disk (zero Firestore reads)
+            let cachedUserSongs = syncManager.loadSongsFromCache() ?? []
+            print("📦 ChordViewModel: \(cachedUserSongs.count) user songs loaded from cache.")
+
+            // Merge: bundle songs + cached user songs
+            self.allSongs = bundleSongs + cachedUserSongs
+            self.isLoading = false
+            self.processDashboardData()
+            self.loadUserData(userId: self.userId)
+
+            // 3. Sync user-chords from Firestore only if cache is stale (> 24 hours)
             if syncManager.isCacheStale() {
-                print("🔄 ChordViewModel: Cache stale – syncing from Firestore…")
-                if self.allSongs.isEmpty { self.isLoading = true }
+                print("🔄 ChordViewModel: User-chords cache stale – syncing from Firestore…")
                 do {
-                    let fresh = try await syncManager.performFullSync(
+                    let freshUserSongs = try await syncManager.performFullSync(
                         collectionChords: collectionChords,
                         collectionUserChords: collectionUserChords
                     )
-                    self.allSongs = fresh
+                    // Re-merge with fresh user data
+                    self.allSongs = bundleSongs + freshUserSongs
                     self.processDashboardData()
                     self.loadUserData(userId: self.userId)
                 } catch {
-                    print("❌ ChordViewModel: Firestore sync failed: \(error)")
+                    print("❌ ChordViewModel: Firestore user-chords sync failed: \(error)")
                 }
-                self.isLoading = false
             } else {
-                print("✅ ChordViewModel: Cache is fresh – skipping Firestore read.")
-                if self.allSongs.isEmpty {
-                    // Cache file missing but timestamp present — force sync
-                    do {
-                        let fresh = try await syncManager.performFullSync(
-                            collectionChords: collectionChords,
-                            collectionUserChords: collectionUserChords
-                        )
-                        self.allSongs = fresh
-                        self.processDashboardData()
-                        self.loadUserData(userId: self.userId)
-                    } catch {
-                        print("❌ ChordViewModel: Forced sync failed: \(error)")
-                    }
-                    self.isLoading = false
-                }
+                print("✅ ChordViewModel: User-chords cache is fresh – skipping Firestore read.")
             }
 
-            // 3. Flush any pending writes once per day
-            if SyncManager.shared.shouldFlushWrites() {
-                await SyncManager.shared.flushPendingWrites()
+            // 4. Flush any pending writes once per day
+            if syncManager.shouldFlushWrites() {
+                await syncManager.flushPendingWrites()
             }
         }
     }
 
-    /// Call this to force a fresh sync (e.g., pull-to-refresh).
+    /// Call this to force a fresh sync of user-chords from Firestore (e.g., pull-to-refresh).
+    /// System songs are always from the bundle and don't need refreshing.
     func forceSync() {
         guard !isLoading else { return }
         isLoading = true
         Task { @MainActor in
+            let syncManager = SyncManager.shared
+            let bundleSongs = syncManager.loadBundleSongs()
             do {
-                let fresh = try await SyncManager.shared.performFullSync(
+                let freshUserSongs = try await syncManager.performFullSync(
                     collectionChords: collectionChords,
                     collectionUserChords: collectionUserChords
                 )
-                self.allSongs = fresh
+                self.allSongs = bundleSongs + freshUserSongs
                 self.processDashboardData()
                 self.loadUserData(userId: self.userId)
             } catch {
@@ -159,6 +158,7 @@ class ChordViewModel: ObservableObject {
             self.isLoading = false
         }
     }
+
     
     func fetchPendingSongs() {
         // Sadece bekleyenleri çek (Gerçek uygulamada sadece admin çekebilmeli ama şimdilik client-side da olabilir)
@@ -195,7 +195,7 @@ class ChordViewModel: ObservableObject {
     
     func addToRecentlyPlayed(_ song: Song) {
         var ids = UserDefaults.standard.stringArray(forKey: recentPlayedKey) ?? []
-        let songId = song.id ?? song.docId
+        let songId = song.id
         
         ids.removeAll { $0 == songId }
         ids.insert(songId, at: 0)
@@ -212,7 +212,7 @@ class ChordViewModel: ObservableObject {
     private func loadRecentlyPlayed() {
         let ids = UserDefaults.standard.stringArray(forKey: recentPlayedKey) ?? []
         self.recentlyPlayed = ids.compactMap { id in
-            allSongs.first { ($0.id ?? $0.docId) == id }
+            allSongs.first { $0.id == id }
         }
     }
     
@@ -265,21 +265,26 @@ class ChordViewModel: ObservableObject {
     }
     
     func incrementViewCount(for song: Song) {
-        let songId = song.id ?? song.docId
-        let collection = songId.hasPrefix("u") ? collectionUserChords : collectionChords
+        let songId = song.id
+        let isUserSong = songId.hasPrefix("u") || songId.hasPrefix("tmp_")
+        let collection = isUserSong ? collectionUserChords : collectionChords
 
-        // Update local cache immediately
-        if let index = allSongs.firstIndex(where: { ($0.id ?? $0.docId) == songId }) {
+        // Update local state immediately
+        if let index = allSongs.firstIndex(where: { $0.id == songId }) {
             allSongs[index].totalViews  = (allSongs[index].totalViews  ?? 0) + 1
             allSongs[index].recentViews = (allSongs[index].recentViews ?? 0) + 1
-            SyncManager.shared.saveSongsToCache(allSongs)
+            // Only persist cache for user songs; bundle songs are always re-loaded from bundle
+            if isUserSong {
+                SyncManager.shared.saveSongsToCache(allUserSongs)
+            }
         }
 
         // Queue the Firestore write — will be flushed next daily sync
+
         // NOTE: FieldValue.increment cannot be serialised, so we compute the new counts
         // from the local cache and write absolute values.
-        let totalViews  = allSongs.first(where: { ($0.id ?? $0.docId) == songId })?.totalViews  ?? 1
-        let recentViews = allSongs.first(where: { ($0.id ?? $0.docId) == songId })?.recentViews ?? 1
+        let totalViews  = allSongs.first(where: { $0.id == songId })?.totalViews  ?? 1
+        let recentViews = allSongs.first(where: { $0.id == songId })?.recentViews ?? 1
         let write = PendingWrite(
             collection: collection,
             documentId: songId,
@@ -419,12 +424,12 @@ class ChordViewModel: ObservableObject {
 
     func songs(for repertoire: Repertoire) -> [Song] {
         return repertoire.songIds.compactMap { id in
-            allSongs.first { ($0.id ?? $0.docId) == id }
+            allSongs.first { $0.id == id }
         }
     }
 
     func addSong(_ song: Song, to repertoire: Repertoire) {
-        let songId = song.id ?? song.docId
+        let songId = song.id
         
         if let uid = userId, let repId = repertoire.id {
             var updatedSongIds = repertoire.songIds
@@ -446,7 +451,7 @@ class ChordViewModel: ObservableObject {
 
     func removeSong(_ song: Song, from repertoire: Repertoire) {
         guard repertoire.ownerId == (userId ?? "local") else { return }
-        let songId = song.id ?? song.docId
+        let songId = song.id
         
         if let uid = userId, let repId = repertoire.id {
             var updatedSongIds = repertoire.songIds
@@ -542,7 +547,7 @@ class ChordViewModel: ObservableObject {
 
         // 1. Save locally immediately
         allSongs.append(newSong)
-        SyncManager.shared.saveSongsToCache(allSongs)
+        SyncManager.shared.saveSongsToCache(allUserSongs)
         processDashboardData()
         print("✅ saveNewUserSong: Saved locally with tmpId=\(tmpId)")
 
@@ -589,9 +594,10 @@ class ChordViewModel: ObservableObject {
                         // Replace tmp entry with the real one
                         self.allSongs.removeAll { $0.docId == tmpId }
                         self.allSongs.append(finalSong)
-                        SyncManager.shared.saveSongsToCache(self.allSongs)
+                        SyncManager.shared.saveSongsToCache(self.allUserSongs)
                         self.processDashboardData()
                         print("✅ saveNewUserSong: Firestore ID assigned: \(finalSong.docId)")
+
                     }
                 }
             }
@@ -599,21 +605,29 @@ class ChordViewModel: ObservableObject {
     }
     
     private func updateExistingSong(_ song: Song) {
-        // 1. Update local cache immediately
+        // 1. Update local state immediately
         if let index = allSongs.firstIndex(where: { $0.docId == song.docId }) {
             allSongs[index] = song
-            SyncManager.shared.saveSongsToCache(allSongs)
             processDashboardData()
         }
 
-        // 2. Queue Firestore write for daily flush
-        let collection = song.docId.hasPrefix("u") ? collectionUserChords : collectionChords
+        // Only user-chords (u* prefix) are written to Firestore.
+        // Bundle songs (numeric docIds) are read-only from the app bundle.
+        guard song.docId.hasPrefix("u") || song.docId.hasPrefix("tmp_") else {
+            print("ℹ️ updateExistingSong: Bundle song \(song.docId) — local update only, no Firestore write.")
+            return
+        }
+
+        // 2. Persist user-chords cache
+        SyncManager.shared.saveSongsToCache(allUserSongs)
+
+        // 3. Queue Firestore write for daily flush
         guard let fields = encodeSongToCodableFields(song) else {
             print("⚠️ updateExistingSong: Failed to encode song fields.")
             return
         }
         let write = PendingWrite(
-            collection: collection,
+            collection: collectionUserChords,
             documentId: song.docId,
             operation: .set,
             fields: fields
@@ -641,17 +655,25 @@ class ChordViewModel: ObservableObject {
     }
 
     func deleteSong(_ song: Song) {
-        let songId = song.id ?? song.docId
-        let collection = songId.hasPrefix("u") ? collectionUserChords : collectionChords
+        let songId = song.id
 
-        // 1. Remove from local cache immediately
+        // 1. Remove from local state immediately
         allSongs.removeAll { $0.docId == songId || $0.id == songId }
-        SyncManager.shared.saveSongsToCache(allSongs)
         processDashboardData()
 
-        // 2. Queue Firestore delete for daily flush
+        // Only user-chords can be deleted from Firestore.
+        // Bundle songs cannot be deleted (they are read-only from the app bundle).
+        guard songId.hasPrefix("u") || songId.hasPrefix("tmp_") else {
+            print("ℹ️ deleteSong: Bundle song \(songId) — local removal only, no Firestore write.")
+            return
+        }
+
+        // 2. Persist user-chords cache
+        SyncManager.shared.saveSongsToCache(allUserSongs)
+
+        // 3. Queue Firestore delete for daily flush
         let write = PendingWrite(
-            collection: collection,
+            collection: collectionUserChords,
             documentId: songId,
             operation: .delete
         )
@@ -659,11 +681,11 @@ class ChordViewModel: ObservableObject {
     }
     
     func approveSong(_ song: Song) {
-        let songId = song.id ?? song.docId
+        let songId = song.id
         let collection = songId.hasPrefix("u") ? collectionUserChords : collectionChords
 
         // Update local cache
-        if let index = allSongs.firstIndex(where: { ($0.id ?? $0.docId) == songId }) {
+        if let index = allSongs.firstIndex(where: { $0.id == songId }) {
             allSongs[index].status = "approved"
             SyncManager.shared.saveSongsToCache(allSongs)
             processDashboardData()
@@ -683,11 +705,11 @@ class ChordViewModel: ObservableObject {
     }
 
     func rejectSong(_ song: Song) {
-        let songId = song.id ?? song.docId
+        let songId = song.id
         let collection = songId.hasPrefix("u") ? collectionUserChords : collectionChords
 
         // Update local cache
-        if let index = allSongs.firstIndex(where: { ($0.id ?? $0.docId) == songId }) {
+        if let index = allSongs.firstIndex(where: { $0.id == songId }) {
             allSongs[index].status = "rejected"
             SyncManager.shared.saveSongsToCache(allSongs)
             processDashboardData()

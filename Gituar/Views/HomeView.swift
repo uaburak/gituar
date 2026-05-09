@@ -6,35 +6,14 @@ struct HomeView: View {
     @EnvironmentObject var viewModel: ChordViewModel
     @EnvironmentObject var authViewModel: AuthViewModel
     
-    @State private var searchText: String = ""
     @State private var navigateToProfile = false
 
     var body: some View {
-        Group {
-            if !searchText.isEmpty {
-                List(viewModel.songs, id: \.docId) { song in
-                    NavigationLink(destination: SongDetailView(song: song, playlist: viewModel.songs)) {
-                        SongRowCard(song: song)
-                    }
-                }
-                .listStyle(.plain)
-            } else {
-                ScrollView(showsIndicators: false) {
-                    VStack(alignment: .leading, spacing: 32) {
-                        
-                        // Top Ad Banner
-                        VStack(spacing: 0) {
-                            AdBannerView()
-                                .frame(height: 100)
-                                .frame(maxWidth: .infinity)
-                                .background(Color(.systemGray6))
-                                .cornerRadius(12)
-                        }
-
-                        .padding(.horizontal, 20)
-                        .padding(.top, 16)
-                        
-                        // Hero Section
+        VStack(spacing: 0) {
+            ScrollView(showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 32) {
+                    
+                    // Hero Section
                         HStack(spacing: 16) {
                             NavigationLink(destination: MySongsView()) {
                                 MinimalCategoryCard(
@@ -103,16 +82,19 @@ struct HomeView: View {
                         }
                     }
                     .padding(.bottom, 40)
-                }
-            }
+                    .padding(.top, 16)
+            } // End of ScrollView
+            
+            // Fixed Bottom Ad Banner
+            let bannerWidth = UIScreen.main.bounds.width
+            AdBannerView(viewWidth: bannerWidth)
+                .frame(width: bannerWidth, height: 60)
+                .background(Color(.systemBackground))
         }
+        .ignoresSafeArea(.all, edges: .bottom)
         .background(Color(.systemBackground))
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
-        .searchable(text: $searchText, prompt: "Şarkı, sanatçı veya akor ara...")
-        .onChange(of: searchText) { _, newValue in
-            viewModel.searchText = newValue
-        }
         .navigationDestination(isPresented: $navigateToProfile) {
             ProfileSettingsView()
         }

@@ -458,7 +458,7 @@ struct SongDetailView: View {
                 Divider().padding(.top, 40)
 
                 // Ad Banner
-                let bannerWidth = UIScreen.main.bounds.width - 40
+                let bannerWidth = ((UIApplication.shared.connectedScenes.first as? UIWindowScene)?.screen.bounds.width ?? 320) - 40
                 AdBannerView(viewWidth: bannerWidth)
                 .frame(height: 60)
                 .padding(.bottom, 8)

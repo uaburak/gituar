@@ -27,6 +27,7 @@ class ChordViewModel: ObservableObject {
     private let collectionChords = "chords"
     private let collectionUserChords = "user-chords"
     private let collectionPublicRepertoires = "public-repertoires"
+    private let collectionSongMetrics = "song-metrics"
     private let metadataCollection = "metadata"
     private let countersDocument = "counters"
     
@@ -109,6 +110,9 @@ class ChordViewModel: ObservableObject {
             self.isLoading = false
             self.processDashboardData()
             self.loadUserData(userId: self.userId)
+            
+            // Sync lightweight registry
+            self.fetchPopularityRegistry()
 
             // 3. Sync user-chords from Firestore only if cache is stale (> 24 hours)
             if syncManager.isCacheStale() {
@@ -122,6 +126,7 @@ class ChordViewModel: ObservableObject {
                     self.allSongs = bundleSongs + freshUserSongs
                     self.processDashboardData()
                     self.loadUserData(userId: self.userId)
+                    self.fetchPopularityRegistry()
                 } catch {
                     print("❌ ChordViewModel: Firestore user-chords sync failed: \(error)")
                 }
@@ -152,6 +157,7 @@ class ChordViewModel: ObservableObject {
                 self.allSongs = bundleSongs + freshUserSongs
                 self.processDashboardData()
                 self.loadUserData(userId: self.userId)
+                self.fetchPopularityRegistry()
             } catch {
                 print("❌ ChordViewModel: forceSync failed: \(error)")
             }
@@ -164,6 +170,41 @@ class ChordViewModel: ObservableObject {
         // Sadece bekleyenleri çek (Gerçek uygulamada sadece admin çekebilmeli ama şimdilik client-side da olabilir)
         // Ya da admin ise fetchPendingSongs() çağrılır.
         self.pendingSongs = allSongs.filter { $0.status == "pending" }
+    }
+    
+    private func fetchPopularityRegistry() {
+        Task {
+            do {
+                let snapshot = try await db.collection(metadataCollection).document("popularity_registry").getDocument(source: .server)
+                guard let data = snapshot.data(), let metrics = data["metrics"] as? [String: [Int]] else { return }
+                
+                await MainActor.run {
+                    var didUpdate = false
+                    for (songId, values) in metrics {
+                        if values.count >= 3, let index = self.allSongs.firstIndex(where: { $0.id == songId }) {
+                            // Only update if remote is greater than local to preserve recent offline increments
+                            if values[0] > (self.allSongs[index].totalViews ?? 0) {
+                                self.allSongs[index].totalViews = values[0]
+                                didUpdate = true
+                            }
+                            if values[1] > (self.allSongs[index].recentViews ?? 0) {
+                                self.allSongs[index].recentViews = values[1]
+                                didUpdate = true
+                            }
+                            if values[2] > (self.allSongs[index].repertoireAdds ?? 0) {
+                                self.allSongs[index].repertoireAdds = values[2]
+                                didUpdate = true
+                            }
+                        }
+                    }
+                    if didUpdate {
+                        self.processDashboardData()
+                    }
+                }
+            } catch {
+                print("⚠️ fetchPopularityRegistry failed or not created yet: \(error.localizedDescription)")
+            }
+        }
     }
     
     private func processDashboardData() {
@@ -267,7 +308,7 @@ class ChordViewModel: ObservableObject {
     func incrementViewCount(for song: Song) {
         let songId = song.id
         let isUserSong = songId.hasPrefix("u") || songId.hasPrefix("tmp_")
-        let collection = isUserSong ? collectionUserChords : collectionChords
+        let collection = isUserSong ? collectionUserChords : collectionSongMetrics
 
         // Update local state immediately
         if let index = allSongs.firstIndex(where: { $0.id == songId }) {
@@ -288,7 +329,7 @@ class ChordViewModel: ObservableObject {
         let write = PendingWrite(
             collection: collection,
             documentId: songId,
-            operation: .update,
+            operation: .set, // Use set with merge:true (updated in SyncManager) to create if missing
             fields: [
                 "totalViews":  .int(totalViews),
                 "recentViews": .int(recentViews)
@@ -455,14 +496,40 @@ class ChordViewModel: ObservableObject {
                 db.collection(collection).document(repId).updateData([
                     "songIds": updatedSongIds
                 ])
+                incrementRepertoireAdds(for: song)
             }
         } else {
             guard let index = repertoires.firstIndex(where: { $0.id == repertoire.id }) else { return }
             if !repertoires[index].songIds.contains(songId) {
                 repertoires[index].songIds.append(songId)
                 saveRepertoires()
+                incrementRepertoireAdds(for: song)
             }
         }
+    }
+    
+    private func incrementRepertoireAdds(for song: Song) {
+        let songId = song.id
+        let isUserSong = songId.hasPrefix("u") || songId.hasPrefix("tmp_")
+        let collection = isUserSong ? collectionUserChords : collectionSongMetrics
+
+        if let index = allSongs.firstIndex(where: { $0.id == songId }) {
+            allSongs[index].repertoireAdds = (allSongs[index].repertoireAdds ?? 0) + 1
+            if isUserSong {
+                SyncManager.shared.saveSongsToCache(allUserSongs)
+            }
+        }
+
+        let repAdds = allSongs.first(where: { $0.id == songId })?.repertoireAdds ?? 1
+        let write = PendingWrite(
+            collection: collection,
+            documentId: songId,
+            operation: .set, 
+            fields: [
+                "repertoireAdds": .int(repAdds)
+            ]
+        )
+        SyncManager.shared.enqueuePendingWrite(write)
     }
 
     func removeSong(_ song: Song, from repertoire: Repertoire) {

@@ -226,7 +226,7 @@ final class SyncManager {
                 case .set:
                     if let fields = write.fields {
                         let data = fields.mapValues { $0.firestoreValue }
-                        try await ref.setData(data)
+                        try await ref.setData(data, merge: true)
                     }
                 case .update:
                     if let fields = write.fields {

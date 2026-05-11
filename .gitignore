@@ -1,0 +1,22 @@
+# Xcode
+build/
+DerivedData/
+*.xcuserstate
+*.xcuserdatad
+.DS_Store
+
+# Firebase
+.firebase/
+firebase-debug.log
+firebase-debug.*.log
+firestore-debug.log
+
+# Node.js (Functions)
+functions/node_modules/
+node_modules/
+lib/
+.runtimeconfig.json
+
+# Local
+.env
+.env.local

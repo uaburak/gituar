@@ -1,0 +1,22 @@
+{
+  "images" : [
+    {
+      "filename" : "gituarIcon-iOS-Default-512x512@1x.png",
+      "idiom" : "universal",
+      "scale" : "1x"
+    },
+    {
+      "filename" : "gituarIcon-iOS-Dark-512x512@1x.png",
+      "idiom" : "universal",
+      "scale" : "2x"
+    },
+    {
+      "idiom" : "universal",
+      "scale" : "3x"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  }
+}

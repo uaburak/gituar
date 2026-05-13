@@ -13,6 +13,7 @@ class AuthViewModel: ObservableObject {
     @Published var isGuestMode: Bool = false
     @Published var isProfileComplete: Bool = false
     @Published var isCheckingProfile: Bool = false
+    @Published var isInitialCheckDone: Bool = false
     @Published var userProfile: UserProfile? = nil
 
     var isAdmin: Bool {
@@ -31,6 +32,7 @@ class AuthViewModel: ObservableObject {
                     self?.checkUserProfile(uid: user.uid)
                 } else {
                     self?.isProfileComplete = false
+                    self?.isInitialCheckDone = true // Oturum yoksa kontrol bitti
                 }
             }
         }
@@ -44,6 +46,7 @@ class AuthViewModel: ObservableObject {
                 self?.userProfile = profile
                 self?.isProfileComplete = (profile != nil)
                 self?.isCheckingProfile = false
+                self?.isInitialCheckDone = true // Profil kontrolü bitti, artık her şey hazır
             }
         }
     }

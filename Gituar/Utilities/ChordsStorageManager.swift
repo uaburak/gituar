@@ -208,4 +208,42 @@ final class ChordsStorageManager: ObservableObject {
         let decoder = JSONDecoder()
         return try decoder.decode([LocalSong].self, from: data)
     }
+    // MARK: - Admin API
+
+    /// Resmi bir şarkıyı Storage'daki JSON dosyasından kalıcı olarak siler.
+    /// Bu işlem sadece Storage kurallarında yetkilendirilmiş adminler tarafından yapılabilir.
+    func deleteOfficialSong(songId: String) async throws {
+        print("🗑️ ChordsStorageManager: deleteOfficialSong(\(songId)) tetiklendi.")
+        
+        let storageRef = Storage.storage().reference(withPath: storagePath)
+        
+        // 1. Storage'dan en güncel veriyi indir (overwrite hatalarını azaltmak için)
+        let data = try await storageRef.data(maxSize: 50 * 1024 * 1024)
+        
+        // 2. Decode et ve şarkıyı bulup çıkar
+        var decodedSongs = try Self.decodeSongs(from: data)
+        let initialCount = decodedSongs.count
+        decodedSongs.removeAll { $0.docId == songId }
+        
+        guard decodedSongs.count < initialCount else {
+            print("⚠️ ChordsStorageManager: Şarkı JSON'da bulunamadı: \(songId)")
+            return
+        }
+        
+        // 3. Yeniden JSON formatına çevir
+        let encoder = JSONEncoder()
+        let newData = try encoder.encode(decodedSongs)
+        
+        // 4. Firebase Storage'a yükle (üzerine yaz)
+        _ = try await storageRef.putDataAsync(newData, metadata: nil)
+        print("✅ ChordsStorageManager: Şarkı silindi, yeni JSON Storage'a başarıyla yüklendi.")
+        
+        // 5. Uygulama içi belleği (state) ve diski güncelle
+        await MainActor.run {
+            self.songs = decodedSongs
+            let url = self.makeCacheFileURL()
+            try? newData.write(to: url, options: .atomic)
+            print("💾 ChordsStorageManager: Local cache ve memory güncellendi.")
+        }
+    }
 }

@@ -24,28 +24,39 @@ class ChordViewModel: ObservableObject {
     @Published var songPreferences: [String: UserSongPreference] = [:] // Kullanıcıya özel şarkı ayarları
     @Published var pendingSongs: [Song] = [] // Onay bekleyen şarkılar
     
+    @Published var blockedUserIDs: [String] = [] {
+        didSet {
+            UserDefaults.standard.set(blockedUserIDs, forKey: "blockedUserIDs")
+            processDashboardData()
+            if !searchText.isEmpty {
+                Task {
+                    await filterSongs(query: searchText)
+                }
+            }
+        }
+    }
+    
     private let collectionChords = "chords"
     private let collectionUserChords = "user-chords"
     private let collectionPublicRepertoires = "public-repertoires"
     private let collectionSongMetrics = "song-metrics"
     private let metadataCollection = "metadata"
     private let countersDocument = "counters"
-    
+
     private var db = Firestore.firestore()
     private var cancellables = Set<AnyCancellable>()
     private var authListener: AuthStateDidChangeListenerHandle?
     private var adminIdsCache: [String]? = nil
-    
+    /// Aktif Firestore snapshot listener'larını tutar — auth değişiminde remove() ile temizlenir.
+    private var repertoireListeners: [ListenerRegistration] = []
+
     private let recentPlayedKey = "recentlyPlayedIds"
-    private let repertoiresKey = "user_repertoires"
-    
+    private let repertoiresKey  = "user_repertoires"
+
     var currentUserId: String? {
         Auth.auth().currentUser?.uid
     }
-    
-    private var userId: String? {
-        Auth.auth().currentUser?.uid
-    }
+    // NOT: `userId` kaldırıldı — currentUserId kullanılıyor.
 
     /// Only the songs added by users (docId starts with "u" or "tmp_").
     /// Bundle/system songs are excluded — they don't need to be cached or synced.
@@ -53,8 +64,25 @@ class ChordViewModel: ObservableObject {
         allSongs.filter { $0.docId.hasPrefix("u") || $0.docId.hasPrefix("tmp_") }
     }
 
+    /// User-chords'un ayrı, kararlı kopyası.
+    /// Storage subscription'ı allSongs'u overwrite ettiğinde user-chords'un kaybolmaması için.
+    private var cachedUserChords: [Song] = []
+
+    /// Engelleme + onay filtresi uygulanmış, UI için güvenli şarkı listesi.
+    /// `allSongs` ham kaynak olarak kalır; tüm view'lar bu property'yi kullanmalı.
+    var visibleSongs: [Song] {
+        let blocked = blockedUserIDs
+        return allSongs.filter {
+            // Onay durumu kontrolü
+            ($0.status == "approved" || $0.status == nil) &&
+            // Engelleme: ownerId yoksa (resmi şarkı) göster, varsa blocked listesinde olmamalı
+            !(($0.ownerId.map { !$0.isEmpty } ?? false) && blocked.contains($0.ownerId!))
+        }
+    }
+
     
     init() {
+        self.blockedUserIDs = UserDefaults.standard.stringArray(forKey: "blockedUserIDs") ?? []
         setupAuthListener()
         fetchAllSongs()   // Sadece user-chords yükler
 
@@ -67,14 +95,11 @@ class ChordViewModel: ObservableObject {
             .sink { [weak self] storageSongs in
                 guard let self, !storageSongs.isEmpty else { return }
                 let officialSongs = storageSongs.map { $0.toSong() }
-                // Mevcut user-chords'u koru, sadece resmi şarkıları güncelle
-                let userSongs = self.allSongs.filter {
-                    $0.docId.hasPrefix("u") || $0.docId.hasPrefix("tmp_")
-                }
-                self.allSongs = officialSongs + userSongs
+                // cachedUserChords kullan — allSongs’u yeniden filtreleme (race condition)
+                self.allSongs = officialSongs + self.cachedUserChords
                 self.processDashboardData()
                 self.fetchPopularityRegistry()
-                print("✅ ChordViewModel: \(officialSongs.count) resmi şarkı Storage'dan merge edildi.")
+                print("✅ ChordViewModel: \(officialSongs.count) resmi şarkı Storage'dan merge edildi, \(self.cachedUserChords.count) user-chord korundu.")
             }
             .store(in: &cancellables)
 
@@ -104,10 +129,13 @@ class ChordViewModel: ObservableObject {
     
     private func loadUserData(userId: String?) {
         songPreferences.removeAll()
-        if let uid = userId {
+        if let uid = currentUserId {
             fetchRepertoiresFromFirestore(userId: uid)
+            loadBlockedUsersFromFirestore(userId: uid)
         } else {
-            // Guest mode or Logged out
+            // Guest mode veya çıkış — listener'ları temizle
+            repertoireListeners.forEach { $0.remove() }
+            repertoireListeners.removeAll()
             loadRepertoires()
         }
     }
@@ -125,41 +153,45 @@ class ChordViewModel: ObservableObject {
         Task { @MainActor in
             let syncManager = SyncManager.shared
 
-            // 1. Diskten cache'lenmiş user-chords'u yükle (Firestore isteği yok)
+            // 1. Diskten cache'lenmiş user-chords'u hızlıca yükle (anlık gösterim için)
             let cachedUserSongs = syncManager.loadSongsFromCache() ?? []
             print("📦 ChordViewModel: \(cachedUserSongs.count) user songs loaded from cache.")
 
-            // Resmi şarkılar Storage'dan henüz gelmediyse sadece user-chords'u göster
+            // cachedUserChords'u güncelle — Storage subscription race condition'ını engeller
+            self.cachedUserChords = cachedUserSongs
+
+            // Resmi şarkılar Storage'dan henüz gelmediyse sadece cache'i göster
             let storageSongs = ChordsStorageManager.shared.songs.map { $0.toSong() }
             self.allSongs = storageSongs + cachedUserSongs
             self.isLoading = false
             self.processDashboardData()
-            self.loadUserData(userId: self.userId)
+            self.loadUserData(userId: self.currentUserId)
             self.fetchPopularityRegistry()
 
-            // 2. User-chords cache'i eskimişse Firestore'dan güncelle (> 24 saat)
-            if syncManager.isCacheStale() {
-                print("🔄 ChordViewModel: User-chords cache stale – syncing from Firestore…")
-                do {
-                    let freshUserSongs = try await syncManager.performFullSync(
-                        collectionChords: collectionChords,
-                        collectionUserChords: collectionUserChords
-                    )
-                    // Resmi şarkıları Storage'dan al (hazırsa), user-chords'u tazele
-                    let latestStorage = ChordsStorageManager.shared.songs.map { $0.toSong() }
-                    self.allSongs = latestStorage + freshUserSongs
-                    self.processDashboardData()
-                    self.loadUserData(userId: self.userId)
-                    self.fetchPopularityRegistry()
-                } catch {
-                    print("❌ ChordViewModel: Firestore user-chords sync failed: \(error)")
-                }
-            } else {
-                print("✅ ChordViewModel: User-chords cache is fresh – skipping Firestore read.")
+            // 2. HER AÇILIŞTA Firestore'dan user-chords çek — cache sadece hızlı gösterim için
+            // Bu, kullanıcıların şarkılarının her zaman görünmesini garantiler.
+            print("🔄 ChordViewModel: Fetching user-chords from Firestore…")
+            do {
+                let freshUserSongs = try await syncManager.performFullSync(
+                    collectionChords: collectionChords,
+                    collectionUserChords: collectionUserChords
+                )
+                // cachedUserChords'u Firestore'dan gelen taze verilerle güncelle
+                self.cachedUserChords = freshUserSongs
+                // Resmi şarkıları Storage'dan al (hazırsa), user-chords'u tazele
+                let latestStorage = ChordsStorageManager.shared.songs.map { $0.toSong() }
+                self.allSongs = latestStorage + freshUserSongs
+                self.processDashboardData()
+                self.loadUserData(userId: self.currentUserId)
+                self.fetchPopularityRegistry()
+                print("✅ ChordViewModel: \(freshUserSongs.count) user-chord(s) loaded from Firestore.")
+            } catch {
+                print("❌ ChordViewModel: Firestore user-chords fetch failed: \(error)")
+                // Hata durumunda cache'den yükleme zaten yapıldı, devam edilebilir
             }
 
-            // 3. Bekleyen yazmaları günlük olarak Firestore'a flush et
-            if syncManager.shouldFlushWrites() {
+            // 3. Bekleyen yazmaları Firestore'a flush et
+            if syncManager.hasPendingWrites {
                 await syncManager.flushPendingWrites()
             }
         }
@@ -177,11 +209,13 @@ class ChordViewModel: ObservableObject {
                     collectionChords: collectionChords,
                     collectionUserChords: collectionUserChords
                 )
+                // cachedUserChords'u güncelle
+                self.cachedUserChords = freshUserSongs
                 // Resmi şarkıları Storage'dan al, user-chords'u tazele
                 let storageSongs = ChordsStorageManager.shared.songs.map { $0.toSong() }
                 self.allSongs = storageSongs + freshUserSongs
                 self.processDashboardData()
-                self.loadUserData(userId: self.userId)
+                self.loadUserData(userId: self.currentUserId)
                 self.fetchPopularityRegistry()
             } catch {
                 print("❌ ChordViewModel: forceSync failed: \(error)")
@@ -191,10 +225,32 @@ class ChordViewModel: ObservableObject {
     }
 
     
+    /// Onay bekleyen şarkıları Firestore'dan çeker.
+    /// Sadece admin kullanıcılar için çağrılmalı.
     func fetchPendingSongs() {
-        // Sadece bekleyenleri çek (Gerçek uygulamada sadece admin çekebilmeli ama şimdilik client-side da olabilir)
-        // Ya da admin ise fetchPendingSongs() çağrılır.
-        self.pendingSongs = allSongs.filter { $0.status == "pending" }
+        Task {
+            do {
+                let snapshot = try await db.collection(collectionUserChords)
+                    .whereField("status", isEqualTo: "pending")
+                    .getDocuments()
+                let songs = snapshot.documents.compactMap { doc -> Song? in
+                    if var song = try? doc.data(as: Song.self) {
+                        if song.docId.isEmpty { song.docId = doc.documentID }
+                        return song
+                    }
+                    return nil
+                }
+                await MainActor.run {
+                    self.pendingSongs = songs
+                }
+            } catch {
+                print("❌ fetchPendingSongs: \(error.localizedDescription)")
+                // Fallback: client-side filtre
+                await MainActor.run {
+                    self.pendingSongs = self.allSongs.filter { $0.status == "pending" }
+                }
+            }
+        }
     }
     
     private func fetchPopularityRegistry() {
@@ -233,8 +289,8 @@ class ChordViewModel: ObservableObject {
     }
     
     private func processDashboardData() {
-        // Sadece onaylı şarkıları dashboard ve arama için kullan (status nil olan eski şarkıları da dahil ediyoruz)
-        let approvedSongs = allSongs.filter { $0.status == "approved" || $0.status == nil }
+        // visibleSongs: engelleme + onay filtresi zaten uygulanmış
+        let approvedSongs = visibleSongs
         
         // Sanatçıları alfabetik listele
         self.artists = Array(Set(approvedSongs.map { $0.artist })).sorted()
@@ -250,9 +306,6 @@ class ChordViewModel: ObservableObject {
         let threeMonthsAgo = Calendar.current.date(byAdding: .month, value: -3, to: Date()) ?? Date()
         self.newArrivals = approvedSongs.filter { ($0.createdAt ?? Date(timeIntervalSince1970: 0)) > threeMonthsAgo }
             .sorted { ($0.createdAt ?? Date()) > ($1.createdAt ?? Date()) }
-        
-        // Onay bekleyenleri de güncelle
-        self.fetchPendingSongs()
         
         // Son Çalınanlar (UserDefaults'tan yükle)
         loadRecentlyPlayed()
@@ -283,7 +336,7 @@ class ChordViewModel: ObservableObject {
     }
     
     func songsForArtist(_ artist: String) -> [Song] {
-        allSongs.filter { $0.artist == artist }.sorted { $0.songName < $1.songName }
+        visibleSongs.filter { $0.artist == artist }.sorted { $0.songName < $1.songName }
     }
     
     func filterSongs(query: String) async {
@@ -296,15 +349,12 @@ class ChordViewModel: ObservableObject {
         let normalizedQuery = cleanedQuery.turkeyNormalized
         let queryWords = normalizedQuery.components(separatedBy: .whitespaces).filter { !$0.isEmpty }
         
-        // Capture data for background thread to avoid actor isolation issues
-        let songsToFilter = self.allSongs
+        // visibleSongs yerine direkt filtrele — arama zaten approved+blocked kontrolü yapar
+        let songsToFilter = self.visibleSongs
         
-        // Veriyi arka planda işle
+        // Veriyi arka planda işle — visibleSongs zaten filtreli
         let filtered = await Task.detached(priority: .userInitiated) { [normalizedQuery, queryWords] in
-            // status nil olan eski şarkıları da dahil ediyoruz
-            let approvedSongs = songsToFilter.filter { $0.status == "approved" || $0.status == nil }
-            
-            return approvedSongs.filter { song in
+            return songsToFilter.filter { song in
                 let normalizedArtist = song.artist.turkeyNormalized
                 let normalizedSongName = song.songName.turkeyNormalized
                 
@@ -366,37 +416,36 @@ class ChordViewModel: ObservableObject {
     // MARK: - Repertoire Management
     
     private func fetchRepertoiresFromFirestore(userId: String) {
-        // Clear old listeners if any (in a real app you might want to store ListenerRegistration)
-        
-        // 1. Private Repertoires
-        db.collection("users").document(userId).collection("repertoires").addSnapshotListener { [weak self] snapshot, _ in
-            self?.combineAndSyncRepertoires()
-        }
-        
-        // 2. Public Repertoires owned by me
-        db.collection(collectionPublicRepertoires).whereField("ownerId", isEqualTo: userId).addSnapshotListener { [weak self] snapshot, _ in
-            self?.combineAndSyncRepertoires()
-        }
-    }
+        // Mevcut listener'ları temizle (auth değişimi veya yeniden çağrı durumunda)
+        repertoireListeners.forEach { $0.remove() }
+        repertoireListeners.removeAll()
 
-    private func combineAndSyncRepertoires() {
-        guard let uid = userId else { return }
-        
-        Task { @MainActor in
-            do {
-                async let privateSnapshot = db.collection("users").document(uid).collection("repertoires").getDocuments()
-                async let publicSnapshot = db.collection(collectionPublicRepertoires).whereField("ownerId", isEqualTo: uid).getDocuments()
-                
-                let (pSnapshot, pubSnapshot) = try await (privateSnapshot, publicSnapshot)
-                
-                let privateReps = pSnapshot.documents.compactMap { try? $0.data(as: Repertoire.self) }
-                let publicReps = pubSnapshot.documents.compactMap { try? $0.data(as: Repertoire.self) }
-                
-                self.repertoires = (privateReps + publicReps).sorted { ($0.createdAt ) > ($1.createdAt ) }
-            } catch {
-                print("Error combining repertoires: \(error)")
-            }
+        // Private state — snapshot listener verilerini geçici tutar
+        var privateReps: [Repertoire] = []
+        var myPublicReps: [Repertoire] = []
+
+        func merged() -> [Repertoire] {
+            (privateReps + myPublicReps).sorted { $0.createdAt > $1.createdAt }
         }
+
+        // 1. Private Repertoires — snapshot verilerini direkt kullan
+        let l1 = db.collection("users").document(userId).collection("repertoires")
+            .addSnapshotListener { [weak self] snapshot, error in
+                guard let self, let snapshot, error == nil else { return }
+                privateReps = snapshot.documents.compactMap { try? $0.data(as: Repertoire.self) }
+                self.repertoires = merged()
+            }
+        repertoireListeners.append(l1)
+
+        // 2. Public Repertoires sahipliğinde — snapshot verilerini direkt kullan
+        let l2 = db.collection(collectionPublicRepertoires)
+            .whereField("ownerId", isEqualTo: userId)
+            .addSnapshotListener { [weak self] snapshot, error in
+                guard let self, let snapshot, error == nil else { return }
+                myPublicReps = snapshot.documents.compactMap { try? $0.data(as: Repertoire.self) }
+                self.repertoires = merged()
+            }
+        repertoireListeners.append(l2)
     }
 
     private func loadRepertoires() {
@@ -407,7 +456,7 @@ class ChordViewModel: ObservableObject {
     }
     
     private func saveRepertoires() {
-        if userId == nil {
+        if currentUserId == nil {
             if let data = try? JSONEncoder().encode(repertoires) {
                 UserDefaults.standard.set(data, forKey: repertoiresKey)
             }
@@ -452,11 +501,11 @@ class ChordViewModel: ObservableObject {
             id: UUID().uuidString,
             name: name,
             songIds: [],
-            ownerId: userId ?? "local",
+            ownerId: currentUserId ?? "local",
             createdAt: Date()
         )
         
-        if let uid = userId {
+        if let uid = currentUserId {
             do {
                 let docRef = db.collection("users").document(uid).collection("repertoires").document(newRepertoire.id ?? UUID().uuidString)
                 try docRef.setData(from: newRepertoire)
@@ -470,7 +519,7 @@ class ChordViewModel: ObservableObject {
     }
     
     func deleteRepertoire(at offsets: IndexSet) {
-        if userId != nil {
+        if currentUserId != nil {
             offsets.forEach { index in
                 let repertoire = repertoires[index]
                 deleteRepertoire(repertoire)
@@ -482,7 +531,7 @@ class ChordViewModel: ObservableObject {
     }
 
     func deleteRepertoire(_ repertoire: Repertoire) {
-        if let uid = userId, let id = repertoire.id {
+        if let uid = currentUserId, let id = repertoire.id {
             if repertoire.isPublic ?? false {
                 db.collection(collectionPublicRepertoires).document(id).delete()
             } else {
@@ -497,8 +546,8 @@ class ChordViewModel: ObservableObject {
     }
 
     func renameRepertoire(_ repertoire: Repertoire, newName: String) {
-        guard repertoire.ownerId == (userId ?? "local") else { return }
-        if let uid = userId, let repId = repertoire.id {
+        guard repertoire.ownerId == (currentUserId ?? "local") else { return }
+        if let uid = currentUserId, let repId = repertoire.id {
             let collection = (repertoire.isPublic ?? false) ? collectionPublicRepertoires : "users/\(uid)/repertoires"
             db.collection(collection).document(repId).updateData([
                 "name": newName
@@ -519,7 +568,7 @@ class ChordViewModel: ObservableObject {
     func addSong(_ song: Song, to repertoire: Repertoire) {
         let songId = song.id
         
-        if let uid = userId, let repId = repertoire.id {
+        if let uid = currentUserId, let repId = repertoire.id {
             var updatedSongIds = repertoire.songIds
             if !updatedSongIds.contains(songId) {
                 updatedSongIds.append(songId)
@@ -564,10 +613,10 @@ class ChordViewModel: ObservableObject {
     }
 
     func removeSong(_ song: Song, from repertoire: Repertoire) {
-        guard repertoire.ownerId == (userId ?? "local") else { return }
+        guard repertoire.ownerId == (currentUserId ?? "local") else { return }
         let songId = song.id
         
-        if let uid = userId, let repId = repertoire.id {
+        if let uid = currentUserId, let repId = repertoire.id {
             var updatedSongIds = repertoire.songIds
             updatedSongIds.removeAll { $0 == songId }
             let collection = (repertoire.isPublic ?? false) ? collectionPublicRepertoires : "users/\(uid)/repertoires"
@@ -582,7 +631,7 @@ class ChordViewModel: ObservableObject {
     }
 
     func setRepertoirePublic(_ repertoire: Repertoire, isPublic: Bool) {
-        guard let uid = userId, let repId = repertoire.id else { return }
+        guard let uid = currentUserId, let repId = repertoire.id else { return }
         guard repertoire.ownerId == uid else { return }
         
         let oldCollection = (repertoire.isPublic ?? false) ? collectionPublicRepertoires : "users/\(uid)/repertoires"
@@ -610,13 +659,13 @@ class ChordViewModel: ObservableObject {
             id: newId,
             name: repertoire.name,
             songIds: repertoire.songIds,
-            ownerId: userId ?? "local",
+            ownerId: currentUserId ?? "local",
             createdAt: Date(),
             isPublic: false,
             sourceId: repertoire.id
         )
         
-        if let uid = userId {
+        if let uid = currentUserId {
             do {
                 try db.collection("users").document(uid).collection("repertoires").document(newId).setData(from: copy)
                 // Local state Snapshot listener ile güncellenecektir
@@ -637,7 +686,49 @@ class ChordViewModel: ObservableObject {
     // MARK: - User Songs Management
 
     func userSongs(userId: String) -> [Song] {
-        return allSongs.filter { $0.ownerId == userId }
+        allSongs.filter { $0.ownerId == userId }
+    }
+
+    // MARK: - Blocking
+
+    /// Bir kullanıcıyı engeller — hem local state hem Firestore'a yazar.
+    func blockUser(ownerId: String) {
+        guard !blockedUserIDs.contains(ownerId) else { return }
+        blockedUserIDs.append(ownerId) // didSet → UserDefaults + UI
+        guard let uid = currentUserId else { return }
+        db.collection("users").document(uid).updateData([
+            "blockedUsers": FieldValue.arrayUnion([ownerId])
+        ]) { error in
+            if let error { print("❌ blockUser Firestore: \(error.localizedDescription)") }
+        }
+    }
+
+    /// Bir kullanıcının engelini kaldırır — hem local state hem Firestore'a yazar.
+    func unblockUser(ownerId: String) {
+        blockedUserIDs.removeAll { $0 == ownerId }
+        guard let uid = currentUserId else { return }
+        db.collection("users").document(uid).updateData([
+            "blockedUsers": FieldValue.arrayRemove([ownerId])
+        ]) { error in
+            if let error { print("❌ unblockUser Firestore: \(error.localizedDescription)") }
+        }
+    }
+
+    /// Oturum açıldığında Firestore'daki engelleme listesini yükler.
+    private func loadBlockedUsersFromFirestore(userId: String) {
+        Task {
+            do {
+                let doc = try await db.collection("users").document(userId).getDocument()
+                if let blocked = doc.data()?["blockedUsers"] as? [String] {
+                    await MainActor.run {
+                        self.blockedUserIDs = blocked
+                        UserDefaults.standard.set(blocked, forKey: "blockedUserIDs")
+                    }
+                }
+            } catch {
+                print("⚠️ loadBlockedUsersFromFirestore: \(error.localizedDescription)")
+            }
+        }
     }
 
     func saveSong(_ song: Song) {
@@ -661,6 +752,7 @@ class ChordViewModel: ObservableObject {
 
         // 1. Save locally immediately
         allSongs.append(newSong)
+        cachedUserChords = allUserSongs
         SyncManager.shared.saveSongsToCache(allUserSongs)
         processDashboardData()
         print("✅ saveNewUserSong: Saved locally with tmpId=\(tmpId)")
@@ -708,10 +800,10 @@ class ChordViewModel: ObservableObject {
                         // Replace tmp entry with the real one
                         self.allSongs.removeAll { $0.docId == tmpId }
                         self.allSongs.append(finalSong)
+                        self.cachedUserChords = self.allUserSongs
                         SyncManager.shared.saveSongsToCache(self.allUserSongs)
                         self.processDashboardData()
                         print("✅ saveNewUserSong: Firestore ID assigned: \(finalSong.docId)")
-
                     }
                 }
             }
@@ -776,22 +868,39 @@ class ChordViewModel: ObservableObject {
         processDashboardData()
 
         // Only user-chords can be deleted from Firestore.
-        // Bundle songs cannot be deleted (they are read-only from the app bundle).
-        guard songId.hasPrefix("u") || songId.hasPrefix("tmp_") else {
-            print("ℹ️ deleteSong: Bundle song \(songId) — local removal only, no Firestore write.")
-            return
+        // Bundle songs are now stored in Firebase Storage.
+        if songId.hasPrefix("u") || songId.hasPrefix("tmp_") {
+            // 2. Persist user-chords cache
+            cachedUserChords = allUserSongs
+            SyncManager.shared.saveSongsToCache(allUserSongs)
+
+            // 3. Immediately delete from Firestore (Admin / User action should reflect promptly)
+            Task {
+                do {
+                    try await db.collection(collectionUserChords).document(songId).delete()
+                    print("✅ deleteSong: User chord \(songId) deleted directly from Firestore.")
+                } catch {
+                    // Fallback to queue if offline
+                    let write = PendingWrite(
+                        collection: collectionUserChords,
+                        documentId: songId,
+                        operation: .delete
+                    )
+                    SyncManager.shared.enqueuePendingWrite(write)
+                    print("⚠️ deleteSong: Direct delete failed, queued. \(error)")
+                }
+            }
+        } else {
+            // Official Song - Delete from Firebase Storage JSON
+            Task {
+                do {
+                    try await ChordsStorageManager.shared.deleteOfficialSong(songId: songId)
+                    print("✅ deleteSong: Official song \(songId) deleted from Storage.")
+                } catch {
+                    print("❌ deleteSong: Failed to delete official song from Storage: \(error)")
+                }
+            }
         }
-
-        // 2. Persist user-chords cache
-        SyncManager.shared.saveSongsToCache(allUserSongs)
-
-        // 3. Queue Firestore delete for daily flush
-        let write = PendingWrite(
-            collection: collectionUserChords,
-            documentId: songId,
-            operation: .delete
-        )
-        SyncManager.shared.enqueuePendingWrite(write)
     }
     
     func approveSong(_ song: Song) {
@@ -843,7 +952,7 @@ class ChordViewModel: ObservableObject {
     // MARK: - User Song Preferences
     
     private func getPrefKey(for songId: String) -> String {
-        if let uid = userId {
+        if let uid = currentUserId {
             return "pref_\(uid)_\(songId)"
         }
         return "pref_guest_\(songId)"
@@ -858,7 +967,7 @@ class ChordViewModel: ObservableObject {
         }
         
         // Fetch from Firebase
-        guard let uid = userId else { return }
+        guard let uid = currentUserId else { return }
         
         Task {
             do {
@@ -888,7 +997,7 @@ class ChordViewModel: ObservableObject {
         }
         
         // Save to Firebase
-        if let uid = userId {
+        if let uid = currentUserId {
             do {
                 try db.collection("users").document(uid).collection("preferences").document(songId).setData(from: pref)
             } catch {
@@ -902,7 +1011,7 @@ class ChordViewModel: ObservableObject {
         let prefKey = getPrefKey(for: songId)
         UserDefaults.standard.removeObject(forKey: prefKey)
         
-        if let uid = userId {
+        if let uid = currentUserId {
             db.collection("users").document(uid).collection("preferences").document(songId).delete()
         }
     }

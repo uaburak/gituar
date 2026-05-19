@@ -28,7 +28,7 @@ struct PendingApprovalListView: View {
                 }
             } else {
                 List(filtered, id: \.docId) { song in
-                    NavigationLink(destination: SongApprovalDetailView(song: song, playlist: filtered)) {
+                    NavigationLink(destination: SongDetailView(song: song, playlist: filtered, isApprovalMode: true)) {
                         SongRowCard(song: song)
                     }
                 }

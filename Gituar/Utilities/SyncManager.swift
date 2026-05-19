@@ -259,10 +259,50 @@ final class SyncManager {
     /// Fetches ONLY the user-chords collection from Firestore and updates the local cache.
     /// Official/system songs are loaded from Firebase Storage via ChordsStorageManager.
     func performFullSync(collectionChords: String, collectionUserChords: String) async throws -> [Song] {
-        print("🔄 SyncManager: Syncing user-chords from Firestore (official songs are remote)…")
+        print("🔄 SyncManager: Syncing user-chords from Firestore…")
 
         let userSnap = try await db.collection(collectionUserChords).getDocuments()
-        let userSongs = userSnap.documents.compactMap { try? $0.data(as: Song.self) }
+
+        var userSongs: [Song] = []
+        for doc in userSnap.documents {
+            if var song = try? doc.data(as: Song.self) {
+                // Eğer docId boşsa Firestore döküman ID'sini fallback olarak kullan
+                if song.docId.isEmpty {
+                    song.docId = doc.documentID
+                    print("⚠️ SyncManager: docId eksikti, döküman ID kullanıldı: \(doc.documentID)")
+                }
+                userSongs.append(song)
+            } else {
+                // Decode başarısız — ham veriyi kullanarak manuel Song oluştur
+                let data = doc.data()
+                let docId = doc.documentID
+                let artist = data["artist"] as? String ?? ""
+                let songName = data["songName"] as? String ?? ""
+                let originalKey = data["originalKey"] as? String ?? ""
+                let content = data["content"] as? String ?? ""
+                let ownerId = data["ownerId"] as? String
+                let addedBy = data["addedBy"] as? String
+                let status = data["status"] as? String
+
+                guard !artist.isEmpty || !songName.isEmpty else {
+                    print("❌ SyncManager: \(docId) decode edilemedi ve yeterli alan yok, atlanıyor.")
+                    continue
+                }
+
+                let fallbackSong = Song(
+                    docId: docId,
+                    artist: artist,
+                    songName: songName,
+                    originalKey: originalKey,
+                    content: content,
+                    ownerId: ownerId,
+                    addedBy: addedBy,
+                    status: status
+                )
+                userSongs.append(fallbackSong)
+                print("⚠️ SyncManager: \(docId) manuel fallback ile yüklendi.")
+            }
+        }
 
         // Only cache user-chords — official songs don't need caching here
         let saved = saveSongsToCache(userSongs)

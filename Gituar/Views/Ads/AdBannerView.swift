@@ -154,6 +154,15 @@ struct NativeAdViewWrapper: UIViewRepresentable {
         nativeAdView.bodyView = bodyLabel
         nativeAdView.iconView = iconView
         nativeAdView.callToActionView = callToActionButton
+        // adChoicesView: Google'un zorunlu kıldığı attribution öğesi
+        let adChoicesView = AdChoicesView()
+        adChoicesView.translatesAutoresizingMaskIntoConstraints = false
+        nativeAdView.addSubview(adChoicesView)
+        nativeAdView.adChoicesView = adChoicesView
+        NSLayoutConstraint.activate([
+            adChoicesView.topAnchor.constraint(equalTo: nativeAdView.topAnchor, constant: 4),
+            adChoicesView.trailingAnchor.constraint(equalTo: nativeAdView.trailingAnchor, constant: -4)
+        ])
         
         [iconView, headlineLabel, bodyLabel, callToActionButton, adBadge].forEach {
             $0.translatesAutoresizingMaskIntoConstraints = false
@@ -220,7 +229,7 @@ struct AdNativeView: View {
                 viewModel.loadAd(adUnitID: adUnitID)
             }
         }
-        .onChange(of: adMobManager.isSdkInitialized) { initialized in
+        .onChange(of: adMobManager.isSdkInitialized) { _, initialized in
             if initialized {
                 viewModel.loadAd(adUnitID: adUnitID)
             }

@@ -1,5 +1,6 @@
 import SwiftUI
 import FirebaseStorage
+import FirebaseAuth
 
 // MARK: - JSONImportPreviewView
 //
@@ -176,7 +177,7 @@ struct JSONImportPreviewView: View {
     private func uploadToStorage() {
         isUploading = true
 
-        // LocalSong formatıyla uyumlu encode (docId, artist, songName, originalKey, content, addedBy)
+        // LocalSong formatıyla uyumlu encode (docId, artist, songName, originalKey, content, addedBy, ownerId)
         struct UploadSong: Encodable {
             let docId: String
             let artist: String
@@ -184,9 +185,11 @@ struct JSONImportPreviewView: View {
             let originalKey: String
             let content: String
             let addedBy: String
+            let ownerId: String
         }
 
         let importerName = authViewModel.userProfile?.username ?? authViewModel.displayName
+        let importerUID  = authViewModel.currentUser?.uid ?? ""
 
         let uploadSongs = validSongs.enumerated().map { idx, song in
             UploadSong(
@@ -195,7 +198,8 @@ struct JSONImportPreviewView: View {
                 songName: song.songName ?? "",
                 originalKey: song.originalKey ?? "",
                 content: song.content ?? "",
-                addedBy: importerName
+                addedBy: importerName,
+                ownerId: importerUID
             )
         }
 

@@ -106,6 +106,9 @@ struct HomeView: View {
                                     NavigationLink(destination: PendingApprovalListView()) {
                                         MinimalListCard(title: "Onay Bekleyenler", icon: "checkmark.seal.fill")
                                     }
+                                    NavigationLink(destination: ReportsListView()) {
+                                        MinimalListCard(title: "Şikayetler", icon: "exclamationmark.shield.fill")
+                                    }
                                 }
                             }
                             .padding(.horizontal, 20)

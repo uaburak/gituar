@@ -4,7 +4,7 @@ import Foundation
 //
 // Firebase Storage'daki chords_data.json dosyasında kayıtlar TAM key isimleriyle saklanır:
 //
-//   { "docId": "1", "artist": "...", "songName": "...", "originalKey": "Am", "content": "...", "addedBy": "..." }
+//   { "docId": "1", "artist": "...", "songName": "...", "originalKey": "Am", "content": "...", "addedBy": "...", "ownerId": "..." }
 //
 // Tüm lokal arama, filtreleme ve detay gösterme işlemleri bu model üzerinden yapılır.
 // Kullanıcıların kendi eklediği şarkılar (user_chords) bu modeli KULLANMAZ — onlar
@@ -20,6 +20,11 @@ struct LocalSong: Identifiable, Codable, Hashable, Sendable {
     let originalKey: String
     let content: String
     let addedBy: String?
+    let ownerId: String?
+    /// ISO8601 tarih (JSON'da "createdAt" alanı). "Yeni Eklenenler" için gerekli.
+    let createdAt: Date?
+    /// Resmi şarkılar hep "approved" — "Onay bekleyen" filtresini geçer.
+    let status: String?
 
     // MARK: - Identifiable
 
@@ -34,6 +39,9 @@ struct LocalSong: Identifiable, Codable, Hashable, Sendable {
         case originalKey
         case content
         case addedBy
+        case ownerId
+        case createdAt
+        case status
     }
 
     // MARK: - Hashable & Equatable
@@ -53,7 +61,10 @@ extension LocalSong {
             songName: songName,
             originalKey: originalKey,
             content: content,
-            addedBy: addedBy
+            createdAt: createdAt,
+            ownerId: ownerId,
+            addedBy: addedBy,
+            status: status ?? "approved"  // resmi şarkılar her zaman onaylanış
         )
     }
 }
@@ -67,7 +78,10 @@ extension Song {
             songName: songName,
             originalKey: originalKey,
             content: content,
-            addedBy: addedBy
+            addedBy: addedBy,
+            ownerId: ownerId,
+            createdAt: createdAt,
+            status: status
         )
     }
 }

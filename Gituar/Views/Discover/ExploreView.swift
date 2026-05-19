@@ -6,11 +6,11 @@ struct ExploreView: View {
     @EnvironmentObject var chordsManager: ChordsStorageManager
     @State private var searchText: String = ""
 
-    // viewModel.allSongs = Storage şarkıları + user_chords — tek kaynak bu
+    // viewModel.visibleSongs: engelleme + onay filtresi uygulanmış güvenli liste
     var displaySongs: [Song] {
-        guard !searchText.isEmpty else { return viewModel.allSongs }
+        guard !searchText.isEmpty else { return viewModel.visibleSongs }
         let query = searchText.turkeyNormalized
-        return viewModel.allSongs.filter {
+        return viewModel.visibleSongs.filter {
             $0.songName.turkeyNormalized.contains(query) ||
             $0.artist.turkeyNormalized.contains(query)
         }

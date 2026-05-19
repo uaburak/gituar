@@ -19,6 +19,7 @@ struct SongDetailView: View {
     @State private var slideDirection: Edge = .trailing
     @State private var showReportAlert = false
     @State private var showReportSuccess = false
+    @State private var uploaderUsername: String? = nil
 
     init(song: Song, playlist: [Song]? = nil) {
         _currentSong = State(initialValue: song)
@@ -412,6 +413,28 @@ struct SongDetailView: View {
         } message: {
             Text("Bildiriminiz için teşekkürler. İçerik en kısa sürede inceleme ekibimiz tarafından kontrol edilecektir.")
         }
+        .task(id: currentSong.docId) {
+            if let ownerId = currentSong.ownerId, !ownerId.isEmpty {
+                do {
+                    let profile = try await UserService.shared.getPublicUserProfile(uid: ownerId)
+                    await MainActor.run {
+                        if let username = profile?.username {
+                            self.uploaderUsername = username
+                        } else {
+                            self.uploaderUsername = currentSong.addedBy
+                        }
+                    }
+                } catch {
+                    await MainActor.run {
+                        self.uploaderUsername = currentSong.addedBy
+                    }
+                }
+            } else {
+                await MainActor.run {
+                    self.uploaderUsername = currentSong.addedBy
+                }
+            }
+        }
     }
     
     private func reportContent(_ reason: String) {
@@ -488,8 +511,8 @@ struct SongDetailView: View {
                 // UGC Added By Notice & Legal Text
                 VStack(alignment: .leading, spacing: 12) {
                     HStack {
-                        if let addedBy = currentSong.addedBy, !addedBy.isEmpty {
-                            Text("@\(addedBy)")
+                        if let uploader = uploaderUsername, !uploader.isEmpty {
+                            Text("@\(uploader)")
                                 .font(.system(size: 13, weight: .semibold))
                                 .foregroundColor(.primary)
                         } else {

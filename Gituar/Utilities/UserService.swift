@@ -34,6 +34,11 @@ class UserService: ObservableObject {
         return profile
     }
     
+    func getPublicUserProfile(uid: String) async throws -> UserProfile? {
+        let doc = try await db.collection("users").document(uid).getDocument()
+        return try? doc.data(as: UserProfile.self)
+    }
+    
     // MARK: - Delete Account
     func deleteAccount() async throws {
         guard let user = Auth.auth().currentUser else { return }

@@ -1,18 +1,31 @@
 import SwiftUI
 import FirebaseAuth
+import UniformTypeIdentifiers
+
+// MARK: - Shared Import Model
+
+struct ImportableSong: Codable, Identifiable {
+    var id: String { (songName ?? "") + (artist ?? "") }
+    var songName: String?
+    var artist: String?
+    var originalKey: String?
+    var content: String?
+}
+
+// MARK: - MySongsView
 
 struct MySongsView: View {
     @EnvironmentObject var viewModel: ChordViewModel
     @EnvironmentObject var authViewModel: AuthViewModel
-    
+
     @State private var songToEdit: Song?
     @State private var navigateToNewSong = false
-    
+
     var body: some View {
         Group {
             if let userId = authViewModel.currentUser?.uid {
                 let userSongs = viewModel.userSongs(userId: userId)
-                
+
                 if userSongs.isEmpty {
                     VStack(spacing: 16) {
                         Image(systemName: "music.quarternote.3")
@@ -33,9 +46,7 @@ struct MySongsView: View {
                                 HStack {
                                     Text(song.songName)
                                         .font(.system(size: 16, weight: .semibold))
-                                    
                                     Spacer()
-                                    
                                     if song.status == "pending" {
                                         StatusBadge(text: "Onay Bekliyor", color: .orange, icon: nil)
                                     } else if song.status == "approved" {
@@ -58,7 +69,6 @@ struct MySongsView: View {
                             } label: {
                                 Label("Sil", systemImage: "trash")
                             }
-                            
                             Button {
                                 songToEdit = song
                             } label: {
@@ -82,9 +92,7 @@ struct MySongsView: View {
         }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button(action: {
-                    navigateToNewSong = true
-                }) {
+                Button { navigateToNewSong = true } label: {
                     Image(systemName: "plus")
                 }
             }
@@ -92,11 +100,13 @@ struct MySongsView: View {
     }
 }
 
+// MARK: - StatusBadge
+
 struct StatusBadge: View {
     let text: String
     let color: Color
     var icon: String? = nil
-    
+
     var body: some View {
         HStack(spacing: 4) {
             if let icon = icon {
@@ -114,31 +124,72 @@ struct StatusBadge: View {
     }
 }
 
+// MARK: - JSON Document Picker
+
+struct JSONImportPickerView: UIViewControllerRepresentable {
+    var onFilePicked: (URL) -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    func makeCoordinator() -> Coordinator { Coordinator(self) }
+
+    func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
+        let picker = UIDocumentPickerViewController(forOpeningContentTypes: [UTType.json], asCopy: true)
+        picker.allowsMultipleSelection = false
+        picker.delegate = context.coordinator
+        return picker
+    }
+
+    func updateUIViewController(_ uiViewController: UIDocumentPickerViewController, context: Context) {}
+
+    class Coordinator: NSObject, UIDocumentPickerDelegate {
+        let parent: JSONImportPickerView
+        init(_ parent: JSONImportPickerView) { self.parent = parent }
+
+        func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
+            guard let url = urls.first else { return }
+            parent.onFilePicked(url)
+            parent.dismiss()
+        }
+
+        func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) {
+            parent.dismiss()
+        }
+    }
+}
+
+// MARK: - EditSongView
+
 struct EditSongView: View {
     @EnvironmentObject var viewModel: ChordViewModel
     @EnvironmentObject var authViewModel: AuthViewModel
     @Environment(\.dismiss) var dismiss
-    
+
     let song: Song?
-    
+
     @State private var songName: String = ""
     @State private var artist: String = ""
     @State private var originalKey: String = "C"
     @State private var content: String = ""
     @State private var status: String = "draft"
-    
+
+    // JSON Import
+    @State private var showImportPicker = false
+    @State private var pendingImportData: Data? = nil
+    @State private var parsedImportSongs: [ImportableSong] = []
+    @State private var showImportPreview = false
+    @State private var importParseError: String? = nil
+
     private let allNotes = ["C", "C#", "Db", "D", "D#", "Eb", "E", "F", "F#", "Gb", "G", "G#", "Ab", "A", "A#", "Bb", "B"]
 
     var body: some View {
         ScrollView {
             VStack(spacing: 24) {
-                // Header Image or Icon
+                // Header
                 VStack(spacing: 8) {
                     Image(systemName: "guitars.fill")
                         .font(.system(size: 50))
                         .foregroundStyle(Color.accentColor)
                         .padding(.top, 16)
-                    
                     Text(song == nil ? "Yeni Şarkı Oluştur" : "Şarkıyı Düzenle")
                         .font(.title2.weight(.bold))
                         .foregroundStyle(.primary)
@@ -147,29 +198,23 @@ struct EditSongView: View {
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
                 }
-                
+
                 VStack(spacing: 16) {
                     formField(text: $songName, placeholder: "Şarkı Adı")
-                    
+
                     HStack(spacing: 16) {
                         formField(text: $artist, placeholder: "Sanatçı")
-                        
+
                         Menu {
                             ForEach(allNotes, id: \.self) { note in
-                                Button {
-                                    originalKey = note
-                                } label: {
-                                    Text(note)
-                                }
+                                Button { originalKey = note } label: { Text(note) }
                             }
                         } label: {
                             HStack {
-                                Text(originalKey)
-                                    .foregroundColor(.primary)
+                                Text(originalKey).foregroundColor(.primary)
                                 Spacer()
                                 Image(systemName: "chevron.up.chevron.down")
-                                    .foregroundColor(.secondary)
-                                    .font(.caption)
+                                    .foregroundColor(.secondary).font(.caption)
                             }
                             .padding()
                             .background(Color(.secondarySystemBackground))
@@ -178,7 +223,7 @@ struct EditSongView: View {
                         }
                         .frame(width: 90)
                     }
-                    
+
                     // Text Editor
                     ZStack(alignment: .topLeading) {
                         TextEditor(text: $content)
@@ -188,7 +233,6 @@ struct EditSongView: View {
                             .background(Color.clear)
                             .autocorrectionDisabled()
                             .textInputAutocapitalization(.never)
-                        
                         if content.isEmpty {
                             Text("Akorları ve sözleri buraya yazın...\n\nÖrnek:\nAm         G\nBu bir şarkı sözü...")
                                 .font(.system(size: 15, weight: .medium, design: .monospaced))
@@ -204,7 +248,7 @@ struct EditSongView: View {
                     .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color(.separator), lineWidth: 1))
                 }
                 .padding(.horizontal, 24)
-                
+
                 // Status Badges
                 if status == "pending" {
                     StatusBadge(text: "Şarkınız onay bekliyor", color: .orange, icon: "clock.fill")
@@ -213,7 +257,7 @@ struct EditSongView: View {
                 } else if status == "rejected" {
                     StatusBadge(text: "Reddedildi. Lütfen düzenleyip tekrar gönderin.", color: .red, icon: "xmark.octagon.fill")
                 }
-                
+
                 // Actions
                 HStack(spacing: 12) {
                     Button {
@@ -228,7 +272,7 @@ struct EditSongView: View {
                             .clipShape(Capsule())
                             .overlay(Capsule().stroke(Color(.separator), lineWidth: 1))
                     }
-                    
+
                     if status != "pending" && status != "approved" {
                         Button {
                             saveSong(asStatus: "pending")
@@ -251,6 +295,15 @@ struct EditSongView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItemGroup(placement: .topBarTrailing) {
+                // JSON İçe Aktar — sadece admin + yeni şarkı ekranında
+                if song == nil && authViewModel.isAdmin {
+                    Button {
+                        showImportPicker = true
+                    } label: {
+                        Image(systemName: "square.and.arrow.down")
+                    }
+                }
+                // Paylaş — sadece mevcut şarkıda
                 if let song = song, let url = URL(string: "gituar://song/\(song.docId)") {
                     ShareLink(item: url, message: Text("\(song.artist) - \(song.songName) şarkısına Gituar'dan göz at!")) {
                         Image(systemName: "square.and.arrow.up")
@@ -267,8 +320,45 @@ struct EditSongView: View {
                 status = song.status ?? "draft"
             }
         }
+        .sheet(isPresented: $showImportPicker) {
+            JSONImportPickerView { url in
+                parseJSON(from: url)
+            }
+        }
+        .sheet(isPresented: $showImportPreview) {
+            JSONImportPreviewView(
+                songs: parsedImportSongs,
+                rawData: pendingImportData ?? Data()
+            )
+        }
+        .alert("Geçersiz Dosya", isPresented: .constant(importParseError != nil)) {
+            Button("Tamam") { importParseError = nil }
+        } message: {
+            Text(importParseError ?? "")
+        }
     }
-    
+
+    // MARK: - Parse JSON
+
+    private func parseJSON(from url: URL) {
+        let accessing = url.startAccessingSecurityScopedResource()
+        defer { if accessing { url.stopAccessingSecurityScopedResource() } }
+
+        guard let data = try? Data(contentsOf: url) else {
+            importParseError = "Dosya okunamadı."
+            return
+        }
+        guard let songs = try? JSONDecoder().decode([ImportableSong].self, from: data), !songs.isEmpty else {
+            importParseError = "Geçersiz JSON formatı.\nDosyanın [{\"songName\", \"artist\", \"originalKey\", \"content\"}] formatında olduğundan emin ol."
+            return
+        }
+        pendingImportData = data
+        parsedImportSongs = songs
+        showImportPreview = true
+    }
+
+    // MARK: - Helpers
+
     private func formField(text: Binding<String>, placeholder: String) -> some View {
         TextField(placeholder, text: text)
             .padding()
@@ -276,16 +366,13 @@ struct EditSongView: View {
             .clipShape(Capsule())
             .overlay(Capsule().stroke(Color(.separator), lineWidth: 1))
     }
-    
+
     private func saveSong(asStatus targetStatus: String) {
         guard let userId = authViewModel.currentUser?.uid else { return }
-        
+        let username = authViewModel.userProfile?.username ?? authViewModel.displayName
         var finalStatus = targetStatus
-        // Eğer admin yayınla (pending) derse direkt onaylı (approved) olarak kaydet
-        if targetStatus == "pending" && authViewModel.isAdmin {
-            finalStatus = "approved"
-        }
-        
+        if targetStatus == "pending" && authViewModel.isAdmin { finalStatus = "approved" }
+
         let songToSave = Song(
             id: song?.id,
             docId: song?.docId ?? "",
@@ -298,9 +385,9 @@ struct EditSongView: View {
             recentViews: song?.recentViews ?? 0,
             repertoireAdds: song?.repertoireAdds ?? 0,
             ownerId: userId,
+            addedBy: song?.addedBy ?? username,
             status: finalStatus
         )
-        
         viewModel.saveSong(songToSave)
         dismiss()
     }

@@ -254,39 +254,17 @@ final class SyncManager {
         print("✅ SyncManager: Flush complete. \(flushedIds.count) succeeded, \(remaining.count) remaining.")
     }
 
-    // MARK: - Bundle Songs
-
-    /// Loads the bundled chords_data.json — zero Firestore reads, always fast.
-    func loadBundleSongs() -> [Song] {
-        guard let url = Bundle.main.url(forResource: "chords_data", withExtension: "json") else {
-            print("⚠️ SyncManager: chords_data.json not found in bundle.")
-            return []
-        }
-        do {
-            let data = try Data(contentsOf: url)
-            // Bundle JSON uses simple ISO8601 dates (or no dates); use a flexible decoder
-            let bundleDecoder = JSONDecoder()
-            bundleDecoder.dateDecodingStrategy = .iso8601
-            let songs = try bundleDecoder.decode([Song].self, from: data)
-            print("📦 SyncManager: Loaded \(songs.count) bundle songs from chords_data.json")
-            return songs
-        } catch {
-            print("❌ SyncManager: Failed to decode chords_data.json: \(error)")
-            return []
-        }
-    }
-
-    // MARK: - Full Sync (user-chords only — official songs come from bundle)
+    // MARK: - Full Sync (user-chords only)
 
     /// Fetches ONLY the user-chords collection from Firestore and updates the local cache.
-    /// Official/system songs are always loaded from the bundled chords_data.json.
+    /// Official/system songs are loaded from Firebase Storage via ChordsStorageManager.
     func performFullSync(collectionChords: String, collectionUserChords: String) async throws -> [Song] {
-        print("🔄 SyncManager: Syncing user-chords from Firestore (bundle songs are local)…")
+        print("🔄 SyncManager: Syncing user-chords from Firestore (official songs are remote)…")
 
         let userSnap = try await db.collection(collectionUserChords).getDocuments()
         let userSongs = userSnap.documents.compactMap { try? $0.data(as: Song.self) }
 
-        // Only cache user-chords — bundle songs don't need caching
+        // Only cache user-chords — official songs don't need caching here
         let saved = saveSongsToCache(userSongs)
         if saved {
             markSyncCompleted()

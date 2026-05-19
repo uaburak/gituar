@@ -23,6 +23,7 @@ struct Song: Identifiable, Codable, Hashable, Sendable {
     
     // Sahiplik
     var ownerId: String?
+    var addedBy: String?
     
     // Yayınlama Durumu
     var status: String? // "draft", "pending", "approved", "rejected"
@@ -40,6 +41,7 @@ struct Song: Identifiable, Codable, Hashable, Sendable {
         recentViews: Int? = nil,
         repertoireAdds: Int? = nil,
         ownerId: String? = nil,
+        addedBy: String? = nil,
         status: String? = nil
     ) {
         _firestoreId = DocumentID(wrappedValue: id)
@@ -53,6 +55,7 @@ struct Song: Identifiable, Codable, Hashable, Sendable {
         self.recentViews  = recentViews
         self.repertoireAdds = repertoireAdds
         self.ownerId      = ownerId
+        self.addedBy      = addedBy
         self.status       = status
     }
 
@@ -61,7 +64,7 @@ struct Song: Identifiable, Codable, Hashable, Sendable {
     enum CodingKeys: String, CodingKey {
         case id, docId, artist, songName, originalKey, content, createdAt
         case totalViews, recentViews, repertoireAdds
-        case ownerId, status
+        case ownerId, addedBy, status
     }
 
     init(from decoder: Decoder) throws {
@@ -76,6 +79,7 @@ struct Song: Identifiable, Codable, Hashable, Sendable {
         recentViews   = try c.decodeIfPresent(Int.self,    forKey: .recentViews)
         repertoireAdds = try c.decodeIfPresent(Int.self,   forKey: .repertoireAdds)
         ownerId    = try c.decodeIfPresent(String.self, forKey: .ownerId)
+        addedBy    = try c.decodeIfPresent(String.self, forKey: .addedBy)
         status     = try c.decodeIfPresent(String.self, forKey: .status)
         // @DocumentID is ONLY set by Firestore when reading from the database.
         // When decoding from local JSON (cache or bundle), we always leave id = nil.
@@ -99,6 +103,7 @@ struct Song: Identifiable, Codable, Hashable, Sendable {
         try c.encodeIfPresent(recentViews,   forKey: .recentViews)
         try c.encodeIfPresent(repertoireAdds, forKey: .repertoireAdds)
         try c.encodeIfPresent(ownerId,    forKey: .ownerId)
+        try c.encodeIfPresent(addedBy,    forKey: .addedBy)
         try c.encodeIfPresent(status,     forKey: .status)
     }
 

@@ -4,8 +4,10 @@ import Combine
 import GoogleMobileAds
 
 // MARK: - Banner Ad View
-struct AdBannerView: UIViewControllerRepresentable {
+struct AdBannerRepresentable: UIViewControllerRepresentable {
     let viewWidth: CGFloat
+    @Binding var isFailed: Bool
+    @Binding var isLoaded: Bool
     
     var adUnitID: String {
         return "ca-app-pub-9748717269838207/3275621944"
@@ -15,21 +17,7 @@ struct AdBannerView: UIViewControllerRepresentable {
         let viewController = UIViewController()
         viewController.view.backgroundColor = .clear
         
-        let errorLabel = UILabel()
-        errorLabel.text = "Reklam yükleniyor..."
-        errorLabel.textColor = .systemRed
-        errorLabel.font = .systemFont(ofSize: 12, weight: .medium)
-        errorLabel.numberOfLines = 0
-        errorLabel.textAlignment = .center
-        errorLabel.translatesAutoresizingMaskIntoConstraints = false
-        viewController.view.addSubview(errorLabel)
-        
-        NSLayoutConstraint.activate([
-            errorLabel.centerXAnchor.constraint(equalTo: viewController.view.centerXAnchor),
-            errorLabel.centerYAnchor.constraint(equalTo: viewController.view.centerYAnchor),
-            errorLabel.leadingAnchor.constraint(equalTo: viewController.view.leadingAnchor, constant: 16),
-            errorLabel.trailingAnchor.constraint(equalTo: viewController.view.trailingAnchor, constant: -16)
-        ])
+        // Removed error label
         
         let adSize = largeAnchoredAdaptiveBanner(width: viewWidth)
         let bannerView = BannerView(adSize: adSize)
@@ -45,8 +33,7 @@ struct AdBannerView: UIViewControllerRepresentable {
             bannerView.centerXAnchor.constraint(equalTo: viewController.view.centerXAnchor)
         ])
         
-        MobileAds.shared.start(completionHandler: nil)
-        context.coordinator.errorLabel = errorLabel
+        context.coordinator.parent = self
         bannerView.load(Request())
 
         return viewController
@@ -56,10 +43,35 @@ struct AdBannerView: UIViewControllerRepresentable {
     func makeCoordinator() -> Coordinator { Coordinator() }
 
     class Coordinator: NSObject, BannerViewDelegate {
-        weak var errorLabel: UILabel?
-        func bannerViewDidReceiveAd(_ bannerView: BannerView) { errorLabel?.isHidden = true }
+        var parent: AdBannerRepresentable?
+        
+        func bannerViewDidReceiveAd(_ bannerView: BannerView) { 
+            parent?.isLoaded = true 
+            parent?.isFailed = false
+        }
         func bannerView(_ bannerView: BannerView, didFailToReceiveAdWithError error: Error) {
-            errorLabel?.text = "Reklam yüklenemedi"
+            parent?.isFailed = true
+        }
+    }
+}
+
+struct AdBannerView: View {
+    let viewWidth: CGFloat
+    @State private var isFailed = false
+    @State private var isLoaded = false
+    @ObservedObject private var adMobManager = AdMobManager.shared
+    
+    var body: some View {
+        let adHeight = largeAnchoredAdaptiveBanner(width: viewWidth).size.height
+        
+        if isFailed {
+            EmptyView()
+        } else if adMobManager.isSdkInitialized {
+            AdBannerRepresentable(viewWidth: viewWidth, isFailed: $isFailed, isLoaded: $isLoaded)
+                .frame(height: isLoaded ? adHeight : 0)
+                .opacity(isLoaded ? 1 : 0)
+        } else {
+            Color.clear.frame(height: 1)
         }
     }
 }
@@ -67,6 +79,7 @@ struct AdBannerView: UIViewControllerRepresentable {
 // MARK: - Native Ad View (Yerel Gelişmiş)
 class NativeAdViewModel: NSObject, ObservableObject, NativeAdLoaderDelegate {
     @Published var nativeAd: NativeAd?
+    @Published var isFailed = false
     private var adLoader: AdLoader!
     
     func loadAd(adUnitID: String) {
@@ -89,6 +102,9 @@ class NativeAdViewModel: NSObject, ObservableObject, NativeAdLoaderDelegate {
     
     func adLoader(_ adLoader: AdLoader, didFailToReceiveAdWithError error: Error) {
         print("Native Ad Error: \(error.localizedDescription)")
+        DispatchQueue.main.async {
+            self.isFailed = true
+        }
     }
 }
 
@@ -182,31 +198,32 @@ struct NativeAdViewWrapper: UIViewRepresentable {
 
 struct AdNativeView: View {
     @StateObject private var viewModel = NativeAdViewModel()
+    @ObservedObject private var adMobManager = AdMobManager.shared
     // Native Advanced ID: ca-app-pub-9748717269838207/4478703611
     let adUnitID: String = "ca-app-pub-9748717269838207/4478703611"
     
     var body: some View {
         ZStack {
-            if let nativeAd = viewModel.nativeAd {
+            if viewModel.isFailed {
+                EmptyView()
+            } else if let nativeAd = viewModel.nativeAd {
                 NativeAdViewWrapper(nativeAd: nativeAd)
                     .frame(height: 140)
                     .glassEffect(in: .rect(cornerRadius: 20.0))
             } else {
-                HStack {
-                    ProgressView()
-                        .padding(.trailing, 8)
-                    Text("Reklam Yükleniyor...")
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(.secondary)
-                }
-                .frame(height: 140)
-                .frame(maxWidth: .infinity)
-                .background(Color(.systemGray6))
-                .cornerRadius(20)
+                // Sadece yüklenirken kısa süreliğine boşluk bırakır
+                Color.clear.frame(height: 1)
             }
         }
         .onAppear {
-            viewModel.loadAd(adUnitID: adUnitID)
+            if adMobManager.isSdkInitialized {
+                viewModel.loadAd(adUnitID: adUnitID)
+            }
+        }
+        .onChange(of: adMobManager.isSdkInitialized) { initialized in
+            if initialized {
+                viewModel.loadAd(adUnitID: adUnitID)
+            }
         }
     }
 }

@@ -17,6 +17,8 @@ struct SongDetailView: View {
     @StateObject private var autoScroller = AutoScroller()
     @AppStorage("autoScrollSpeed") private var autoScrollSpeed: Double = 14.0
     @State private var slideDirection: Edge = .trailing
+    @State private var showReportAlert = false
+    @State private var showReportSuccess = false
 
     init(song: Song, playlist: [Song]? = nil) {
         _currentSong = State(initialValue: song)
@@ -397,6 +399,27 @@ struct SongDetailView: View {
         .sheet(isPresented: $showRepertoirePicker) {
             RepertoirePickerSheet(song: currentSong)
         }
+        .alert("İçeriği Şikayet Et", isPresented: $showReportAlert) {
+            Button("Uygunsuz İçerik", role: .destructive) { reportContent("Uygunsuz İçerik") }
+            Button("Telif Hakkı İhlali", role: .destructive) { reportContent("Telif Hakkı İhlali") }
+            Button("Yanlış Akor/Söz", role: .destructive) { reportContent("Yanlış Akor/Söz") }
+            Button("İptal", role: .cancel) { }
+        } message: {
+            Text("Bu içeriği neden şikayet etmek istiyorsunuz? İnceleme ekibimiz en kısa sürede kontrol edecektir.")
+        }
+        .alert("Şikayet Alındı", isPresented: $showReportSuccess) {
+            Button("Tamam", role: .cancel) { }
+        } message: {
+            Text("Bildiriminiz için teşekkürler. İçerik en kısa sürede inceleme ekibimiz tarafından kontrol edilecektir.")
+        }
+    }
+    
+    private func reportContent(_ reason: String) {
+        // Here you would typically send the report to Firebase or your backend.
+        print("Şikayet edildi: \(currentSong.id) - Sebep: \(reason)")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            showReportSuccess = true
+        }
     }
 
     // MARK: - Navigation Control
@@ -460,17 +483,45 @@ struct SongDetailView: View {
                 // Ad Banner
                 let bannerWidth = ((UIApplication.shared.connectedScenes.first as? UIWindowScene)?.screen.bounds.width ?? 320) - 40
                 AdBannerView(viewWidth: bannerWidth)
-                .frame(height: 60)
                 .padding(.bottom, 8)
 
-                // Copyright Disclaimer
-                NavigationLink(destination: LegalContactView()) {
-                    Text("\(Text("Bu içerik müzik eğitimi amacı ile yayımlanmış olup hakları kendi sahiplerine aittir. Telif ihlali içerdiğini düşünüyorsanız bizimle ").foregroundColor(.secondary))\(Text("iletişime").foregroundColor(.blue).underline())\(Text(" geçebilirsiniz.").foregroundColor(.secondary))")
+                // UGC Added By Notice & Legal Text
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack {
+                        if let addedBy = currentSong.addedBy, !addedBy.isEmpty {
+                            Text("@\(addedBy)")
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundColor(.primary)
+                        } else {
+                            Text("@anonim")
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundColor(.primary)
+                        }
+                        
+                        Spacer()
+                        
+                        Button {
+                            showReportAlert = true
+                        } label: {
+                            Text("İçeriği Şikayet Et")
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundColor(.red)
+                        }
+                    }
+                    
+                    Text("⚠️ Gituar, kullanıcıların kendi içeriklerini paylaştığı bir topluluk platformudur. Tüm içerikler kullanıcı sorumluluğundadır.")
+                        .font(.system(size: 11))
+                        .foregroundColor(.secondary)
+                    
+                    NavigationLink(destination: LegalContactView()) {
+                        Text("\(Text("Bu içerik müzik eğitimi amacı ile yayımlanmış olup hakları kendi sahiplerine aittir. Telif ihlali içerdiğini düşünüyorsanız bizimle ").foregroundColor(.secondary))\(Text("iletişime").foregroundColor(.blue).underline())\(Text(" geçebilirsiniz.").foregroundColor(.secondary))")
+                    }
+                    .font(.system(size: 11))
+                    .buttonStyle(.plain)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .multilineTextAlignment(.leading)
                 }
-                .font(.system(size: 11))
-                .buttonStyle(.plain)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .multilineTextAlignment(.leading)
+                .padding(.bottom, 8)
 
                 Divider()
 

@@ -34,6 +34,7 @@ class ChordViewModel: ObservableObject {
     private var db = Firestore.firestore()
     private var cancellables = Set<AnyCancellable>()
     private var authListener: AuthStateDidChangeListenerHandle?
+    private var adminIdsCache: [String]? = nil
     
     private let recentPlayedKey = "recentlyPlayedIds"
     private let repertoiresKey = "user_repertoires"
@@ -55,8 +56,28 @@ class ChordViewModel: ObservableObject {
     
     init() {
         setupAuthListener()
-        fetchAllSongs()
-        
+        fetchAllSongs()   // Sadece user-chords yükler
+
+        // ChordsStorageManager (Firebase Storage) hazır olduğunda resmi şarkıları merge et.
+        // Bu subscription sayesinde Storage arka planda indirmeyi bitirince allSongs
+        // otomatik güncellenir; kullanıcı hiçbir yerde bekletilmez.
+        ChordsStorageManager.shared.$songs
+            .dropFirst()            // .idle başlangıç değerini atla
+            .receive(on: RunLoop.main)
+            .sink { [weak self] storageSongs in
+                guard let self, !storageSongs.isEmpty else { return }
+                let officialSongs = storageSongs.map { $0.toSong() }
+                // Mevcut user-chords'u koru, sadece resmi şarkıları güncelle
+                let userSongs = self.allSongs.filter {
+                    $0.docId.hasPrefix("u") || $0.docId.hasPrefix("tmp_")
+                }
+                self.allSongs = officialSongs + userSongs
+                self.processDashboardData()
+                self.fetchPopularityRegistry()
+                print("✅ ChordViewModel: \(officialSongs.count) resmi şarkı Storage'dan merge edildi.")
+            }
+            .store(in: &cancellables)
+
         $searchText
             .debounce(for: .milliseconds(600), scheduler: RunLoop.main)
             .removeDuplicates()
@@ -66,7 +87,7 @@ class ChordViewModel: ObservableObject {
                 }
             }
             .store(in: &cancellables)
-            
+
         fetchPublicRepertoires()
     }
     
@@ -74,6 +95,9 @@ class ChordViewModel: ObservableObject {
         authListener = Auth.auth().addStateDidChangeListener { [weak self] _, user in
             DispatchQueue.main.async {
                 self?.loadUserData(userId: user?.uid)
+                if let self = self, !self.publicRepertoires.isEmpty {
+                    self.fetchEditorRepertoires(from: self.publicRepertoires)
+                }
             }
         }
     }
@@ -88,7 +112,11 @@ class ChordViewModel: ObservableObject {
         }
     }
 
-    // MARK: - Bundle-First Song Loading
+    // MARK: - User-Chords Loading
+    //
+    // Resmi şarkılar artık ChordsStorageManager (Firebase Storage) üzerinden gelir.
+    // Bu fonksiyon SADECE kullanıcıların eklediği şarkıları (user-chords) yükler.
+    // İki kaynak init() içindeki Combine subscription'ı ile allSongs'ta birleştirilir.
 
     private func fetchAllSongs() {
         guard !isLoading else { return }
@@ -97,24 +125,19 @@ class ChordViewModel: ObservableObject {
         Task { @MainActor in
             let syncManager = SyncManager.shared
 
-            // 1. Load system/official songs from bundle (zero Firestore reads, instant)
-            let bundleSongs = syncManager.loadBundleSongs()
-            print("📦 ChordViewModel: \(bundleSongs.count) songs loaded from bundle.")
-
-            // 2. Load cached user-chords from disk (zero Firestore reads)
+            // 1. Diskten cache'lenmiş user-chords'u yükle (Firestore isteği yok)
             let cachedUserSongs = syncManager.loadSongsFromCache() ?? []
             print("📦 ChordViewModel: \(cachedUserSongs.count) user songs loaded from cache.")
 
-            // Merge: bundle songs + cached user songs
-            self.allSongs = bundleSongs + cachedUserSongs
+            // Resmi şarkılar Storage'dan henüz gelmediyse sadece user-chords'u göster
+            let storageSongs = ChordsStorageManager.shared.songs.map { $0.toSong() }
+            self.allSongs = storageSongs + cachedUserSongs
             self.isLoading = false
             self.processDashboardData()
             self.loadUserData(userId: self.userId)
-            
-            // Sync lightweight registry
             self.fetchPopularityRegistry()
 
-            // 3. Sync user-chords from Firestore only if cache is stale (> 24 hours)
+            // 2. User-chords cache'i eskimişse Firestore'dan güncelle (> 24 saat)
             if syncManager.isCacheStale() {
                 print("🔄 ChordViewModel: User-chords cache stale – syncing from Firestore…")
                 do {
@@ -122,8 +145,9 @@ class ChordViewModel: ObservableObject {
                         collectionChords: collectionChords,
                         collectionUserChords: collectionUserChords
                     )
-                    // Re-merge with fresh user data
-                    self.allSongs = bundleSongs + freshUserSongs
+                    // Resmi şarkıları Storage'dan al (hazırsa), user-chords'u tazele
+                    let latestStorage = ChordsStorageManager.shared.songs.map { $0.toSong() }
+                    self.allSongs = latestStorage + freshUserSongs
                     self.processDashboardData()
                     self.loadUserData(userId: self.userId)
                     self.fetchPopularityRegistry()
@@ -134,27 +158,28 @@ class ChordViewModel: ObservableObject {
                 print("✅ ChordViewModel: User-chords cache is fresh – skipping Firestore read.")
             }
 
-            // 4. Flush any pending writes once per day
+            // 3. Bekleyen yazmaları günlük olarak Firestore'a flush et
             if syncManager.shouldFlushWrites() {
                 await syncManager.flushPendingWrites()
             }
         }
     }
 
-    /// Call this to force a fresh sync of user-chords from Firestore (e.g., pull-to-refresh).
-    /// System songs are always from the bundle and don't need refreshing.
+    /// Kullanıcı şarkılarını (user-chords) Firestore'dan zorla yeniler (ör. pull-to-refresh).
+    /// Resmi şarkılar ChordsStorageManager'dan otomatik gelir, burada yenileme gerekmez.
     func forceSync() {
         guard !isLoading else { return }
         isLoading = true
         Task { @MainActor in
             let syncManager = SyncManager.shared
-            let bundleSongs = syncManager.loadBundleSongs()
             do {
                 let freshUserSongs = try await syncManager.performFullSync(
                     collectionChords: collectionChords,
                     collectionUserChords: collectionUserChords
                 )
-                self.allSongs = bundleSongs + freshUserSongs
+                // Resmi şarkıları Storage'dan al, user-chords'u tazele
+                let storageSongs = ChordsStorageManager.shared.songs.map { $0.toSong() }
+                self.allSongs = storageSongs + freshUserSongs
                 self.processDashboardData()
                 self.loadUserData(userId: self.userId)
                 self.fetchPopularityRegistry()
@@ -407,8 +432,14 @@ class ChordViewModel: ObservableObject {
     private func fetchEditorRepertoires(from allPublic: [Repertoire]) {
         Task { @MainActor in
             do {
+                if let cached = adminIdsCache {
+                    self.editorRepertoires = allPublic.filter { cached.contains($0.ownerId) }
+                    return
+                }
+                
                 let snapshot = try await db.collection("users").whereField("isAdmin", isEqualTo: true).getDocuments()
                 let adminIds = snapshot.documents.map { $0.documentID }
+                self.adminIdsCache = adminIds
                 self.editorRepertoires = allPublic.filter { adminIds.contains($0.ownerId) }
             } catch {
                 print("Error fetching admins: \(error)")

@@ -5,6 +5,8 @@ import FirebaseAuth
 
 struct ProfileSettingsView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
+    @State private var showingDeleteAlert = false
+    @State private var isDeletingAccount = false
     
     var body: some View {
         List {
@@ -77,10 +79,45 @@ struct ProfileSettingsView: View {
                         Spacer()
                     }
                 }
+                
+                Button(role: .destructive) {
+                    showingDeleteAlert = true
+                } label: {
+                    HStack {
+                        Spacer()
+                        if isDeletingAccount {
+                            ProgressView()
+                                .tint(.red)
+                        } else {
+                            Text("Hesabımı Kalıcı Olarak Sil")
+                                .fontWeight(.semibold)
+                        }
+                        Spacer()
+                    }
+                }
+                .disabled(isDeletingAccount)
             }
         }
         .navigationTitle("Profil")
         .navigationBarTitleDisplayMode(.inline)
+        .alert("Hesabı Sil", isPresented: $showingDeleteAlert) {
+            Button("İptal", role: .cancel) { }
+            Button("Evet, Hesabımı Sil", role: .destructive) {
+                Task {
+                    isDeletingAccount = true
+                    do {
+                        try await UserService.shared.deleteAccount()
+                        authViewModel.signOut()
+                    } catch {
+                        print("Error deleting account: \(error)")
+                        // Optionally show an error alert
+                    }
+                    isDeletingAccount = false
+                }
+            }
+        } message: {
+            Text("Hesabınızı silmek istediğinize emin misiniz? Bu işlem geri alınamaz ve tüm verileriniz kalıcı olarak silinir.")
+        }
     }
 }
 

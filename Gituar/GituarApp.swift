@@ -7,7 +7,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
     func application(_ application: UIApplication,
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
         FirebaseApp.configure()
-        MobileAds.shared.start()
+        // NOT: ChordsStorageManager.startIfNeeded() GituarApp içinden @MainActor context'te çağrılıyor.
         return true
     }
 }
@@ -23,8 +23,11 @@ struct GituarApp: App {
             ContentView()
                 .environmentObject(viewModel)
                 .environmentObject(authViewModel)
+                .environmentObject(ChordsStorageManager.shared)
                 .onAppear {
                     AdMobManager.shared.updateConsent()
+                    // @MainActor context — Storage indirmesini güvenle başlat
+                    ChordsStorageManager.shared.startIfNeeded()
                 }
                 .onOpenURL { url in
                     GIDSignIn.sharedInstance.handle(url)

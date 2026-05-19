@@ -1,5 +1,6 @@
 import Foundation
 import FirebaseFirestore
+import FirebaseAuth
 import Combine
 
 class UserService: ObservableObject {
@@ -31,5 +32,22 @@ class UserService: ObservableObject {
             self.currentUserProfile = profile
         }
         return profile
+    }
+    
+    // MARK: - Delete Account
+    func deleteAccount() async throws {
+        guard let user = Auth.auth().currentUser else { return }
+        let uid = user.uid
+        
+        // 1. Delete user document from Firestore
+        try await db.collection("users").document(uid).delete()
+        
+        // 2. Delete the user authentication record
+        try await user.delete()
+        
+        // 3. Clear local state
+        DispatchQueue.main.async {
+            self.currentUserProfile = nil
+        }
     }
 }

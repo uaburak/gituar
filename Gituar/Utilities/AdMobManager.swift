@@ -8,6 +8,7 @@ class AdMobManager: NSObject, ObservableObject {
     static let shared = AdMobManager()
     
     @Published var isAdFree = false
+    @Published var isSdkInitialized = false
     private var isMobileAdsStartCalled = false
     
     func updateConsent() {
@@ -41,7 +42,11 @@ class AdMobManager: NSObject, ObservableObject {
         isMobileAdsStartCalled = true
         
         DispatchQueue.main.async {
-            MobileAds.shared.start(completionHandler: nil)
+            MobileAds.shared.start { [weak self] _ in
+                DispatchQueue.main.async {
+                    self?.isSdkInitialized = true
+                }
+            }
         }
     }
     

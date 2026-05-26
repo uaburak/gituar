@@ -1,5 +1,6 @@
 import SwiftUI
 import FirebaseFirestore
+import Combine
 
 struct RepertoireListView: View {
     @EnvironmentObject var viewModel: ChordViewModel
@@ -122,6 +123,10 @@ struct RepertoireDetailView: View {
     @EnvironmentObject var viewModel: ChordViewModel
     @State private var showingSavedAlert = false
     @State private var ownerUsername: String?
+    
+    @State private var searchText = ""
+    @State private var debouncedSearchText = ""
+    private let searchPublisher = PassthroughSubject<String, Never>()
 
     var isOwner: Bool {
         repertoire.ownerId == (viewModel.currentUserId ?? "local")
@@ -129,6 +134,13 @@ struct RepertoireDetailView: View {
 
     var body: some View {
         let songs = viewModel.songs(for: repertoire)
+        let filteredSongs = songs.filter { song in
+            if debouncedSearchText.isEmpty { return true }
+            let query = debouncedSearchText.turkeyNormalized
+            return song.songName.turkeyNormalized.contains(query) ||
+                   song.artist.turkeyNormalized.contains(query)
+        }
+        
         Group {
             if songs.isEmpty {
                 Text("Bu repertuarda henüz şarkı yok.")
@@ -136,8 +148,8 @@ struct RepertoireDetailView: View {
                     .foregroundColor(.secondary)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                List(songs, id: \.docId) { song in
-                    NavigationLink(destination: SongDetailView(song: song, playlist: songs)) {
+                List(filteredSongs, id: \.docId) { song in
+                    NavigationLink(destination: SongDetailView(song: song, playlist: filteredSongs)) {
                         VStack(alignment: .leading, spacing: 3) {
                             Text(song.songName)
                                 .font(.system(size: 15, weight: .medium))
@@ -158,6 +170,13 @@ struct RepertoireDetailView: View {
                     }
                 }
                 .listStyle(.plain)
+                .searchable(text: $searchText, prompt: "Ara...")
+                .onReceive(searchPublisher.debounce(for: .milliseconds(500), scheduler: RunLoop.main)) { newValue in
+                    debouncedSearchText = newValue
+                }
+                .onChange(of: searchText) { _, newValue in
+                    searchPublisher.send(newValue)
+                }
             }
         }
         .safeAreaInset(edge: .top) {

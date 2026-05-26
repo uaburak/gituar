@@ -16,7 +16,7 @@ struct AllArtistsView: View {
     }
 
     private func songCount(for artist: String) -> Int {
-        viewModel.songsForArtist(artist).count
+        viewModel.artistSongCount[artist] ?? 0
     }
 
     var body: some View {

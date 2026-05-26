@@ -792,26 +792,75 @@ struct RepertoirePickerSheet: View {
     @EnvironmentObject var viewModel: ChordViewModel
     @Environment(\.dismiss) var dismiss
 
+    @State private var showingNewRepertoire = false
+    @State private var newRepertoireName = ""
+
     var body: some View {
         NavigationStack {
-            List(viewModel.repertoires) { repertoire in
+            VStack(spacing: 0) {
+                List(viewModel.repertoires) { repertoire in
+                    let alreadyAdded = repertoire.songIds.contains(song.id)
+                    Button {
+                        viewModel.addSong(song, to: repertoire)
+                        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                        dismiss()
+                    } label: {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(repertoire.name)
+                                    .foregroundColor(.primary)
+                                Text("\(repertoire.songIds.count) Şarkı")
+                                    .font(.system(size: 12))
+                                    .foregroundColor(.secondary)
+                            }
+                            Spacer()
+                            if alreadyAdded {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundColor(.green)
+                            } else {
+                                Image(systemName: "plus")
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                    }
+                    .disabled(alreadyAdded)
+                }
+                .listStyle(.plain)
+
+                // Alt - Yeni Repertuar Oluştur Butonu
                 Button {
-                    viewModel.addSong(song, to: repertoire)
-                    dismiss()
+                    showingNewRepertoire = true
                 } label: {
                     HStack {
-                        Text(repertoire.name).foregroundColor(.primary)
-                        Spacer()
-                        Image(systemName: "plus").foregroundColor(.secondary)
+                        Image(systemName: "plus.circle.fill")
+                        Text("Yeni Repertuar Oluştur")
+                            .fontWeight(.semibold)
                     }
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+                    .background(Color.accentColor)
+                    .clipShape(Capsule())
                 }
+                .padding(.horizontal, 20)
+                .padding(.vertical, 16)
+                .background(Color(.systemBackground))
             }
-            .listStyle(.plain)
             .navigationTitle("Repertuara Ekle")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Kapat") { dismiss() }
+                }
+            }
+            .alert("Yeni Repertuar", isPresented: $showingNewRepertoire) {
+                TextField("İsim", text: $newRepertoireName)
+                Button("İptal", role: .cancel) { newRepertoireName = "" }
+                Button("Oluştur") {
+                    if !newRepertoireName.trimmingCharacters(in: .whitespaces).isEmpty {
+                        viewModel.addRepertoire(name: newRepertoireName)
+                        newRepertoireName = ""
+                    }
                 }
             }
         }

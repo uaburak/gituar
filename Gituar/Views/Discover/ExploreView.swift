@@ -5,16 +5,8 @@ struct ExploreView: View {
     @EnvironmentObject var viewModel: ChordViewModel
     @EnvironmentObject var chordsManager: ChordsStorageManager
     @State private var searchText: String = ""
-
-    // viewModel.visibleSongs: engelleme + onay filtresi uygulanmış güvenli liste
-    var displaySongs: [Song] {
-        guard !searchText.isEmpty else { return viewModel.visibleSongs }
-        let query = searchText.turkeyNormalized
-        return viewModel.visibleSongs.filter {
-            $0.songName.turkeyNormalized.contains(query) ||
-            $0.artist.turkeyNormalized.contains(query)
-        }
-    }
+    @State private var displaySongs: [Song] = []
+    private let searchPublisher = PassthroughSubject<String, Never>()
 
     var body: some View {
         Group {
@@ -65,10 +57,33 @@ struct ExploreView: View {
         }
         .navigationTitle("Tüm Şarkılar")
         .searchable(text: $searchText, prompt: "Ara")
+        .onAppear {
+            displaySongs = viewModel.visibleSongs
+        }
+        .onReceive(viewModel.$visibleSongs) { songs in
+            if searchText.isEmpty {
+                displaySongs = songs
+            }
+        }
+        .onReceive(searchPublisher.debounce(for: .milliseconds(300), scheduler: RunLoop.main)) { query in
+            let songs = viewModel.visibleSongs
+            if query.isEmpty {
+                displaySongs = songs
+                return
+            }
+            Task.detached(priority: .userInitiated) {
+                let normalizedQuery = query.turkeyNormalized
+                let filtered = songs.filter {
+                    $0.songName.turkeyNormalized.contains(normalizedQuery) ||
+                    $0.artist.turkeyNormalized.contains(normalizedQuery)
+                }
+                await MainActor.run {
+                    displaySongs = filtered
+                }
+            }
+        }
         .onChange(of: searchText) { _, newValue in
-            // viewModel arama da çalışmaya devam etsin (MySongs vs)
-            viewModel.searchText = newValue
+            searchPublisher.send(newValue)
         }
     }
 }
-

@@ -3,6 +3,7 @@ import FirebaseAuth
 
 struct CompleteProfileView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
+    @EnvironmentObject var chordViewModel: ChordViewModel
     
     @State private var firstName: String = ""
     @State private var lastName: String = ""
@@ -210,6 +211,9 @@ struct CompleteProfileView: View {
         Task {
             do {
                 try await UserService.shared.saveUserProfile(newUser)
+                
+                // Yeni kullanıcı için 4 varsayılan gizli repertuar oluştur
+                chordViewModel.createDefaultRepertoires(for: firebaseUser.uid)
                 
                 await MainActor.run {
                     self.isSaving = false

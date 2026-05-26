@@ -3,11 +3,13 @@ import FirebaseFirestore
 
 struct RepertoireListView: View {
     @EnvironmentObject var viewModel: ChordViewModel
+    @EnvironmentObject var authViewModel: AuthViewModel
     @State private var showingNew = false
     @State private var newName = ""
     @State private var showingRename = false
     @State private var repertoireToRename: Repertoire?
     @State private var renamedName = ""
+    @State private var showingBulkImport = false
 
     var body: some View {
         Group {
@@ -66,13 +68,27 @@ struct RepertoireListView: View {
         }
         .navigationTitle("Repertuar")
         .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
+            ToolbarItemGroup(placement: .navigationBarTrailing) {
+                // Admin: Toplu Repertuar Yükle
+                if authViewModel.isAdmin {
+                    Button {
+                        showingBulkImport = true
+                    } label: {
+                        Image(systemName: "rectangle.stack.badge.plus")
+                    }
+                }
+
+                // Normal: Yeni Repertuar
                 Button {
                     showingNew = true
                 } label: {
                     Image(systemName: "plus")
                 }
             }
+        }
+        .sheet(isPresented: $showingBulkImport) {
+            BulkRepertoireImportView()
+                .environmentObject(viewModel)
         }
         .alert("Yeni Repertuar", isPresented: $showingNew) {
             TextField("İsim", text: $newName)

@@ -1,0 +1,17 @@
+{
+  "name": "gituar-platform",
+  "private": true,
+  "description": "Gituar — tek kaynaktan web + iOS. shared/: ortak katalog ve kurallar, web/: Astro sitesi.",
+  "workspaces": ["shared", "web"],
+  "scripts": {
+    "catalog:seed": "node shared/scripts/seed-from-json.mjs",
+    "catalog:import": "node shared/scripts/import-catalog.mjs",
+    "catalog:pull": "node shared/scripts/pull-catalog.mjs",
+    "catalog:ios": "node shared/scripts/copy-seed-ios.mjs",
+    "publish": "node shared/scripts/publish.mjs",
+    "dev": "npm run dev -w web",
+    "build": "npm run build -w web",
+    "test": "node --test 'shared/test/**/*.test.mjs'"
+  },
+  "engines": { "node": ">=22.12" }
+}

@@ -4,6 +4,7 @@ import Combine
 struct AllArtistsView: View {
     @EnvironmentObject var viewModel: ChordViewModel
     @EnvironmentObject var chordsManager: ChordsStorageManager
+    @ObservedObject private var adMobManager = AdMobManager.shared
     @State private var searchText: String = ""
     @State private var debouncedSearchText: String = ""
     private let searchPublisher = PassthroughSubject<String, Never>()
@@ -24,19 +25,15 @@ struct AllArtistsView: View {
             switch chordsManager.state {
             case .idle, .downloading:
                 // Dosya henüz inmedi — küçük spinner göster
-                VStack(spacing: 16) {
-                    ProgressView()
-                        .scaleEffect(1.2)
-                        .tint(.secondary)
-                    Text("Sanatçılar yükleniyor…")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                CatalogLoadingView(text: "Sanatçılar yükleniyor…")
 
             case .failed:
-                // İndirme başarısız — mevcut viewModel verisiyle devam et
-                artistListBody
+                // İndirme başarısız — elde veri varsa (user-chords) onunla devam et
+                if viewModel.artists.isEmpty {
+                    CatalogLoadFailedView()
+                } else {
+                    artistListBody
+                }
 
             case .ready:
                 artistListBody
@@ -67,7 +64,8 @@ struct AllArtistsView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
-            List(artistList, id: \.self) { artist in
+            List {
+                ForEach(Array(artistList.enumerated()), id: \.element) { index, artist in
                 NavigationLink(destination: ArtistDetailView(artist: artist)) {
                     HStack(spacing: 14) {
                         ZStack {
@@ -89,16 +87,19 @@ struct AllArtistsView: View {
                                 .lineLimit(1)
                         }
 
+                        // List, NavigationLink satırına kendi okunu ekler — ayrıca chevron çizme (çift ok oluyordu)
                         Spacer()
-
-                        Image(systemName: "chevron.right")
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundColor(Color(.systemGray4))
                     }
                     .padding(.vertical, 4)
                 }
+                // Her 10 satırda bir yerel reklam (Plus'ta yok)
+                if AdPlacements.shouldShowNativeAd(afterRow: index, isAdFree: adMobManager.isAdFree) {
+                    NativeAdRow()
+                }
+                }
             }
             .listStyle(.plain)
+            .scrollEdgeEffectStyle(.soft)
         }
     }
 }

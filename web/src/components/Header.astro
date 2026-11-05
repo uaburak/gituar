@@ -1,0 +1,41 @@
+---
+import Logo from "./Logo.astro";
+import Icon from "./Icon.astro";
+import { APP_STORE_URL } from "../lib/site.ts";
+interface Props { q?: string }
+const { q = "" } = Astro.props;
+---
+<header class="site-header">
+  <div class="header-pill">
+    <Logo />
+    <nav class="nav" aria-label="Ana menü">
+      <a href="/sanatcilar/">Sanatçılar</a>
+      <a href="/repertuarlarim/">Repertuarlarım</a>
+      <a href="/plus/">Plus</a>
+      <a href="/admin/" id="admin-link" hidden>Yönetim</a>
+    </nav>
+    <div class="header-actions">
+      <form class="search-mini" action="/ara/" method="get" role="search">
+        <Icon name="search" />
+        <input type="search" name="q" value={q} placeholder="Ara" autocomplete="off" aria-label="Şarkı ya da sanatçı ara" />
+        <kbd class="key" aria-hidden="true">/</kbd>
+      </form>
+      <a href="/giris/" class="btn btn-text" id="auth-btn">Giriş yap</a>
+      <a class="btn btn-appstore" href={APP_STORE_URL} rel="noopener" title="Gituar'ı App Store'dan indir">
+        <Icon name="download" class="icon-sm" /><span>App Store</span>
+      </a>
+    </div>
+    <div class="header-mobile">
+      <a href="/ara/" class="icon-btn" aria-label="Ara"><Icon name="search" /></a>
+      <button class="icon-btn" id="menu-toggle" type="button" aria-label="Menü" aria-expanded="false" aria-controls="header-menu"><Icon name="menu" /></button>
+    </div>
+    <div class="header-menu" id="header-menu">
+      <a href="/sanatcilar/">Sanatçılar</a>
+      <a href="/repertuarlarim/">Repertuarlarım</a>
+      <a href="/plus/">Gituar Plus</a>
+      <a href="/admin/" id="admin-link-mobile" hidden>Yönetim</a>
+      <a href="/giris/" id="auth-btn-mobile">Giriş yap</a>
+      <a href={APP_STORE_URL} rel="noopener">iPhone uygulaması</a>
+    </div>
+  </div>
+</header>

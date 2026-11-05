@@ -10,6 +10,7 @@ struct RepertoireListView: View {
     @State private var showingRename = false
     @State private var repertoireToRename: Repertoire?
     @State private var renamedName = ""
+    @State private var repertoireToDelete: Repertoire?
     @State private var showingBulkImport = false
 
     var body: some View {
@@ -43,9 +44,14 @@ struct RepertoireListView: View {
                                         .foregroundColor(.secondary)
                                 }
                                 .frame(maxWidth: .infinity, alignment: .leading)
-                                .padding(16)
-                                .glassEffect(in: .rect(cornerRadius: 20.0))
+                                .padding(14)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                        .fill(Color(UIColor.secondarySystemGroupedBackground))
+                                        .shadow(color: Color.black.opacity(0.04), radius: 8, x: 0, y: 2)
+                                )
                             }
+                            .buttonStyle(PlainButtonStyle())
                             .contextMenu {
                                 Button {
                                     repertoireToRename = repertoire
@@ -56,7 +62,7 @@ struct RepertoireListView: View {
                                 }
                                 
                                 Button(role: .destructive) {
-                                    viewModel.deleteRepertoire(repertoire)
+                                    repertoireToDelete = repertoire
                                 } label: {
                                     Label("Sil", systemImage: "trash")
                                 }
@@ -65,6 +71,7 @@ struct RepertoireListView: View {
                     }
                     .padding(20)
                 }
+                .scrollEdgeEffectStyle(.soft)
             }
         }
         .navigationTitle("Repertuar")
@@ -77,6 +84,7 @@ struct RepertoireListView: View {
                     } label: {
                         Image(systemName: "rectangle.stack.badge.plus")
                     }
+                    .accessibilityLabel("Toplu repertuar yükle")
                 }
 
                 // Normal: Yeni Repertuar
@@ -85,7 +93,23 @@ struct RepertoireListView: View {
                 } label: {
                     Image(systemName: "plus")
                 }
+                .accessibilityLabel("Yeni repertuar")
             }
+        }
+        .alert(
+            "Bu repertuar silinsin mi?",
+            isPresented: Binding(
+                get: { repertoireToDelete != nil },
+                set: { if !$0 { repertoireToDelete = nil } }
+            ),
+            presenting: repertoireToDelete
+        ) { repertoire in
+            Button("Repertuarı Sil", role: .destructive) {
+                viewModel.deleteRepertoire(repertoire)
+            }
+            Button("Vazgeç", role: .cancel) { }
+        } message: { repertoire in
+            Text("“\(repertoire.name)” ve içindeki şarkı listesi silinecek. Şarkıların kendisi silinmez.")
         }
         .sheet(isPresented: $showingBulkImport) {
             BulkRepertoireImportView()
@@ -134,12 +158,7 @@ struct RepertoireDetailView: View {
 
     var body: some View {
         let songs = viewModel.songs(for: repertoire)
-        let filteredSongs = songs.filter { song in
-            if debouncedSearchText.isEmpty { return true }
-            let query = debouncedSearchText.turkeyNormalized
-            return song.songName.turkeyNormalized.contains(query) ||
-                   song.artist.turkeyNormalized.contains(query)
-        }
+        let filteredSongs = SongSearch.filter(songs, query: debouncedSearchText)
         
         Group {
             if songs.isEmpty {
@@ -170,6 +189,12 @@ struct RepertoireDetailView: View {
                     }
                 }
                 .listStyle(.plain)
+                .scrollEdgeEffectStyle(.soft)
+                .overlay {
+                    if filteredSongs.isEmpty {
+                        NoSearchResultsView(query: debouncedSearchText)
+                    }
+                }
                 .searchable(text: $searchText, prompt: "Ara...")
                 .onReceive(searchPublisher.debounce(for: .milliseconds(500), scheduler: RunLoop.main)) { newValue in
                     debouncedSearchText = newValue
@@ -238,6 +263,7 @@ struct RepertoireDetailView: View {
                     } label: {
                         Image(systemName: "square.and.arrow.up")
                     }
+                    .accessibilityLabel("Paylaşım ayarı")
                 } else {
                     Button {
                         viewModel.duplicateRepertoire(repertoire)
@@ -245,6 +271,7 @@ struct RepertoireDetailView: View {
                     } label: {
                         Image(systemName: viewModel.isRepertoireCopied(repertoire) ? "checkmark.circle.fill" : "plus.square.on.square")
                     }
+                    .accessibilityLabel("Repertuarlarıma kaydet")
                     .disabled(viewModel.isRepertoireCopied(repertoire))
                 }
             }

@@ -1,0 +1,26 @@
+---
+import Logo from "./Logo.astro";
+import { APP_STORE_URL } from "../lib/site.ts";
+interface Props { songCount?: string; artistCount?: string }
+const { songCount = "13.713", artistCount = "3.235" } = Astro.props;
+const year = new Date().getFullYear();
+---
+<footer class="site-footer">
+  <div class="container footer-inner">
+    <div class="footer-left">
+      <Logo />
+      <span>{songCount} gitar akoru · {artistCount} sanatçı</span>
+    </div>
+    <div class="footer-right">
+      <nav aria-label="Alt menü">
+        <a href="/sanatcilar/">Sanatçılar</a>
+        <a href="/repertuarlarim/">Repertuarlarım</a>
+        <a href={APP_STORE_URL} rel="noopener">iOS uygulaması</a>
+        <a href="/iletisim/">İletişim</a>
+        <a href="/iletisim/">Gizlilik</a>
+        <button type="button" id="theme-toggle">Gece modu</button>
+      </nav>
+      <span class="copy">© {year} Gituar · Akorlar topluluk tarafından eklenir.</span>
+    </div>
+  </div>
+</footer>

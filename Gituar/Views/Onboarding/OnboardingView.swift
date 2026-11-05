@@ -18,7 +18,7 @@ struct OnboardingView: View {
         OnboardingStep(title: "Gituar'a Hoş Geldin!", description: "Binlerce şarkının akor ve sözlerine anında ulaş, müziğin keyfini çıkar.", iconName: "music.note.house.fill", color: .blue),
         OnboardingStep(title: "Geniş Arşiv", description: "Sürekli güncellenen popüler ve güncel şarkı havuzumuzda dilediğini ara.", iconName: "magnifyingglass", color: .orange),
         OnboardingStep(title: "Kendi Repertuvarın", description: "Beğendiğin şarkıları kendi listene ekle, sahnede veya arkadaş ortamında hemen çal.", iconName: "star.fill", color: .yellow),
-        OnboardingStep(title: "Popülerlik Puanı", description: "Hangi şarkıların daha çok çalındığını gör, trendleri yakala.", iconName: "chart.line.uptrend.xyaxis", color: .green),
+        OnboardingStep(title: "Tonu Sana Uysun", description: "Şarkıyı tek dokunuşla kendi sesine göre transpoze et; otomatik kaydırmayla ellerin gitarda kalsın.", iconName: "slider.horizontal.3", color: .green),
         OnboardingStep(title: "Çevrimdışı Erişim", description: "Şarkıları bir kez açman yeterli. İnternetin olmasa bile her an seninle.", iconName: "icloud.and.arrow.down.fill", color: .purple),
         OnboardingStep(title: "Hazırsan Başlayalım!", description: "Hemen favori şarkılarını bul ve çalmaya başla.", iconName: "guitars.fill", color: .red)
     ]

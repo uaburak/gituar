@@ -12,6 +12,7 @@ struct CompleteProfileView: View {
     
     @State private var isCheckingUsername = false
     @State private var isUsernameAvailable: Bool? = nil
+    @State private var usernameCheckFailed = false
     @State private var isSaving = false
     @State private var errorMessage: String? = nil
     
@@ -86,6 +87,10 @@ struct CompleteProfileView: View {
                                 Text("Bu kullanıcı adı daha önce alınmış.")
                                     .font(.caption)
                                     .foregroundStyle(.red)
+                            } else if usernameCheckFailed {
+                                Text("Kullanıcı adı kontrol edilemedi. İnternet bağlantını kontrol et.")
+                                    .font(.caption)
+                                    .foregroundStyle(.red)
                             }
                         }
                     }
@@ -121,6 +126,7 @@ struct CompleteProfileView: View {
                 }
                 .padding(.bottom, 24)
             }
+            .scrollEdgeEffectStyle(.soft)
             .onAppear {
                 if let firebaseUser = authViewModel.currentUser {
                     if let fullName = firebaseUser.displayName {
@@ -170,6 +176,7 @@ struct CompleteProfileView: View {
         }
         
         isUsernameAvailable = nil
+        usernameCheckFailed = false
         
         if cleaned.count < 3 {
             isCheckingUsername = false
@@ -184,9 +191,13 @@ struct CompleteProfileView: View {
             
             do {
                 let taken = try await UserService.shared.isUsernameTaken(cleaned)
+                // Sorgu sürerken kullanıcı adı değiştiyse bu sonuç artık geçersiz
+                guard !Task.isCancelled, cleaned == username else { return }
                 isUsernameAvailable = !taken
                 isCheckingUsername = false
             } catch {
+                guard !Task.isCancelled, cleaned == username else { return }
+                usernameCheckFailed = true
                 isCheckingUsername = false
             }
         }
@@ -217,7 +228,7 @@ struct CompleteProfileView: View {
                 
                 await MainActor.run {
                     self.isSaving = false
-                    authViewModel.isProfileComplete = true
+                    authViewModel.profileDidComplete(newUser)
                 }
                 
             } catch {

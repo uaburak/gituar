@@ -1,0 +1,12 @@
+---
+// Firebase Hosting dist/404.html dosyasını 404 durum koduyla sunar (firebase.json → hosting.public = web/dist).
+import Base from "../layouts/Base.astro";
+---
+<Base title="Sayfa bulunamadı" noindex ads={false}>
+  <div class="page-head"><h1>Bu akor burada değil</h1><p>Sayfa taşınmış ya da silinmiş olabilir.</p></div>
+  <div class="chip-row">
+    <a class="btn btn-primary" href="/ara/">Şarkı ara</a>
+    <a class="btn chip" href="/sanatcilar/">Sanatçı akorları</a>
+    <a class="btn chip" href="/">Ana sayfa</a>
+  </div>
+</Base>

@@ -17,6 +17,7 @@ struct GituarApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
     @StateObject private var viewModel = ChordViewModel()
     @StateObject private var authViewModel = AuthViewModel()
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some Scene {
         WindowGroup {
@@ -26,11 +27,28 @@ struct GituarApp: App {
                 .environmentObject(ChordsStorageManager.shared)
                 .onAppear {
                     AdMobManager.shared.updateConsent()
-                    // @MainActor context — Storage indirmesini güvenle başlat
+                    // Gituar Plus (StoreKit 2) — hak durumu AdMobManager.isAdFree'yi besler
+                    PlusManager.shared.start()
+                    // Paketteki seed'i aç, ardından Firestore'dan farkları çek
                     ChordsStorageManager.shared.startIfNeeded()
+                    InterstitialAdManager.shared.preload()
+                    AppOpenAdManager.shared.preload()
                 }
                 .onOpenURL { url in
-                    GIDSignIn.sharedInstance.handle(url)
+                    if url.scheme == "gituar" {
+                        viewModel.handleDeepLink(url)
+                    } else {
+                        GIDSignIn.sharedInstance.handle(url)
+                    }
+                }
+                .onChange(of: scenePhase) { _, newPhase in
+                    guard newPhase == .active else { return }
+                    // Ön plana dönüşte: seed yüklenemediyse yeniden dene, profil kontrolü,
+                    // Firestore'dan katalog farklarını çek (en fazla 6 saatte bir), açılış reklamı (günde en fazla 3).
+                    ChordsStorageManager.shared.retryIfFailed()
+                    authViewModel.refreshProfileIfNeeded()
+                    Task { await ChordsStorageManager.shared.checkForUpdates() }
+                    AppOpenAdManager.shared.showIfEligible()
                 }
         }
     }

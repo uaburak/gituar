@@ -1,27 +1,36 @@
 import SwiftUI
-import Combine
 
 struct ExploreView: View {
     @EnvironmentObject var viewModel: ChordViewModel
     @EnvironmentObject var chordsManager: ChordsStorageManager
+    @ObservedObject private var adMobManager = AdMobManager.shared
     @State private var searchText: String = ""
     @State private var displaySongs: [Song] = []
-    private let searchPublisher = PassthroughSubject<String, Never>()
+
+    /// Sorgu ya da şarkı listesi değiştiğinde aramayı yeniden başlatır (öncekini iptal ederek).
+    private struct SearchTrigger: Equatable {
+        let query: String
+        let songsVersion: Int
+    }
+
+    private var trimmedQuery: String {
+        searchText.trimmingCharacters(in: .whitespaces)
+    }
+
+    private var isCatalogFailed: Bool {
+        if case .failed = chordsManager.state { return true }
+        return false
+    }
 
     var body: some View {
         Group {
             if chordsManager.state == .idle || chordsManager.state == .downloading {
-                VStack(spacing: 16) {
-                    ProgressView()
-                        .scaleEffect(1.2)
-                        .tint(.secondary)
-                    Text("Şarkılar yükleniyor…")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                CatalogLoadingView()
+            } else if isCatalogFailed && viewModel.visibleSongs.isEmpty {
+                CatalogLoadFailedView()
             } else {
-                List(displaySongs) { song in
+                List {
+                    ForEach(Array(displaySongs.enumerated()), id: \.element.docId) { index, song in
                     NavigationLink(destination: SongDetailView(song: song, playlist: displaySongs)) {
                         HStack(spacing: 14) {
                             ZStack {
@@ -51,39 +60,49 @@ struct ExploreView: View {
                         }
                         .padding(.vertical, 4)
                     }
+                    // Her 10 satırda bir yerel reklam (Plus'ta yok)
+                    if AdPlacements.shouldShowNativeAd(afterRow: index, isAdFree: adMobManager.isAdFree) {
+                        NativeAdRow()
+                    }
+                    }
                 }
                 .listStyle(.plain)
+                .scrollEdgeEffectStyle(.soft)
+                .overlay {
+                    if displaySongs.isEmpty && !trimmedQuery.isEmpty {
+                        NoSearchResultsView(query: trimmedQuery)
+                    }
+                }
+                .refreshable { await viewModel.refresh() }
             }
         }
         .navigationTitle("Tüm Şarkılar")
         .searchable(text: $searchText, prompt: "Ara")
         .onAppear {
-            displaySongs = viewModel.visibleSongs
-        }
-        .onReceive(viewModel.$visibleSongs) { songs in
-            if searchText.isEmpty {
-                displaySongs = songs
+            if displaySongs.isEmpty && trimmedQuery.isEmpty {
+                displaySongs = viewModel.visibleSongs
             }
         }
-        .onReceive(searchPublisher.debounce(for: .milliseconds(300), scheduler: RunLoop.main)) { query in
-            let songs = viewModel.visibleSongs
-            if query.isEmpty {
-                displaySongs = songs
-                return
-            }
-            Task.detached(priority: .userInitiated) {
-                let normalizedQuery = query.turkeyNormalized
-                let filtered = songs.filter {
-                    $0.songName.turkeyNormalized.contains(normalizedQuery) ||
-                    $0.artist.turkeyNormalized.contains(normalizedQuery)
-                }
-                await MainActor.run {
-                    displaySongs = filtered
-                }
-            }
+        .task(id: SearchTrigger(query: trimmedQuery, songsVersion: viewModel.visibleSongsVersion)) {
+            await updateDisplayedSongs()
         }
-        .onChange(of: searchText) { _, newValue in
-            searchPublisher.send(newValue)
+    }
+
+    private func updateDisplayedSongs() async {
+        let songs = viewModel.visibleSongs
+        let query = trimmedQuery
+        guard !query.isEmpty else {
+            displaySongs = songs
+            return
         }
+        // Debounce — yazmaya devam edilirse .task(id:) bu görevi iptal eder
+        try? await Task.sleep(for: .milliseconds(300))
+        guard !Task.isCancelled else { return }
+
+        let results = await Task.detached(priority: .userInitiated) {
+            SongSearch.filter(songs, query: query, ranked: true)
+        }.value
+        guard !Task.isCancelled else { return }
+        displaySongs = results
     }
 }

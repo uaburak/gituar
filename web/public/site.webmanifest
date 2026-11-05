@@ -1,0 +1,10 @@
+{
+  "name": "Gituar",
+  "short_name": "Gituar",
+  "description": "Türkçe gitar akorları ve repertuarlar",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f2f2f7",
+  "theme_color": "#007aff",
+  "icons": [{ "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml" }]
+}

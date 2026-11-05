@@ -54,6 +54,13 @@ class AutoScroller: ObservableObject {
         // Geçen zaman (saniye) x Hız (pixel/saniye)
         let dt = link.timestamp - lastTimestamp
         lastTimestamp = link.timestamp
+
+        // Kullanıcı parmağıyla kaydırırken araya girme; bırakınca kaldığı yerden devam eder
+        if sv.isTracking || sv.isDecelerating {
+            exactY = nil
+            return
+        }
+
         let delta = pixelsPerSecond * CGFloat(dt)
 
         let maxY = sv.contentSize.height - sv.frame.height + sv.contentInset.bottom
@@ -123,3 +130,12 @@ struct ScrollViewFinder: UIViewRepresentable {
         }
     }
 }
+
+// MARK: - Scroll Edge Effect Extension
+extension View {
+    @ViewBuilder
+    func scrollEdgeEffectStyle(_ style: ScrollEdgeEffectStyle) -> some View {
+        self.scrollEdgeEffectStyle(style, for: .all)
+    }
+}
+

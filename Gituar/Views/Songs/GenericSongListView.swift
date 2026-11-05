@@ -10,32 +10,20 @@ struct GenericSongListView: View {
     var requiresStorageReady: Bool = false
 
     @EnvironmentObject var chordsManager: ChordsStorageManager
+    @ObservedObject private var adMobManager = AdMobManager.shared
     @State private var searchText: String = ""
     @State private var debouncedSearchText: String = ""
     private let searchPublisher = PassthroughSubject<String, Never>()
 
     var filtered: [Song] {
-        if debouncedSearchText.isEmpty { return songs }
-        let query = debouncedSearchText.turkeyNormalized
-        return songs.filter {
-            $0.songName.turkeyNormalized.contains(query) ||
-            $0.artist.turkeyNormalized.contains(query)
-        }
+        SongSearch.filter(songs, query: debouncedSearchText)
     }
 
     var body: some View {
         Group {
             // Spinner: sadece bu liste Storage verisine bağımlıysa ve indirme bitmemişse göster
             if requiresStorageReady && (chordsManager.state == .idle || chordsManager.state == .downloading) {
-                VStack(spacing: 16) {
-                    ProgressView()
-                        .scaleEffect(1.2)
-                        .tint(.secondary)
-                    Text("Şarkılar yükleniyor…")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                CatalogLoadingView()
             } else if songs.isEmpty {
                 VStack(spacing: 16) {
                     Image(systemName: "music.note.list")
@@ -47,12 +35,24 @@ struct GenericSongListView: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                List(filtered, id: \.docId) { song in
-                    NavigationLink(destination: SongDetailView(song: song, playlist: filtered)) {
-                        SongRowCard(song: song)
+                List {
+                    ForEach(Array(filtered.enumerated()), id: \.element.docId) { index, song in
+                        NavigationLink(destination: SongDetailView(song: song, playlist: filtered)) {
+                            SongRowCard(song: song)
+                        }
+                        // Her 10 satırda bir yerel reklam (Plus'ta yok)
+                        if AdPlacements.shouldShowNativeAd(afterRow: index, isAdFree: adMobManager.isAdFree) {
+                            NativeAdRow()
+                        }
                     }
                 }
                 .listStyle(.plain)
+                .scrollEdgeEffectStyle(.soft)
+                .overlay {
+                    if filtered.isEmpty {
+                        NoSearchResultsView(query: debouncedSearchText)
+                    }
+                }
                 .searchable(text: $searchText, prompt: "Ara...")
                 .onReceive(searchPublisher.debounce(for: .milliseconds(500), scheduler: RunLoop.main)) { newValue in
                     debouncedSearchText = newValue

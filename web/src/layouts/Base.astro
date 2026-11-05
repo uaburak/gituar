@@ -1,0 +1,98 @@
+---
+import "../styles/global.css";
+import { existsSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import Header from "../components/Header.astro";
+import Footer from "../components/Footer.astro";
+import AdSlot from "../components/AdSlot.astro";
+import { SITE_NAME, APP_STORE_ID, ADSENSE_CLIENT } from "../lib/site.ts";
+import { jsonLdText } from "../lib/seo.ts";
+
+interface Props {
+  /** Sayfa başlığı; " · Gituar" eki burada eklenir (şablonlar: docs/SEO.md). */
+  title: string;
+  description?: string;
+  /** Şarkı sayfalarında Safari Smart App Banner'ın uygulamayı doğrudan o şarkıda açması için */
+  songId?: string;
+  noindex?: boolean;
+  q?: string;
+  /** İki yandaki 160×600 ve telefondaki yapışkan reklam. Giriş gibi yardımcı sayfalarda kapalı. */
+  ads?: boolean;
+  /** Open Graph nesne türü: şarkı sayfası music.song, sanatçı sayfası profile. */
+  ogType?: "website" | "music.song" | "profile";
+  /** Sayfanın yapısal verisi (schema.org); tek script olarak basılır. */
+  jsonLd?: unknown;
+}
+const {
+  title,
+  description = "Türkçe gitar akorları, transpoze, kapo ve repertuarlar. iOS uygulamasıyla aynı katalog.",
+  songId,
+  noindex = false,
+  q = "",
+  ads = true,
+  ogType = "website",
+  jsonLd,
+} = Astro.props;
+const canonical = new URL(Astro.url.pathname, Astro.site ?? "https://gituar.com").href;
+const appArgument = songId ? `gituar://song/${songId}` : "gituar://";
+const fullTitle = `${title} · ${SITE_NAME}`;
+// Search Console doğrulaması: web/.env içine PUBLIC_GSC_VERIFICATION=... yazılınca meta basılır.
+const gscVerification = import.meta.env.PUBLIC_GSC_VERIFICATION ?? "";
+// Paylaşım görseli: web/public/og.png (1200×630) eklenirse otomatik kullanılır; SVG favicon OG için uygun değil.
+const ogImage = existsSync(fileURLToPath(new URL("../../public/og.png", import.meta.url)))
+  ? new URL("/og.png", Astro.site ?? "https://gituar.com").href
+  : "";
+---
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>{fullTitle}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    {noindex && <meta name="robots" content="noindex" />}
+    {gscVerification && <meta name="google-site-verification" content={gscVerification} />}
+    <!-- Safari'de yerel "App Store'dan indir" bandı; uygulama yüklüyse "Aç" olur ve şarkıya gider -->
+    <meta name="apple-itunes-app" content={`app-id=${APP_STORE_ID}, app-argument=${appArgument}`} />
+    {ADSENSE_CLIENT && <meta name="google-adsense-account" content={ADSENSE_CLIENT} />}
+    <meta name="theme-color" content="#fbfbfd" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <link rel="sitemap" href="/sitemap-index.xml" />
+    <meta property="og:site_name" content={SITE_NAME} />
+    <meta property="og:locale" content="tr_TR" />
+    <meta property="og:type" content={ogType} />
+    <meta property="og:title" content={fullTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    {ogImage && <meta property="og:image" content={ogImage} />}
+    <meta name="twitter:card" content={ogImage ? "summary_large_image" : "summary"} />
+    <meta name="twitter:title" content={fullTitle} />
+    <meta name="twitter:description" content={description} />
+    {ogImage && <meta name="twitter:image" content={ogImage} />}
+    {jsonLd && <script is:inline type="application/ld+json" set:html={jsonLdText(jsonLd)} />}
+    <script is:inline>
+      (function () {
+        try {
+          var t = localStorage.getItem("gituar-theme");
+          if (t) document.documentElement.setAttribute("data-theme", t);
+          if (localStorage.getItem("gituar-plus") === "1") document.documentElement.classList.add("plus");
+        } catch (e) {}
+      })();
+    </script>
+    <slot name="head" />
+  </head>
+  <body>
+    <Header q={q} />
+    <div class="shell">
+      {ads && <aside class="side-ad" aria-label="Reklam sütunu"><AdSlot size="side" unit="side-left" /></aside>}
+      <main class="page"><slot /></main>
+      {ads && <aside class="side-ad" aria-label="Reklam sütunu"><AdSlot size="side" unit="side-right" /></aside>}
+    </div>
+    <Footer />
+    {ads && <AdSlot size="sticky" unit="mobile-sticky" />}
+    <script src="../scripts/app.ts"></script>
+  </body>
+</html>

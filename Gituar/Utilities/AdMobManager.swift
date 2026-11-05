@@ -41,8 +41,8 @@ class AdMobManager: NSObject, ObservableObject {
         guard !isMobileAdsStartCalled else { return }
         isMobileAdsStartCalled = true
         
-        DispatchQueue.main.async {
-            MobileAds.shared.start { [weak self] _ in
+        DispatchQueue.main.async { [weak self] in
+            MobileAds.shared.start { _ in
                 DispatchQueue.main.async {
                     self?.isSdkInitialized = true
                 }

@@ -1,0 +1,34 @@
+---
+import Base from "../../layouts/Base.astro";
+import SongList from "../../components/SongList.astro";
+import Icon from "../../components/Icon.astro";
+import { catalog, type ArtistGroup } from "../../lib/catalog.ts";
+import { siteUrl, artistTitle, artistDescription, artistJsonLd } from "../../lib/seo.ts";
+
+export async function getStaticPaths() {
+  return catalog().artists.map((artist) => ({ params: { artist: artist.slug }, props: { artist } }));
+}
+const { artist } = Astro.props as { artist: ArtistGroup };
+const initial = (artist.name[0] ?? "?").toLocaleUpperCase("tr-TR");
+const base = siteUrl(Astro.site);
+---
+<Base title={artistTitle(artist)} description={artistDescription(artist)} ogType="profile" jsonLd={artistJsonLd(artist, base)}>
+  <div class="page-head">
+    <nav class="crumbs" aria-label="Sayfa yolu"><a href="/">Ana sayfa</a><span>/</span><a href="/sanatcilar/">Sanatçılar</a><span>/</span>{artist.name}</nav>
+    <div class="artist-head">
+      <span class="row-avatar lg" aria-hidden="true">{initial}</span>
+      <div>
+        <h1>{artist.name} <span class="h1-kw">akorları</span></h1>
+        <p>{artist.songs.length} şarkının gitar akorları · A'dan Z'ye · orijinal ton, transpoze ve kapo</p>
+      </div>
+    </div>
+    <form class="search-inline" role="search" style="margin-top:20px" onsubmit="return false">
+      <Icon name="search" />
+      <input type="search" id="song-filter" placeholder={`${artist.name} şarkılarında ara`} autocomplete="off" aria-label="Şarkılarda ara" />
+    </form>
+  </div>
+  <SongList songs={artist.songs} showArtist={false} numbered adEvery={10} unit="artist" id="artist-songs" />
+  <p class="muted small" id="filter-empty" hidden>Bu aramayla eşleşen şarkı yok.</p>
+  <p class="muted small" style="margin-top:24px">Aradığın şarkı yok mu? <a href="/sanatcilar/">Tüm sanatçıların akorları</a> dizinine bak ya da <a href="/iletisim/">şarkı öner</a>.</p>
+  <script src="../../scripts/song-filter.ts"></script>
+</Base>

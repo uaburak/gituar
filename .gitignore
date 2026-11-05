@@ -20,3 +20,12 @@ lib/
 # Local
 .env
 .env.local
+
+# Web / shared
+web/dist/
+web/.astro/
+shared/catalog/*.json
+*.tsbuildinfo
+.claude/
+web/.vercel/
+.vercel/

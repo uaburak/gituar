@@ -1,0 +1,29 @@
+---
+import Base from "../../layouts/Base.astro";
+import Icon from "../../components/Icon.astro";
+---
+<Base title="Giriş" noindex ads={false}>
+  <div style="max-width:400px;margin:40px auto 0">
+    <div class="card card-pad">
+      <h2 style="margin-bottom:4px">Giriş yap</h2>
+      <p class="muted small">Repertuarların web'de ve iPhone'da aynı kalsın.</p>
+      <div id="auth-unavailable" class="alert" hidden>Web girişi henüz yapılandırılmadı. Firebase web uygulaması kimlikleri eklendiğinde açılacak.</div>
+      <div id="auth-error" class="alert alert-error" hidden style="margin-bottom:12px"></div>
+      <button class="btn btn-block" id="btn-google" type="button" style="background:var(--surface);border:1px solid var(--hairline)"><Icon name="google" class="icon-sm" /> Google ile devam et</button>
+      <form id="email-form">
+        <div class="divider">ya da e-postayla</div>
+        <div class="field"><label for="email">E-posta</label><input class="input" id="email" name="email" type="email" placeholder="ornek@eposta.com" autocomplete="email" required /></div>
+        <div class="field"><label for="password">Şifre <a href="/iletisim/">Şifremi unuttum</a></label><input class="input" id="password" name="password" type="password" placeholder="En az 6 karakter" autocomplete="current-password" minlength="6" required /></div>
+        <button class="btn btn-primary btn-block" type="submit">Giriş yap</button>
+        <p class="muted small" style="text-align:center;margin:14px 0 0">Hesabın yok mu? <button class="btn btn-text" id="btn-signup" type="button" style="height:auto;padding:0">Kayıt ol</button></p>
+      </form>
+      <div id="signed-in" hidden>
+        <p>Giriş yapıldı: <b id="signed-email"></b></p>
+        <a class="btn btn-primary btn-block" id="next-link" href="/repertuarlarim/">Devam et</a>
+        <button class="btn btn-text btn-block" id="btn-signout" type="button" style="margin-top:8px">Çıkış yap</button>
+      </div>
+    </div>
+    <p class="faint small" style="text-align:center;margin-top:12px">Giriş yapmadan da tüm akorlara bakabilirsin.</p>
+  </div>
+  <script src="../../scripts/auth-page.ts"></script>
+</Base>

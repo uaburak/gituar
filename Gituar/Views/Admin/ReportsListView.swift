@@ -50,6 +50,8 @@ struct ReportsListView: View {
     @State private var isLoading = true
     @State private var errorMessage: String? = nil
     @State private var filter: ReportFilter = .pending
+    @State private var reportToRemove: SongReport?
+    @State private var showUpdateError = false
 
     private let db = Firestore.firestore()
 
@@ -127,12 +129,13 @@ struct ReportsListView: View {
                                 report: report,
                                 filter: filter,
                                 onTakeAction: { resolveReport(report, status: "in_progress") },
-                                onReviewAndRemove: { removeContentAndClose(report) },
+                                onReviewAndRemove: { reportToRemove = report },
                                 onDismiss: { resolveReport(report, status: "dismissed") }
                             )
                         }
                     }
                     .listStyle(.plain)
+                    .scrollEdgeEffectStyle(.soft)
                 }
             }
         }
@@ -140,6 +143,26 @@ struct ReportsListView: View {
         .navigationBarTitleDisplayMode(.inline)
         .task(id: filter) { await fetchReports() }
         .refreshable { await fetchReports() }
+        .alert(
+            "Şarkı kalıcı olarak kaldırılsın mı?",
+            isPresented: Binding(
+                get: { reportToRemove != nil },
+                set: { if !$0 { reportToRemove = nil } }
+            ),
+            presenting: reportToRemove
+        ) { report in
+            Button("İçeriği Kaldır", role: .destructive) {
+                removeContentAndClose(report)
+            }
+            Button("Vazgeç", role: .cancel) { }
+        } message: { report in
+            Text("“\(report.songName)” herkes için silinecek. Bu işlem geri alınamaz.")
+        }
+        .alert("Şikayet Güncellenemedi", isPresented: $showUpdateError) {
+            Button("Tamam", role: .cancel) { }
+        } message: {
+            Text("İşlem kaydedilemedi. İnternet bağlantınızı kontrol edip tekrar deneyin.")
+        }
     }
 
     // MARK: - Firestore
@@ -173,9 +196,15 @@ struct ReportsListView: View {
     private func resolveReport(_ report: SongReport, status: String) {
         guard let id = report.id else { return }
         Task {
-            try? await db.collection("reports").document(id).updateData(["status": status])
-            await MainActor.run {
-                reports.removeAll { $0.id == id }
+            do {
+                try await db.collection("reports").document(id).updateData(["status": status])
+                await MainActor.run {
+                    reports.removeAll { $0.id == id }
+                }
+            } catch {
+                // Yazılamadıysa listeden düşürme — şikayet sessizce kaybolmasın
+                print("❌ ReportsListView resolveReport: \(error)")
+                await MainActor.run { showUpdateError = true }
             }
         }
     }

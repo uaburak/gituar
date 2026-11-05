@@ -8,8 +8,12 @@ struct SongDetailView: View {
     @EnvironmentObject var viewModel: ChordViewModel
     @Environment(\.dismiss) var dismiss
 
+    /// Şarkı içeriğinin satırları — akor satırı tespiti şarkı değiştiğinde bir kez yapılır.
+    @State private var sheetLines: [ChordTransposer.SheetLine]
+    /// Ton/kapo/not durumunun hangi şarkı için yüklendiği (geri dönüşte kaydedilmemiş değişiklikleri ezmemek için).
+    @State private var loadedSongId: String?
     @State private var selectedKeyRoot: String = ""
-    @State private var fontSize: CGFloat = 14
+    @AppStorage("songFontSize") private var fontSize: Double = 14
     @State private var showRepertoirePicker = false
     @State private var capoFret: Int = 0
     @State private var isNoteEditing: Bool = false
@@ -30,18 +34,21 @@ struct SongDetailView: View {
     @State private var uploaderUsername: String? = nil
     
     let isApprovalMode: Bool
+    @ObservedObject private var adMobManager = AdMobManager.shared
 
     init(song: Song, playlist: [Song]? = nil, isApprovalMode: Bool = false) {
         _currentSong = State(initialValue: song)
+        _sheetLines = State(initialValue: ChordTransposer.parse(song.content))
         self.playlist = playlist
         self.isApprovalMode = isApprovalMode
     }
 
-    private let allNotes = ["C", "C#", "Db", "D", "D#", "Eb", "E", "F", "F#", "Gb", "G", "G#", "Ab", "A", "A#", "Bb", "B"]
-    private let chromatic = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
+    private var originalRoot: String {
+        ChordTransposer.rootNote(of: currentSong.originalKey)
+    }
 
-    private var songLines: [String] {
-        currentSong.content.components(separatedBy: "\n")
+    private var transposeOffset: Int {
+        ChordTransposer.semitoneOffset(from: currentSong.originalKey, to: selectedKeyRoot)
     }
 
     // MARK: - Extracted Views (To fix compiler type-check timeout)
@@ -69,7 +76,7 @@ struct SongDetailView: View {
                 }
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
-                        ForEach(allNotes, id: \.self) { note in
+                        ForEach(ChordTransposer.selectableKeys, id: \.self) { note in
                             Button { selectedKeyRoot = note } label: {
                                 Text(note)
                                     .font(.system(size: 13, weight: .medium))
@@ -82,6 +89,7 @@ struct SongDetailView: View {
                     }
                     .padding(.horizontal, 20)
                 }
+                .scrollEdgeEffectStyle(.soft)
                 .padding(.horizontal, -20)
             }
             .transition(.move(edge: .top).combined(with: .opacity))
@@ -116,7 +124,7 @@ struct SongDetailView: View {
                             isNoteEditing.toggle()
                         }
                     } label: {
-                        Text("Not ekle")
+                        Text(songNote.isEmpty ? "Not ekle" : "Not")
                             .font(.system(size: 13, weight: .medium))
                             .foregroundColor(.primary)
                             .padding(.horizontal, 16)
@@ -134,6 +142,7 @@ struct SongDetailView: View {
                                 .padding(.horizontal, 12)
                                 .padding(.vertical, 10)
                         }
+                        .accessibilityLabel("Yazıyı küçült")
                         Divider().frame(height: 14)
                         Button { fontSize = min(30, fontSize + 1) } label: {
                             Image(systemName: "plus")
@@ -142,6 +151,7 @@ struct SongDetailView: View {
                                 .padding(.horizontal, 12)
                                 .padding(.vertical, 10)
                         }
+                        .accessibilityLabel("Yazıyı büyüt")
                     }
                     .background(Color(.secondarySystemBackground))
                     .clipShape(Capsule())
@@ -149,7 +159,7 @@ struct SongDetailView: View {
                     Spacer()
                     
                     // Kaydet / Sıfırla Butonu Mantığı
-                    let isModifiedFromOriginal = selectedKeyRoot != getRootNote(from: currentSong.originalKey) || capoFret != 0 || !songNote.isEmpty
+                    let isModifiedFromOriginal = selectedKeyRoot != originalRoot || capoFret != 0 || !songNote.isEmpty
                     let hasSavedPreference = viewModel.songPreferences[currentSong.docId] != nil
                     
                     let isModifiedFromSaved: Bool = {
@@ -163,9 +173,10 @@ struct SongDetailView: View {
                         // Veri kaydedilmiş ve değişiklik yapılmamışsa "Sıfırla" butonu gösterilir
                         Button {
                             UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                            selectedKeyRoot = getRootNote(from: currentSong.originalKey)
+                            selectedKeyRoot = originalRoot
                             capoFret = 0
                             songNote = ""
+                            isNoteEditing = false
                             viewModel.deleteSongPreference(songId: currentSong.docId)
                         } label: {
                             Text("Sıfırla")
@@ -216,20 +227,23 @@ struct SongDetailView: View {
 
     @ViewBuilder
     private var songContentView: some View {
+        let offset = transposeOffset
+        let preferFlats = ChordTransposer.prefersFlats(targetRoot: selectedKeyRoot, originalKey: currentSong.originalKey)
+
         VStack(alignment: .leading, spacing: 0) {
             ScrollView(.horizontal, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 4) {
-                    ForEach(Array(songLines.enumerated()), id: \.offset) { index, line in
+                    ForEach(sheetLines) { line in
                         Group {
-                            if isChordLine(line) {
-                                Text(transposeLine(line, by: transposeOffset))
+                            if line.isChordLine {
+                                Text(ChordTransposer.transpose(line.text, by: offset, preferFlats: preferFlats))
                                     .font(.system(size: fontSize, weight: .semibold))
                                     .tracking(-0.2)
                                     .foregroundColor(.blue)
                                     .lineLimit(1)
                                     .fixedSize(horizontal: true, vertical: false)
                             } else {
-                                Text(line)
+                                Text(line.text)
                                     .font(.system(size: fontSize))
                                     .foregroundColor(.primary)
                                     .fixedSize(horizontal: true, vertical: false)
@@ -239,6 +253,7 @@ struct SongDetailView: View {
                 }
                 .padding(.trailing, 20) // Give some space at the end of long lines
             }
+            .scrollEdgeEffectStyle(.soft)
             
             // Invisible finder that hands UIScrollView to autoScroller
             ScrollViewFinder { sv in autoScroller.scrollView = sv }
@@ -264,7 +279,10 @@ struct SongDetailView: View {
                 .cornerRadius(8)
             }
             headerControlsView
+            // Reklam: biri şarkının başında, biri şarkı biter bitmez. Oynatma (odak) modunda ve Plus'ta hiçbiri.
+            if !isFocusMode { SongAdSlot() }
             songContentView
+            if !isFocusMode { SongAdSlot() }
             footerView
         }
         .padding(.horizontal, 20)
@@ -293,17 +311,21 @@ struct SongDetailView: View {
                     } label: {
                         Image(systemName: "checkmark.circle.fill").foregroundColor(.green)
                     }
+                    .accessibilityLabel("Onayla")
                     Button {
                         viewModel.rejectSong(currentSong)
                         dismiss()
                     } label: {
                         Image(systemName: "xmark.circle.fill").foregroundColor(.red)
                     }
+                    .accessibilityLabel("Reddet")
                 }
             } else {
                 Button { showRepertoirePicker = true } label: {
-                    Image(systemName: "bookmark").foregroundColor(.primary)
+                    Image(systemName: viewModel.isInAnyRepertoire(currentSong) ? "bookmark.fill" : "bookmark")
+                        .foregroundColor(.primary)
                 }
+                .accessibilityLabel("Repertuara ekle")
             }
         }
 
@@ -321,6 +343,7 @@ struct SongDetailView: View {
                 } label: {
                     Image(systemName: "gearshape")
                 }
+                .accessibilityLabel("Kaydırma hızı")
                 Spacer()
                 Button(isPaused ? "Devam" : "Durdur", systemImage: isPaused ? "play.fill" : "pause.fill") {
                     if isPaused {
@@ -371,6 +394,7 @@ struct SongDetailView: View {
                         .padding(.bottom, isFocusMode ? 100 : 20)
                         .padding(.top, isFocusMode ? 200 : 20)
                 }
+                .scrollEdgeEffectStyle(.soft)
             }
             .frame(width: geo.size.width, height: geo.size.height)
             .id(currentSong.docId)
@@ -386,19 +410,15 @@ struct SongDetailView: View {
             songToolbar
         }
         .onAppear {
-            viewModel.fetchSongPreference(for: currentSong.docId)
-            
-            if let pref = viewModel.songPreferences[currentSong.docId] {
-                selectedKeyRoot = pref.selectedKeyRoot
-                capoFret = pref.capoFret
-                songNote = pref.note
-            } else if selectedKeyRoot.isEmpty {
-                selectedKeyRoot = getRootNote(from: currentSong.originalKey)
-            }
-            
-            if !isApprovalMode {
-                viewModel.addToRecentlyPlayed(currentSong)
-                viewModel.incrementViewCount(for: currentSong)
+            // Çalarken ekran kararmasın
+            ScreenAwake.retain()
+
+            // Başka bir ekrandan (ya da tam ekran reklamdan) geri dönüldüğünde kaydedilmemiş ton/kapo/not
+            // değişikliklerini ezme ve şarkı açılışını ikinci kez sayma
+            if loadedSongId != currentSong.docId {
+                loadStateForCurrentSong()
+                // Her 4. şarkı açılışında geçiş reklamı (Plus'ta hiç)
+                InterstitialAdManager.shared.registerSongOpen()
             }
             autoScroller.pixelsPerSecond = CGFloat(autoScrollSpeed)
             autoScroller.onFinish = {
@@ -408,29 +428,12 @@ struct SongDetailView: View {
         }
         .onChange(of: viewModel.songPreferences[currentSong.docId]) { _, newValue in
             if let pref = newValue {
-                selectedKeyRoot = pref.selectedKeyRoot
-                capoFret = pref.capoFret
-                songNote = pref.note
+                apply(pref)
             }
         }
         .onChange(of: currentSong.docId) { _, _ in
-            viewModel.fetchSongPreference(for: currentSong.docId)
-            
-            if let pref = viewModel.songPreferences[currentSong.docId] {
-                selectedKeyRoot = pref.selectedKeyRoot
-                capoFret = pref.capoFret
-                songNote = pref.note
-            } else {
-                selectedKeyRoot = getRootNote(from: currentSong.originalKey)
-                capoFret = 0
-                songNote = ""
-                isNoteEditing = false
-            }
-            
-            if !isApprovalMode {
-                viewModel.addToRecentlyPlayed(currentSong)
-                viewModel.incrementViewCount(for: currentSong)
-            }
+            loadStateForCurrentSong()
+            InterstitialAdManager.shared.registerSongOpen()
             
             autoScroller.scrollView = nil
             autoScroller.reset()
@@ -441,7 +444,12 @@ struct SongDetailView: View {
         .onChange(of: autoScrollSpeed) { _, newValue in
             autoScroller.pixelsPerSecond = CGFloat(newValue)
         }
-        .onDisappear { autoScroller.reset() }
+        .onDisappear {
+            ScreenAwake.release()
+            autoScroller.reset()
+            // Odak modundayken başka ekrana geçildiyse dönüşte "Devam" ile sürdürülebilsin
+            if isFocusMode { isPaused = true }
+        }
         .sheet(isPresented: $showRepertoirePicker) {
             RepertoirePickerSheet(song: currentSong)
         }
@@ -498,6 +506,35 @@ struct SongDetailView: View {
         }
     }
     
+    // MARK: - Song State
+
+    /// Geçerli şarkı için kayıtlı ton/kapo/not tercihini yükler; yoksa orijinal tona döner.
+    private func loadStateForCurrentSong() {
+        loadedSongId = currentSong.docId
+        viewModel.fetchSongPreference(for: currentSong.docId)
+
+        if let pref = viewModel.songPreferences[currentSong.docId] {
+            apply(pref)
+        } else {
+            selectedKeyRoot = originalRoot
+            capoFret = 0
+            songNote = ""
+            isNoteEditing = false
+        }
+
+        if !isApprovalMode {
+            viewModel.addToRecentlyPlayed(currentSong)
+        }
+    }
+
+    private func apply(_ pref: UserSongPreference) {
+        selectedKeyRoot = pref.selectedKeyRoot
+        capoFret = pref.capoFret
+        songNote = pref.note
+        // Kayıtlı not varsa gizli kalmasın
+        if !pref.note.isEmpty { isNoteEditing = true }
+    }
+
     // MARK: - Actions (Report & Block)
     
     private func reportContent(_ reason: String) {
@@ -538,21 +575,23 @@ struct SongDetailView: View {
         guard let playlist = playlist,
               let currentIndex = playlist.firstIndex(where: { $0.id == currentSong.id }) else { return }
         let nextIndex = (currentIndex + 1) % playlist.count
-        slideDirection = .trailing
-        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-        withAnimation(.interpolatingSpring(stiffness: 300, damping: 30)) {
-            currentSong = playlist[nextIndex]
-        }
+        show(playlist[nextIndex], slidingFrom: .trailing)
     }
 
     private func previousSong() {
         guard let playlist = playlist,
               let currentIndex = playlist.firstIndex(where: { $0.id == currentSong.id }) else { return }
         let prevIndex = (currentIndex - 1 + playlist.count) % playlist.count
-        slideDirection = .leading
+        show(playlist[prevIndex], slidingFrom: .leading)
+    }
+
+    private func show(_ song: Song, slidingFrom edge: Edge) {
+        slideDirection = edge
         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        let lines = ChordTransposer.parse(song.content)
         withAnimation(.interpolatingSpring(stiffness: 300, damping: 30)) {
-            currentSong = playlist[prevIndex]
+            currentSong = song
+            sheetLines = lines
         }
     }
 
@@ -591,11 +630,6 @@ struct SongDetailView: View {
             VStack(alignment: .leading, spacing: 20) {
                 Divider().padding(.top, 40)
 
-                // Ad Banner
-                let bannerWidth = ((UIApplication.shared.connectedScenes.first as? UIWindowScene)?.screen.bounds.width ?? 320) - 40
-                AdBannerView(viewWidth: bannerWidth)
-                .padding(.bottom, 8)
-
                 // UGC Added By Notice & Legal Text
                 VStack(alignment: .leading, spacing: 12) {
                     HStack {
@@ -611,7 +645,8 @@ struct SongDetailView: View {
                         
                         Spacer()
                         
-                        if let ownerId = currentSong.ownerId, !ownerId.isEmpty {
+                        // Kendi şarkısında "Engelle" gösterme (kullanıcı kendini engelleyebiliyordu)
+                        if let ownerId = currentSong.ownerId, !ownerId.isEmpty, ownerId != viewModel.currentUserId {
                             Button {
                                 showBlockAlert = true
                             } label: {
@@ -649,6 +684,8 @@ struct SongDetailView: View {
 
                 Divider()
 
+                let allArtistSongs = viewModel.songsForArtist(currentSong.artist)
+
                 // Artist Section (Styled like AllArtistsView list item)
                 NavigationLink(destination: ArtistDetailView(artist: currentSong.artist)) {
                     HStack(spacing: 14) {
@@ -666,7 +703,7 @@ struct SongDetailView: View {
                                 .font(.system(size: 15, weight: .medium))
                                 .foregroundColor(.primary)
                                 .lineLimit(1)
-                            Text("\(viewModel.songsForArtist(currentSong.artist).count) Şarkı")
+                            Text("\(allArtistSongs.count) Şarkı")
                                 .font(.system(size: 13))
                                 .foregroundColor(.secondary)
                                 .lineLimit(1)
@@ -684,14 +721,7 @@ struct SongDetailView: View {
                 .buttonStyle(PlainButtonStyle())
 
                 // Other Songs List
-                let allArtistSongs = viewModel.songsForArtist(currentSong.artist).filter { $0.id != currentSong.id }
-                let artistSongs: [Song] = {
-                    if allArtistSongs.contains(where: { $0.popularityScore > 0 }) {
-                        return Array(allArtistSongs.sorted { $0.popularityScore > $1.popularityScore }.prefix(5))
-                    } else {
-                        return Array(allArtistSongs.shuffled().prefix(5))
-                    }
-                }()
+                let artistSongs = Array(allArtistSongs.filter { $0.id != currentSong.id }.prefix(5))
                 
                 if !artistSongs.isEmpty {
                     VStack(alignment: .leading, spacing: 0) {
@@ -724,65 +754,6 @@ struct SongDetailView: View {
                 }
             }
         }
-    }
-
-    // MARK: - Transpose Logic
-
-    private var transposeOffset: Int {
-        let orig = normalizeNote(getRootNote(from: currentSong.originalKey))
-        let sel  = normalizeNote(selectedKeyRoot)
-        guard let oi = chromatic.firstIndex(of: orig),
-              let si = chromatic.firstIndex(of: sel) else { return 0 }
-        return si - oi
-    }
-
-    private func getRootNote(from key: String) -> String {
-        let regex = try? NSRegularExpression(pattern: "^([A-G][b#]?)")
-        let ns = key as NSString
-        if let m = regex?.firstMatch(in: key, range: NSRange(location: 0, length: ns.length)) {
-            return ns.substring(with: m.range)
-        }
-        return "C"
-    }
-
-    private func transposeLine(_ line: String, by offset: Int) -> String {
-        guard offset != 0 else { return line }
-        var result = ""; var word = ""
-        for ch in line {
-            if ch.isWhitespace {
-                if !word.isEmpty { result += transposeChord(word, by: offset); word = "" }
-                result.append(ch)
-            } else { word.append(ch) }
-        }
-        if !word.isEmpty { result += transposeChord(word, by: offset) }
-        return result
-    }
-
-    private func transposeChord(_ chord: String, by offset: Int) -> String {
-        let regex = try? NSRegularExpression(pattern: "^([A-G][b#]?)(.*)$")
-        let range = NSRange(location: 0, length: chord.utf16.count)
-        guard let m = regex?.firstMatch(in: chord, range: range),
-              let rr = Range(m.range(at: 1), in: chord),
-              let sr = Range(m.range(at: 2), in: chord) else { return chord }
-        let root   = normalizeNote(String(chord[rr]))
-        let suffix = String(chord[sr])
-        guard let idx = chromatic.firstIndex(of: root) else { return chord }
-        return chromatic[(idx + offset + 12) % 12] + suffix
-    }
-
-    private func normalizeNote(_ n: String) -> String {
-        ["Db": "C#", "Eb": "D#", "Gb": "F#", "Ab": "G#", "Bb": "A#"][n] ?? n
-    }
-
-    private func isChordLine(_ line: String) -> Bool {
-        let trimmed = line.trimmingCharacters(in: .whitespaces)
-        if trimmed.isEmpty { return false }
-        let words = trimmed.components(separatedBy: .whitespaces).filter { !$0.isEmpty }
-        let pat   = "^[A-G][b#]?(m|maj|min|dim|aug|sus|add|7|9|M|\\+|[0-9])*$"
-        let count = words.filter { $0.range(of: pat, options: .regularExpression) != nil }.count
-        return trimmed.lowercased().hasPrefix("x") ||
-               trimmed.lowercased().contains("intro") ||
-               (Double(count) / Double(words.count) >= 0.5)
     }
 }
 
@@ -826,6 +797,7 @@ struct RepertoirePickerSheet: View {
                     .disabled(alreadyAdded)
                 }
                 .listStyle(.plain)
+                .scrollEdgeEffectStyle(.soft)
 
                 // Alt - Yeni Repertuar Oluştur Butonu
                 Button {

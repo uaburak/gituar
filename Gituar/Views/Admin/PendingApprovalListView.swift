@@ -3,18 +3,18 @@ import SwiftUI
 struct PendingApprovalListView: View {
     @EnvironmentObject var viewModel: ChordViewModel
     @State private var searchText: String = ""
+    @State private var isLoading = true
     
     var filtered: [Song] {
-        if searchText.isEmpty { return viewModel.pendingSongs }
-        return viewModel.pendingSongs.filter {
-            $0.songName.turkeyNormalized.contains(searchText.turkeyNormalized) ||
-            $0.artist.turkeyNormalized.contains(searchText.turkeyNormalized)
-        }
+        SongSearch.filter(viewModel.pendingSongs, query: searchText)
     }
 
     var body: some View {
         Group {
-            if viewModel.pendingSongs.isEmpty {
+            if isLoading && viewModel.pendingSongs.isEmpty {
+                ProgressView()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if viewModel.pendingSongs.isEmpty {
                 VStack(spacing: 16) {
                     Image(systemName: "checkmark.seal")
                         .font(.system(size: 48))
@@ -33,9 +33,15 @@ struct PendingApprovalListView: View {
                     }
                 }
                 .listStyle(.plain)
+                .scrollEdgeEffectStyle(.soft)
                 .searchable(text: $searchText, prompt: "Bekleyenlerde ara...")
+                .refreshable { await viewModel.fetchPendingSongs() }
             }
         }
         .navigationTitle("Onay Bekleyenler")
+        .task {
+            await viewModel.fetchPendingSongs()
+            isLoading = false
+        }
     }
 }

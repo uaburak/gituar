@@ -11,19 +11,22 @@
 			<array>
 				<string>com.googleusercontent.apps.890664830560-iiabdfl6a3hkvts8ap6ntm4jgcnsbf4t</string>
 			</array>
-			<key>CFBundleURLTypes</key>
+		</dict>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>CFBundleURLName</key>
+			<string>com.burakkoc.VaultApp.song</string>
+			<key>CFBundleURLSchemes</key>
 			<array>
-				<dict>
-					<key>CFBundleURLName</key>
-					<string></string>
-				</dict>
+				<string>gituar</string>
 			</array>
 		</dict>
-		<dict/>
 	</array>
 	<key>GADApplicationIdentifier</key>
 	<string>ca-app-pub-9748717269838207~8786045485</string>
-
+	<key>GADNativeAdValidatorEnabled</key>
+	<false/>
 	<key>SKAdNetworkItems</key>
 	<array>
 		<dict>
@@ -227,12 +230,7 @@
 			<string>3qcr597p9d.skadnetwork</string>
 		</dict>
 	</array>
-	<key>UILaunchStoryboardName</key>
-	<string>LaunchScreen</string>
-	<key>NSUserTrackingUsageDescription</key>
-	<string>Size daha iyi ve ilgi alanlarınıza uygun reklamlar gösterebilmemiz için verilerinizi kullanmamıza izin verin.</string>
-	<key>GADNativeAdValidatorEnabled</key>
+	<key>UILaunchScreen</key>
 	<false/>
 </dict>
 </plist>
-

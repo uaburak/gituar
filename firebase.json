@@ -1,4 +1,23 @@
 {
+  "firestore": {
+    "rules": "shared/firestore.rules",
+    "indexes": "shared/firestore.indexes.json"
+  },
+  "hosting": {
+    "public": "firebase-redirect",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "redirects": [
+      {
+        "regex": "^(?P<path>.*)$",
+        "destination": "https://gituar.com:path",
+        "type": 301
+      }
+    ]
+  },
   "functions": [
     {
       "source": "functions",

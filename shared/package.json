@@ -1,0 +1,16 @@
+{
+  "name": "@gituar/shared",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Web ve iOS'un ortak katalog biçimi, akor/transpoze ve Türkçe arama mantığı, Firestore kuralları, yayın scriptleri.",
+  "exports": {
+    "./chords": "./src/chords.ts",
+    "./turkish": "./src/turkish.ts",
+    "./types": "./src/types.ts",
+    "./catalog": "./src/catalog.ts"
+  },
+  "devDependencies": {
+    "firebase-admin": "^13.0.0"
+  }
+}

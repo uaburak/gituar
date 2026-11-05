@@ -48,7 +48,7 @@ struct HomeView: View {
                             NavigationLink(destination: MySongsView()) {
                                 MinimalCategoryCard(
                                     title: "Şarkılarım",
-                                    subtitle: authViewModel.currentUser != nil ? "\(viewModel.userSongs(userId: authViewModel.currentUser!.uid).count) Kayıtlı" : "Giriş Yap",
+                                    subtitle: authViewModel.currentUser.map { "\(viewModel.userSongs(userId: $0.uid).count) Kayıtlı" } ?? "Giriş Yap",
                                     icon: "music.quarternote.3",
                                     color: .indigo
                                 )
@@ -73,10 +73,6 @@ struct HomeView: View {
                             
                             NavigationLink(destination: ExploreView()) {
                                 HomeSmallCard(title: "Tüm Şarkılar", icon: "music.note.list")
-                            }
-                            
-                            NavigationLink(destination: PopularChordsView()) {
-                                HomeSmallCard(title: "Popüler", icon: "flame.fill")
                             }
                             
                             NavigationLink(destination: DiscoverView()) {
@@ -119,12 +115,17 @@ struct HomeView: View {
                     .padding(.bottom, 40)
                     .padding(.top, 16)
             }
+            .scrollEdgeEffectStyle(.soft)
         }
         .background(Color(.systemBackground).ignoresSafeArea(.all, edges: .bottom))
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
         .navigationDestination(isPresented: $navigateToProfile) {
             ProfileSettingsView()
+        }
+        // gituar://song/<id> bağlantısıyla gelen şarkı
+        .navigationDestination(item: $viewModel.deepLinkedSong) { song in
+            SongDetailView(song: song)
         }
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
@@ -168,6 +169,9 @@ struct HomeView: View {
                     impactMed.impactOccurred()
                     navigateToProfile = true
                 }
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("Profil")
+                .accessibilityAddTraits(.isButton)
             }
             
             ToolbarSpacer(.fixed, placement: .topBarLeading)

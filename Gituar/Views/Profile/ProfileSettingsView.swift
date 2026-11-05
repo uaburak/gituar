@@ -5,8 +5,11 @@ import FirebaseAuth
 struct ProfileSettingsView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
     @EnvironmentObject var viewModel: ChordViewModel
+    @ObservedObject private var plusManager = PlusManager.shared
     @State private var showingDeleteAlert = false
     @State private var isDeletingAccount = false
+    @State private var showingReauthAlert = false
+    @State private var deleteErrorMessage: String?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -69,6 +72,23 @@ struct ProfileSettingsView: View {
                     .padding(.vertical, 8)
                 }
 
+                Section(header: Text("Gituar Plus")) {
+                    NavigationLink(destination: PlusView()) {
+                        Label {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(plusManager.isPlus ? "Gituar Plus · Aktif" : "Gituar Plus")
+                                    .foregroundColor(.primary)
+                                Text(plusManager.isPlus ? "Reklamsız kullanım açık" : "Reklamsız kullan · aylık 99 TL")
+                                    .font(.footnote)
+                                    .foregroundColor(.secondary)
+                            }
+                        } icon: {
+                            Image(systemName: "sparkles")
+                                .foregroundColor(.accentColor)
+                        }
+                    }
+                }
+
                 Section(header: Text("Hakkında")) {
                     NavigationLink(destination: LegalContactView()) {
                         Label("İletişim ve Yasal Bilgiler", systemImage: "info.circle.fill")
@@ -89,41 +109,59 @@ struct ProfileSettingsView: View {
                 }
             }
             .listStyle(.insetGrouped)
+            .scrollEdgeEffectStyle(.soft)
 
             // Glass Butonlar — List'in TAMAMEN DIŞINDA
             VStack(spacing: 12) {
-                Button {
-                    authViewModel.signOut()
-                } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: "rectangle.portrait.and.arrow.right")
-                        Text("Çıkış Yap")
-                            .fontWeight(.semibold)
-                    }
-                    .foregroundColor(.red)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
-                    .glassEffect(in: .rect(cornerRadius: 18.0))
-                }
-
-                Button {
-                    showingDeleteAlert = true
-                } label: {
-                    HStack(spacing: 8) {
-                        if isDeletingAccount {
-                            ProgressView().tint(.red)
-                        } else {
-                            Image(systemName: "trash")
-                            Text("Hesabımı Kalıcı Olarak Sil")
+                if authViewModel.isGuestMode {
+                    // Misafirin çıkış yapacağı ya da sileceği bir hesabı yok — giriş ekranına götür
+                    Button {
+                        authViewModel.signOut()
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "person.crop.circle.badge.plus")
+                            Text("Giriş Yap")
                                 .fontWeight(.semibold)
                         }
+                        .foregroundColor(.accentColor)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 16)
+                        .glassEffect(in: .rect(cornerRadius: 18.0))
                     }
-                    .foregroundColor(.red)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
-                    .glassEffect(in: .rect(cornerRadius: 18.0))
+                } else {
+                    Button {
+                        authViewModel.signOut()
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "rectangle.portrait.and.arrow.right")
+                            Text("Çıkış Yap")
+                                .fontWeight(.semibold)
+                        }
+                        .foregroundColor(.red)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 16)
+                        .glassEffect(in: .rect(cornerRadius: 18.0))
+                    }
+
+                    Button {
+                        showingDeleteAlert = true
+                    } label: {
+                        HStack(spacing: 8) {
+                            if isDeletingAccount {
+                                ProgressView().tint(.red)
+                            } else {
+                                Image(systemName: "trash")
+                                Text("Hesabımı Kalıcı Olarak Sil")
+                                    .fontWeight(.semibold)
+                            }
+                        }
+                        .foregroundColor(.red)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 16)
+                        .glassEffect(in: .rect(cornerRadius: 18.0))
+                    }
+                    .disabled(isDeletingAccount)
                 }
-                .disabled(isDeletingAccount)
             }
             .padding(.horizontal, 20)
             .padding(.bottom, 24)
@@ -138,14 +176,31 @@ struct ProfileSettingsView: View {
                     do {
                         try await UserService.shared.deleteAccount()
                         authViewModel.signOut()
+                    } catch UserService.AccountDeletionError.requiresRecentLogin {
+                        showingReauthAlert = true
                     } catch {
                         print("Error deleting account: \(error)")
+                        deleteErrorMessage = error.localizedDescription
                     }
                     isDeletingAccount = false
                 }
             }
         } message: {
             Text("Hesabınızı silmek istediğinize emin misiniz? Bu işlem geri alınamaz ve tüm verileriniz kalıcı olarak silinir.")
+        }
+        .alert("Yeniden Giriş Gerekli", isPresented: $showingReauthAlert) {
+            Button("Çıkış Yap") { authViewModel.signOut() }
+            Button("Vazgeç", role: .cancel) { }
+        } message: {
+            Text("Güvenlik nedeniyle hesabınızı silmeden önce yeniden giriş yapmanız gerekiyor. Çıkış yapıp tekrar giriş yaptıktan sonra hesabınızı silebilirsiniz.")
+        }
+        .alert("Hesap Silinemedi", isPresented: Binding(
+            get: { deleteErrorMessage != nil },
+            set: { if !$0 { deleteErrorMessage = nil } }
+        )) {
+            Button("Tamam", role: .cancel) { }
+        } message: {
+            Text("Hesabınız silinirken bir hata oluştu. İnternet bağlantınızı kontrol edip tekrar deneyin.\n\n\(deleteErrorMessage ?? "")")
         }
     }
 }
@@ -166,6 +221,7 @@ struct BlockedUsersView: View {
                 }
             }
         }
+        .scrollEdgeEffectStyle(.soft)
         .navigationTitle("Engellenen Kullanıcılar")
         .navigationBarTitleDisplayMode(.inline)
     }

@@ -1,0 +1,32 @@
+---
+import Base from "../../layouts/Base.astro";
+---
+<Base title="Yönetim" noindex ads={false}>
+  <div class="page-head">
+    <div class="title-row">
+      <div><h1>Yönetim</h1><p id="admin-meta">Onay bekleyen şarkılar ve şikayetler · iPhone uygulamasındaki yönetim ile aynı veriler</p></div>
+      <button class="btn" id="admin-refresh" type="button" hidden>Yenile</button>
+    </div>
+  </div>
+  <div id="admin-auth" class="alert" hidden>Yönetim için <a href="/giris/?next=/admin/">giriş yap</a>.</div>
+  <div id="admin-denied" class="alert alert-error" hidden>Bu sayfa yalnızca yönetici hesapları için.</div>
+
+  <section class="section" id="admin-pending" hidden>
+    <div class="section-head"><h2>Onay bekleyen şarkılar</h2><span class="muted small" id="pending-count"></span></div>
+    <div class="list" id="pending-list"></div>
+  </section>
+
+  <section class="section" id="admin-reports" hidden>
+    <div class="section-head">
+      <h2>Şikayetler</h2>
+      <div class="chip-row" id="report-filter">
+        <button class="btn chip active" type="button" data-f="open">Açık</button>
+        <button class="btn chip" type="button" data-f="closed">Kapatılan</button>
+      </div>
+    </div>
+    <div class="list" id="reports-list"></div>
+  </section>
+
+  <p class="muted small" id="admin-status" style="margin-top:16px">Yükleniyor…</p>
+  <script src="../../scripts/admin.ts"></script>
+</Base>

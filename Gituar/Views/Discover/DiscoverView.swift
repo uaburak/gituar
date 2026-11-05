@@ -27,6 +27,20 @@ struct DiscoverView: View {
             }
         }
         .listStyle(.plain)
+        .scrollEdgeEffectStyle(.soft)
+        .overlay {
+            if filtered.isEmpty {
+                if searchText.isEmpty {
+                    ContentUnavailableView(
+                        "Henüz paylaşılan repertuar yok",
+                        systemImage: "globe",
+                        description: Text("Repertuarını herkese açık yaparak ilk paylaşan sen ol.")
+                    )
+                } else {
+                    NoSearchResultsView(query: searchText)
+                }
+            }
+        }
         .navigationTitle("Keşfet")
         .searchable(text: $searchText, prompt: "Repertuar ara")
     }

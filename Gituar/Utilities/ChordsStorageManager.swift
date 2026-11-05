@@ -1,19 +1,18 @@
 import Foundation
-import FirebaseCore
-import FirebaseStorage
 import Combine
+import FirebaseFirestore
 
 // MARK: - Download State
 
-/// Firebase Storage'dan chords_data.json indirme durumu.
+/// Resmi katalogun yüklenme durumu.
 enum ChordsDownloadState: Equatable {
-    /// Henüz başlamadı (uygulama henüz tetiklemedi)
+    /// Henüz başlamadı
     case idle
-    /// Arka planda indirme devam ediyor
+    /// Paketteki seed açılıyor / ilk yükleme sürüyor
     case downloading
-    /// İndirme tamamlandı, şarkılar belleğe yüklendi
+    /// Katalog bellekte, fark senkronu arka planda
     case ready
-    /// İndirme veya decode hatası
+    /// Seed okunamadı
     case failed(String)
 
     static func == (lhs: ChordsDownloadState, rhs: ChordsDownloadState) -> Bool {
@@ -27,22 +26,15 @@ enum ChordsDownloadState: Equatable {
 
 // MARK: - ChordsStorageManager
 
-/// Firebase Storage'daki "chords/chords_data.json" dosyasını yöneten singleton.
+/// Resmi şarkı kataloğu: uygulamaya gömülü seed (`Resources/catalog.deflate`) + Firestore fark senkronu.
 ///
-/// ### Kullanım
-/// ```swift
-/// // App launch'ta arka plana al:
-/// ChordsStorageManager.shared.startIfNeeded()
+/// ### Akış
+/// 1. Açılışta cihazdaki birleşik kopya (varsa) ya da paketteki seed açılır → `songs` anında hazır.
+/// 2. Firestore `songs` koleksiyonundan `seq > lastSeq` olan dokümanlar çekilir (500'lük sayfalar),
+///    `deleted == true` olanlar çıkarılır, kalanlar üzerine yazılır, birleşik kopya diske yazılır.
+/// 3. Değişiklik yoksa sorgu 0 doküman döner; Firestore okuma saymaz.
 ///
-/// // SwiftUI'de gözlemle:
-/// @StateObject var chordsManager = ChordsStorageManager.shared
-/// ```
-///
-/// ### Tasarım Kararları
-/// - Dosya cihazda zaten varsa hiç indirme yapmaz (`FileManager` kontrolü).
-/// - Dosya eksikse Firebase Storage'dan arka planda indirir; UI asla bloklanmaz.
-/// - `state` değişkeni `@Published` olduğundan SwiftUI otomatik tepki verir.
-/// - `songs` dizisi decode edilmiş şarkıları tutar; dışarıdan sadece okunur.
+/// Kullanıcı istemcisi kataloğu bunun dışında hiçbir yerden okumaz. Biçim: docs/PLATFORM-PLAN.md §4.
 @MainActor
 final class ChordsStorageManager: ObservableObject {
 
@@ -53,197 +45,287 @@ final class ChordsStorageManager: ObservableObject {
 
     // MARK: - Published State
 
-    /// İndirme durumu — SwiftUI ekranları bunu dinler.
     @Published private(set) var state: ChordsDownloadState = .idle
-
-    /// Decode edilmiş şarkı listesi — state == .ready olduğunda dolucaktır.
     @Published private(set) var songs: [LocalSong] = []
+
+    /// Son uygulanan değişiklik sayacı (`catalog/meta.seq` ile karşılaştırılır).
+    private(set) var lastSeq: Int = 0
 
     // MARK: - Private
 
-    private let storagePath = "chords/chords_data.json"
-    private let cacheFileName = "chords_data_storage.json"
+    private let db = Firestore.firestore()
+    private let cacheFileName = "catalog_cache.deflate"
+    private let bundleBuildKey = "catalog.bundleBuild"
+    private let cacheSeqKey = "catalog.cacheSeq"
+
+    /// id → kayıt (silinmişler dahil; fark senkronu silmeyi de taşır)
+    private var records: [String: CatalogSongRecord] = [:]
     private var isStarted = false
+    private var isSyncing = false
+    private var lastSyncCheck: Date?
+    /// Otomatik fark kontrolleri arasındaki en kısa süre (pull-to-refresh `force` ile bunu atlar).
+    private let syncInterval: TimeInterval = 6 * 60 * 60
+    private let pageSize = 500
 
-    // MARK: - Cache URL
+    // MARK: - Paths
 
-    /// @MainActor context içinde kullan (startIfNeeded, forceRedownload vb.)
-    private var cacheFileURL: URL { makeCacheFileURL() }
-
-    /// nonisolated — Task.detached bloklarından güvenle çağrılır.
     private nonisolated func makeCacheFileURL() -> URL {
         FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
             .appendingPathComponent(cacheFileName)
     }
 
+    private nonisolated static var bundledSeedURL: URL? {
+        Bundle.main.url(forResource: "catalog", withExtension: "deflate")
+    }
+
+    private nonisolated static var currentBuild: String {
+        (Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "0")
+            + "-" + (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0")
+    }
+
     // MARK: - Public API
 
-    /// Uygulama açılışında çağrılır.
-    /// - Dosya cihazda varsa sadece decode eder (ağ isteği yok).
-    /// - Dosya yoksa arka planda Firebase Storage'dan indirir.
-    /// İkinci çağrıda sessizce çıkar (idempotent).
+    /// Uygulama açılışında çağrılır. İkinci çağrıda sessizce çıkar.
     func startIfNeeded() {
-        guard !isStarted else {
-            print("🔵 ChordsStorageManager: startIfNeeded() atlandı — zaten başlatıldı.")
-            return
-        }
+        guard !isStarted else { return }
         isStarted = true
-        print("🔵 ChordsStorageManager: startIfNeeded() tetiklendi. State: \(state)")
-        print("   Cache path: \(cacheFileURL.path)")
+        state = .downloading
+        print("🔵 ChordsStorageManager: seed yükleniyor…")
 
-        if FileManager.default.fileExists(atPath: cacheFileURL.path) {
-            let size = (try? FileManager.default.attributesOfItem(atPath: cacheFileURL.path)[.size] as? Int) ?? 0
-            print("📦 ChordsStorageManager: Cache mevcut (\(size / 1024) KB), disk'ten yükleniyor…")
-            loadFromDisk()
-        } else {
-            print("⬇️ ChordsStorageManager: Cache yok. Firebase Storage'dan indiriliyor…")
-            print("   Storage path: \(storagePath)")
-            state = .downloading
-            Task.detached(priority: .background) { [weak self] in
-                await self?.downloadFromStorage()
-            }
-        }
-    }
+        let cacheURL = makeCacheFileURL()
+        let defaults = UserDefaults.standard
+        let cachedSeq = defaults.integer(forKey: cacheSeqKey)
+        let buildChanged = defaults.string(forKey: bundleBuildKey) != Self.currentBuild
 
-    /// Zorla yeniden indir (örn. pull-to-refresh veya admin butonu).
-    func forceRedownload() {
-        print("🔄 ChordsStorageManager: forceRedownload() tetiklendi.")
-        isStarted = false
-        try? FileManager.default.removeItem(at: cacheFileURL)
-        songs = []
-        state = .idle
-        startIfNeeded()
-    }
-
-    // MARK: - Private: Disk Load
-
-    private func loadFromDisk() {
         Task.detached(priority: .userInitiated) { [weak self] in
             guard let self else { return }
-            let url = self.makeCacheFileURL()   // nonisolated → await gerekmez
-            do {
-                let data = try Data(contentsOf: url)
-                let decoded = try Self.decodeSongs(from: data)  // nonisolated static
-                await MainActor.run {
-                    self.songs = decoded
-                    self.state = .ready
-                    print("✅ ChordsStorageManager: \(decoded.count) şarkı diskten yüklendi.")
-                }
-            } catch {
-                await MainActor.run {
-                    // Bozuk cache → sil ve yeniden indir
-                    try? FileManager.default.removeItem(at: url)
-                    self.isStarted = false
-                    self.startIfNeeded()
-                    print("⚠️ ChordsStorageManager: Disk decode hatası, yeniden indiriliyor: \(error)")
+            var snapshot: CatalogSnapshot?
+            var source = "cache"
+
+            // 1. Cihazdaki birleşik kopya
+            if FileManager.default.fileExists(atPath: cacheURL.path) {
+                snapshot = try? Self.loadSnapshot(from: cacheURL)
+                if snapshot == nil { try? FileManager.default.removeItem(at: cacheURL) }
+            }
+
+            // 2. Paketteki seed: kopya yoksa, ya da uygulama güncellendi ve seed daha yeniyse
+            if snapshot == nil || buildChanged, let seedURL = Self.bundledSeedURL {
+                if let seed = try? Self.loadSnapshot(from: seedURL) {
+                    if snapshot == nil || seed.seq > (snapshot?.seq ?? cachedSeq) {
+                        snapshot = seed
+                        source = "bundle"
+                    }
                 }
             }
-        }
-    }
 
-    // MARK: - Private: Firebase Storage Download
-
-    /// nonisolated → Task.detached (background) içinden MainActor'a geçmeden çağrılabilir.
-    private nonisolated func downloadFromStorage() async {
-        let url = makeCacheFileURL()
-        print("⬇️ ChordsStorageManager: Storage indirme başlıyor…")
-        print("   Path: gs://\(Storage.storage().reference().bucket)/\(storagePath)")
-
-        let storageRef = Storage.storage().reference(withPath: storagePath)
-
-        do {
-            // ---- 1. İndir ----
-            let data = try await storageRef.data(maxSize: 50 * 1024 * 1024)
-            print("📥 ChordsStorageManager: \(data.count) byte indirildi.")
-
-            // ---- 2. Decode et ----
-            let decoded: [LocalSong]
-            do {
-                decoded = try Self.decodeSongs(from: data)
-                print("🎵 ChordsStorageManager: \(decoded.count) şarkı decode edildi.")
-            } catch {
-                // Ham JSON'ın ilk 300 karakterini logla — key uyuşmazlığını görmek için
-                let preview = String(data: data.prefix(300), encoding: .utf8) ?? "<binary>"
-                print("❌ ChordsStorageManager: JSON decode hatası: \(error)")
-                print("   JSON preview: \(preview)")
+            guard let snapshot else {
                 await MainActor.run {
-                    self.state = .failed("JSON decode hatası: \(error.localizedDescription)")
+                    self.state = .failed("Katalog seed'i okunamadı.")
+                    print("❌ ChordsStorageManager: ne cache ne seed okunabildi.")
                 }
                 return
             }
 
-            // ---- 3. Diske kaydet ----
-            do {
-                try data.write(to: url, options: .atomic)
-                print("💾 ChordsStorageManager: \(data.count / 1024) KB diske yazıldı → \(url.lastPathComponent)")
-            } catch {
-                print("⚠️ ChordsStorageManager: Diske yazma hatası (cache atlandı): \(error)")
-            }
-
-            // ---- 4. State güncelle ----
-            await MainActor.run {
-                self.songs = decoded
-                self.state = .ready
-                print("✅ ChordsStorageManager: Hazır! \(decoded.count) resmi şarkı yüklendi.")
-            }
-
-        } catch {
-            // Firebase Storage NSError — hata kodunu göster
-            let nsErr = error as NSError
-            print("❌ ChordsStorageManager: Storage indirme hatası!")
-            print("   Domain : \(nsErr.domain)")
-            print("   Code   : \(nsErr.code)")
-            print("   Message: \(nsErr.localizedDescription)")
-            await MainActor.run {
-                self.state = .failed("[\(nsErr.code)] \(nsErr.localizedDescription)")
-            }
+            await self.apply(snapshot: snapshot, source: source, persist: source == "bundle")
+            await self.syncDelta(force: true)
         }
     }
 
-    // MARK: - Private: Decode
-
-    /// JSON'daki kısa key'leri (a, s, k, c, i) `LocalSong` modeline decode eder.
-    /// `static` + `nonisolated` → herhangi bir thread'den çağrılabilir, actor hop gerekmez.
-    private nonisolated static func decodeSongs(from data: Data) throws -> [LocalSong] {
-        let decoder = JSONDecoder()
-        return try decoder.decode([LocalSong].self, from: data)
+    /// Seed okunamadıysa yeniden dener.
+    func retryIfFailed() {
+        guard case .failed = state else { return }
+        isStarted = false
+        state = .idle
+        startIfNeeded()
     }
+
+    /// Firestore'dan `seq > lastSeq` olan farkları çeker.
+    /// - Parameter force: true ise son kontrolün üzerinden geçen süreye bakılmaz (pull-to-refresh).
+    func checkForUpdates(force: Bool = false) async {
+        await syncDelta(force: force)
+    }
+
+    /// Diskteki kopyayı atar, paketteki seed'den yeniden başlar ve farkları baştan çeker.
+    func forceRedownload() {
+        print("🔄 ChordsStorageManager: forceRedownload()")
+        try? FileManager.default.removeItem(at: makeCacheFileURL())
+        UserDefaults.standard.removeObject(forKey: cacheSeqKey)
+        isStarted = false
+        records = [:]
+        songs = []
+        lastSeq = 0
+        lastSyncCheck = nil
+        state = .idle
+        startIfNeeded()
+    }
+
+    /// Mevcut (silinmemiş) şarkıların id → (artistSlug, slug) eşlemesi; içe aktarmada URL kalıcılığı için.
+    var slugMap: [String: (artistSlug: String, slug: String)] {
+        var map: [String: (artistSlug: String, slug: String)] = [:]
+        for (id, r) in records where !r.isDeleted { map[id] = (r.artistSlug, r.slug) }
+        return map
+    }
+
     // MARK: - Admin API
 
-    /// Resmi bir şarkıyı Storage'daki JSON dosyasından kalıcı olarak siler.
-    /// Bu işlem sadece Storage kurallarında yetkilendirilmiş adminler tarafından yapılabilir.
+    /// Resmi bir şarkıyı siler: `catalog/meta.seq` artar, `songs/{id}` `deleted: true` + yeni seq alır.
+    /// Yalnızca Firestore kurallarında admin olan kullanıcılar yapabilir.
     func deleteOfficialSong(songId: String) async throws {
-        print("🗑️ ChordsStorageManager: deleteOfficialSong(\(songId)) tetiklendi.")
-        
-        let storageRef = Storage.storage().reference(withPath: storagePath)
-        
-        // 1. Storage'dan en güncel veriyi indir (overwrite hatalarını azaltmak için)
-        let data = try await storageRef.data(maxSize: 50 * 1024 * 1024)
-        
-        // 2. Decode et ve şarkıyı bulup çıkar
-        var decodedSongs = try Self.decodeSongs(from: data)
-        let initialCount = decodedSongs.count
-        decodedSongs.removeAll { $0.docId == songId }
-        
-        guard decodedSongs.count < initialCount else {
-            print("⚠️ ChordsStorageManager: Şarkı JSON'da bulunamadı: \(songId)")
+        print("🗑️ ChordsStorageManager: deleteOfficialSong(\(songId))")
+        let metaRef = db.collection("catalog").document("meta")
+        let songRef = db.collection("songs").document(songId)
+        // catalog/meta henüz yoksa ya da gerideyse sayaç cihazdaki katalogdan geri gitmesin;
+        // aksi halde yeni seq, seed'in seq'inden küçük kalır ve hiçbir cihaz farkı görmez.
+        let floorSeq = lastSeq
+
+        let result = try await db.runTransaction { transaction, errorPointer -> Any? in
+            let meta: DocumentSnapshot
+            do {
+                meta = try transaction.getDocument(metaRef)
+            } catch let error as NSError {
+                errorPointer?.pointee = error
+                return nil
+            }
+            let current = max((meta.data()?["seq"] as? NSNumber)?.intValue ?? 0, floorSeq)
+            let newSeq = current + 1
+            transaction.setData(["seq": newSeq, "publishedAt": FieldValue.serverTimestamp()], forDocument: metaRef, merge: true)
+            transaction.setData(["deleted": true, "seq": newSeq, "updatedAt": FieldValue.serverTimestamp()], forDocument: songRef, merge: true)
+            return newSeq
+        }
+        guard let newSeq = result as? Int else {
+            throw NSError(domain: "ChordsStorageManager", code: 1, userInfo: [NSLocalizedDescriptionKey: "Katalog sayacı güncellenemedi."])
+        }
+
+        // Yerelde uygula
+        if var record = records[songId] {
+            record.deleted = true
+            record.seq = newSeq
+            records[songId] = record
+        }
+        lastSeq = max(lastSeq, newSeq)
+        publishSongs()
+        persistToDisk()
+        print("✅ ChordsStorageManager: \(songId) silindi, seq=\(newSeq).")
+    }
+
+    // MARK: - Private: apply / publish / persist
+
+    private func apply(snapshot: CatalogSnapshot, source: String, persist: Bool) {
+        var map: [String: CatalogSongRecord] = [:]
+        map.reserveCapacity(snapshot.songs.count)
+        for r in snapshot.songs { map[r.id] = r }
+        records = map
+        lastSeq = snapshot.seq
+        publishSongs()
+        state = .ready
+        UserDefaults.standard.set(Self.currentBuild, forKey: bundleBuildKey)
+        print("✅ ChordsStorageManager: \(songs.count) şarkı \(source)'dan yüklendi (seq \(snapshot.seq)).")
+        if persist { persistToDisk() }
+    }
+
+    private func publishSongs() {
+        songs = records.values
+            .filter { !$0.isDeleted }
+            .sorted { $0.seq < $1.seq }
+            .map { $0.toLocalSong() }
+    }
+
+    private func persistToDisk() {
+        let snapshot = CatalogSnapshot(
+            seq: lastSeq,
+            count: records.values.filter { !$0.isDeleted }.count,
+            publishedAt: ISO8601DateFormatter().string(from: Date()),
+            songs: records.values.sorted { $0.seq < $1.seq }
+        )
+        let url = makeCacheFileURL()
+        let seq = lastSeq
+        Task.detached(priority: .utility) {
+            do {
+                try Self.saveSnapshot(snapshot, to: url)
+                UserDefaults.standard.set(seq, forKey: "catalog.cacheSeq")
+            } catch {
+                print("⚠️ ChordsStorageManager: diske yazılamadı: \(error)")
+            }
+        }
+    }
+
+    // MARK: - Private: delta sync
+
+    private func syncDelta(force: Bool) async {
+        guard state == .ready, !isSyncing else { return }
+        if !force, let lastSyncCheck, Date().timeIntervalSince(lastSyncCheck) < syncInterval { return }
+        isSyncing = true
+        defer { isSyncing = false }
+
+        var changes: [CatalogSongRecord] = []
+        var cursor = lastSeq
+        do {
+            while true {
+                let page = try await db.collection("songs")
+                    .whereField("seq", isGreaterThan: cursor)
+                    .order(by: "seq")
+                    .limit(to: pageSize)
+                    .getDocuments()
+                for doc in page.documents {
+                    guard let record = Self.record(from: doc) else { continue }
+                    changes.append(record)
+                    cursor = max(cursor, record.seq)
+                }
+                if page.documents.count < pageSize { break }
+            }
+            lastSyncCheck = Date()
+        } catch {
+            print("⚠️ ChordsStorageManager: fark senkronu başarısız: \(error.localizedDescription)")
             return
         }
-        
-        // 3. Yeniden JSON formatına çevir
-        let encoder = JSONEncoder()
-        let newData = try encoder.encode(decodedSongs)
-        
-        // 4. Firebase Storage'a yükle (üzerine yaz)
-        _ = try await storageRef.putDataAsync(newData, metadata: nil)
-        print("✅ ChordsStorageManager: Şarkı silindi, yeni JSON Storage'a başarıyla yüklendi.")
-        
-        // 5. Uygulama içi belleği (state) ve diski güncelle
-        await MainActor.run {
-            self.songs = decodedSongs
-            let url = self.makeCacheFileURL()
-            try? newData.write(to: url, options: .atomic)
-            print("💾 ChordsStorageManager: Local cache ve memory güncellendi.")
+
+        guard !changes.isEmpty else {
+            print("✅ ChordsStorageManager: katalog güncel (seq \(lastSeq)).")
+            return
         }
+        for change in changes { records[change.id] = change }
+        lastSeq = cursor
+        publishSongs()
+        persistToDisk()
+        print("✅ ChordsStorageManager: \(changes.count) değişiklik uygulandı → seq \(lastSeq), \(songs.count) şarkı.")
+    }
+
+    private nonisolated static func record(from doc: QueryDocumentSnapshot) -> CatalogSongRecord? {
+        let d = doc.data()
+        guard let seq = (d["seq"] as? NSNumber)?.intValue else { return nil }
+        var createdAt: String?
+        if let ts = d["createdAt"] as? Timestamp {
+            createdAt = ISO8601DateFormatter().string(from: ts.dateValue())
+        } else if let s = d["createdAt"] as? String {
+            createdAt = s
+        }
+        return CatalogSongRecord(
+            id: doc.documentID,
+            artist: d["artist"] as? String ?? "",
+            songName: d["songName"] as? String ?? "",
+            originalKey: d["originalKey"] as? String ?? "",
+            content: d["content"] as? String ?? "",
+            artistSlug: d["artistSlug"] as? String ?? "",
+            slug: d["slug"] as? String ?? "",
+            seq: seq,
+            createdAt: createdAt,
+            addedBy: d["addedBy"] as? String,
+            deleted: (d["deleted"] as? Bool) == true ? true : nil
+        )
+    }
+
+    // MARK: - Private: deflate I/O
+
+    /// Ham DEFLATE (zlib başlıksız) → JSON → CatalogSnapshot. Node tarafı `zlib.deflateRawSync` ile üretir.
+    private nonisolated static func loadSnapshot(from url: URL) throws -> CatalogSnapshot {
+        let compressed = try Data(contentsOf: url, options: .mappedIfSafe)
+        let json = try (compressed as NSData).decompressed(using: .zlib) as Data
+        return try JSONDecoder().decode(CatalogSnapshot.self, from: json)
+    }
+
+    private nonisolated static func saveSnapshot(_ snapshot: CatalogSnapshot, to url: URL) throws {
+        let json = try JSONEncoder().encode(snapshot)
+        let compressed = try (json as NSData).compressed(using: .zlib) as Data
+        try compressed.write(to: url, options: .atomic)
     }
 }

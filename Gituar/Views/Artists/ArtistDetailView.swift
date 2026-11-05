@@ -12,15 +12,7 @@ struct ArtistDetailView: View {
         Group {
             switch chordsManager.state {
             case .idle, .downloading:
-                VStack(spacing: 16) {
-                    ProgressView()
-                        .scaleEffect(1.2)
-                        .tint(.secondary)
-                    Text("Şarkılar yükleniyor…")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                CatalogLoadingView()
 
             default:
                 if songs.isEmpty {
@@ -40,6 +32,7 @@ struct ArtistDetailView: View {
                         }
                     }
                     .listStyle(.plain)
+                    .scrollEdgeEffectStyle(.soft)
                 }
             }
         }

@@ -1,13 +1,14 @@
 import SwiftUI
-import FirebaseStorage
+import FirebaseFirestore
 import FirebaseAuth
 
 // MARK: - JSONImportPreviewView
 //
 // JSON dosyasından parse edilen şarkıları listeler.
-// "Onayla" butonuna basınca dosyayı Firebase Storage'a yükler:
-//   gs://koc-chords.firebasestorage.app/chords/chords_data.json
-// Yükleme tamamlanınca ChordsStorageManager yeniden indirir.
+// "Onayla" butonuna basınca şarkıları Firestore `songs` koleksiyonuna yazar (resmi katalog):
+//   1) `catalog/meta.seq` üzerinde N'lik bir seq aralığı ayrılır (transaction),
+//   2) 450'lik batch'lerle `songs/{id}` dokümanları yazılır (merge).
+// Yazma bitince ChordsStorageManager fark senkronu ile yeni şarkıları alır; web yayını `npm run publish` ile üretilir.
 
 struct JSONImportPreviewView: View {
     let songs: [ImportableSong]
@@ -19,19 +20,26 @@ struct JSONImportPreviewView: View {
     @State private var isUploading = false
     @State private var showSuccess = false
     @State private var uploadError: String? = nil
+    @State private var importedCount = 0
 
-    private let storagePath = "chords/chords_data.json"
-
-    var validSongs: [ImportableSong] {
-        songs.filter {
-            !($0.songName ?? "").isEmpty &&
-            !($0.artist ?? "").isEmpty &&
-            !($0.originalKey ?? "").isEmpty &&
-            !($0.content ?? "").isEmpty
-        }
+    private func isValid(_ song: ImportableSong) -> Bool {
+        !(song.songName ?? "").isEmpty &&
+        !(song.artist ?? "").isEmpty &&
+        !(song.originalKey ?? "").isEmpty &&
+        !(song.content ?? "").isEmpty
     }
 
+    var validSongs: [ImportableSong] { songs.filter(isValid) }
+    var invalidSongs: [ImportableSong] { songs.filter { !isValid($0) } }
+
     var invalidCount: Int { songs.count - validSongs.count }
+
+    /// Dosyadaki her şarkının kendine ait, tekrarsız bir docId'si varsa o ID'ler korunur.
+    /// Aksi halde ID'ler sıra numarasından üretilir (dosyadaki sıra değişirse ID'ler de değişir).
+    private var keepsFileDocIds: Bool {
+        let ids = validSongs.compactMap { $0.docId?.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+        return !ids.isEmpty && ids.count == validSongs.count && Set(ids).count == ids.count
+    }
 
     var body: some View {
         NavigationStack {
@@ -57,12 +65,17 @@ struct JSONImportPreviewView: View {
                     HStack {
                         Image(systemName: "icloud.and.arrow.up")
                             .foregroundColor(.secondary)
-                        Text("Hedef: chords/chords_data.json")
+                        Text("Hedef: Firestore · songs (resmi katalog)")
                             .font(.system(size: 12, design: .monospaced))
                             .foregroundColor(.secondary)
                     }
                 } header: {
                     Text("Yükleme Özeti")
+                } footer: {
+                    Text("Bu işlem dosyadaki şarkıları resmi kataloğa ekler; aynı ID'li kayıtların üzerine yazar, dosyada olmayan şarkılara dokunmaz. "
+                         + (keepsFileDocIds
+                            ? "Şarkı ID'leri dosyadaki docId alanından alınacak."
+                            : "Şarkı ID'leri katalog sayacından yeni verilecek; mevcut şarkılar ve repertuarlar etkilenmez."))
                 }
 
                 // Şarkı listesi
@@ -94,12 +107,7 @@ struct JSONImportPreviewView: View {
                 // Geçersiz kayıtlar
                 if invalidCount > 0 {
                     Section {
-                        ForEach(Array(songs.filter {
-                            ($0.songName ?? "").isEmpty ||
-                            ($0.artist ?? "").isEmpty ||
-                            ($0.originalKey ?? "").isEmpty ||
-                            ($0.content ?? "").isEmpty
-                        }.enumerated()), id: \.offset) { _, song in
+                        ForEach(Array(invalidSongs.enumerated()), id: \.offset) { _, song in
                             HStack {
                                 Image(systemName: "xmark.circle.fill")
                                     .foregroundColor(.red)
@@ -118,6 +126,7 @@ struct JSONImportPreviewView: View {
                 }
             }
             .listStyle(.insetGrouped)
+            .scrollEdgeEffectStyle(.soft)
             .navigationTitle("Yüklenecekler")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -127,7 +136,7 @@ struct JSONImportPreviewView: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button {
-                        uploadToStorage()
+                        importToFirestore()
                     } label: {
                         if isUploading {
                             ProgressView()
@@ -146,7 +155,7 @@ struct JSONImportPreviewView: View {
                         VStack(spacing: 16) {
                             ProgressView()
                                 .scaleEffect(1.4)
-                            Text("Firebase Storage'a yükleniyor…")
+                            Text("Firestore'a yazılıyor…")
                                 .font(.system(size: 14, weight: .medium))
                                 .foregroundColor(.secondary)
                         }
@@ -159,7 +168,7 @@ struct JSONImportPreviewView: View {
             .alert("Yükleme Tamamlandı ✅", isPresented: $showSuccess) {
                 Button("Tamam") { dismiss() }
             } message: {
-                Text("\(validSongs.count) şarkı başarıyla Storage'a yüklendi.\nUygulama yeni şarkıları kısa sürede gösterecek.")
+                Text("\(importedCount) şarkı resmi kataloğa yazıldı.\nUygulama yeni şarkıları şimdi alıyor; web için `npm run publish` çalıştırın.")
             }
             .alert("Yükleme Hatası", isPresented: Binding(
                 get: { uploadError != nil },
@@ -172,57 +181,98 @@ struct JSONImportPreviewView: View {
         }
     }
 
-    // MARK: - Upload
+    // MARK: - Import (Firestore)
 
-    private func uploadToStorage() {
+    private func importToFirestore() {
         isUploading = true
-
-        // LocalSong formatıyla uyumlu encode (docId, artist, songName, originalKey, content, addedBy, ownerId)
-        struct UploadSong: Encodable {
-            let docId: String
-            let artist: String
-            let songName: String
-            let originalKey: String
-            let content: String
-            let addedBy: String
-            let ownerId: String
-        }
-
         let importerName = authViewModel.userProfile?.username ?? authViewModel.displayName
-        let importerUID  = authViewModel.currentUser?.uid ?? ""
+        let keepFileDocIds = keepsFileDocIds
+        let songsToImport = validSongs
 
-        let uploadSongs = validSongs.enumerated().map { idx, song in
-            UploadSong(
-                docId: "\(idx + 1)",
-                artist: song.artist ?? "",
-                songName: song.songName ?? "",
-                originalKey: song.originalKey ?? "",
-                content: song.content ?? "",
-                addedBy: importerName,
-                ownerId: importerUID
-            )
-        }
-
-        guard let uploadData = try? JSONEncoder().encode(uploadSongs) else {
-            isUploading = false
-            uploadError = "Veri encode edilemedi."
-            return
-        }
-
-        let metadata = StorageMetadata()
-        metadata.contentType = "application/json"
-
-        let storageRef = Storage.storage().reference(withPath: storagePath)
-        storageRef.putData(uploadData, metadata: metadata) { _, error in
-            DispatchQueue.main.async {
+        Task { @MainActor in
+            do {
+                let written = try await Self.writeSongs(songsToImport, keepFileDocIds: keepFileDocIds, importerName: importerName)
+                await ChordsStorageManager.shared.checkForUpdates(force: true)
+                importedCount = written
                 isUploading = false
-                if let error = error {
-                    uploadError = error.localizedDescription
-                } else {
-                    ChordsStorageManager.shared.forceRedownload()
-                    showSuccess = true
-                }
+                showSuccess = true
+            } catch {
+                isUploading = false
+                uploadError = error.localizedDescription
             }
         }
+    }
+
+    /// 1) `catalog/meta.seq` üzerinde `songs.count` kadar aralık ayırır (transaction),
+    /// 2) her şarkıya bu aralıktan bir `seq`, gerekiyorsa yeni bir id ve slug verir,
+    /// 3) 450'lik batch'lerle `songs/{id}` dokümanlarını `merge: true` ile yazar.
+    @MainActor
+    private static func writeSongs(_ songs: [ImportableSong], keepFileDocIds: Bool, importerName: String) async throws -> Int {
+        guard !songs.isEmpty else { return 0 }
+        let db = Firestore.firestore()
+        let metaRef = db.collection("catalog").document("meta")
+        let count = songs.count
+        // Sayaç cihazdaki katalogun gerisine düşmesin (catalog/meta henüz yoksa 0 okunur).
+        let floorSeq = ChordsStorageManager.shared.lastSeq
+
+        let reserved = try await db.runTransaction { transaction, errorPointer -> Any? in
+            let meta: DocumentSnapshot
+            do {
+                meta = try transaction.getDocument(metaRef)
+            } catch let error as NSError {
+                errorPointer?.pointee = error
+                return nil
+            }
+            let current = max((meta.data()?["seq"] as? NSNumber)?.intValue ?? 0, floorSeq)
+            transaction.setData(
+                ["seq": current + count, "publishedAt": FieldValue.serverTimestamp()],
+                forDocument: metaRef,
+                merge: true
+            )
+            return current
+        }
+        guard let startSeq = reserved as? Int else {
+            throw NSError(domain: "JSONImport", code: 1, userInfo: [NSLocalizedDescriptionKey: "Katalog sayacı ayrılamadı."])
+        }
+
+        var allocator = SlugAllocator(existing: ChordsStorageManager.shared.slugMap)
+        var batch = db.batch()
+        var inBatch = 0
+
+        for (index, song) in songs.enumerated() {
+            let seq = startSeq + index + 1
+            let id = keepFileDocIds
+                ? (song.docId ?? "").trimmingCharacters(in: .whitespaces)
+                : String(seq)
+            let artist = (song.artist ?? "").trimmingCharacters(in: .whitespaces)
+            let name = (song.songName ?? "").trimmingCharacters(in: .whitespaces)
+            let slugs = allocator.allocate(id: id, artist: artist, songName: name)
+
+            var data: [String: Any] = [
+                "artist": artist,
+                "songName": name,
+                "originalKey": (song.originalKey ?? "").trimmingCharacters(in: .whitespaces),
+                "content": song.content ?? "",
+                "artistSlug": slugs.artistSlug,
+                "slug": slugs.slug,
+                "status": "approved",
+                "deleted": false,
+                "seq": seq,
+                "addedBy": importerName,
+                "updatedAt": FieldValue.serverTimestamp(),
+            ]
+            // Yeni id verilen kayıtlar kesinlikle yenidir; dosyadan gelen id'lerde createdAt'e dokunulmaz.
+            if !keepFileDocIds { data["createdAt"] = FieldValue.serverTimestamp() }
+
+            batch.setData(data, forDocument: db.collection("songs").document(id), merge: true)
+            inBatch += 1
+            if inBatch == 450 {
+                try await batch.commit()
+                batch = db.batch()
+                inBatch = 0
+            }
+        }
+        if inBatch > 0 { try await batch.commit() }
+        return count
     }
 }

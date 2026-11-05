@@ -32,6 +32,7 @@ struct LegalContactView: View {
                 }
             }
         }
+        .scrollEdgeEffectStyle(.soft)
         .navigationTitle("İletişim ve Yasal")
         .navigationBarTitleDisplayMode(.inline)
     }
@@ -63,6 +64,7 @@ struct TermsOfUseView: View {
             }
             .padding()
         }
+        .scrollEdgeEffectStyle(.soft)
         .navigationTitle("Kullanım Şartları")
         .navigationBarTitleDisplayMode(.inline)
     }
@@ -94,6 +96,7 @@ struct PrivacyPolicyView: View {
             }
             .padding()
         }
+        .scrollEdgeEffectStyle(.soft)
         .navigationTitle("Gizlilik Politikası")
         .navigationBarTitleDisplayMode(.inline)
     }

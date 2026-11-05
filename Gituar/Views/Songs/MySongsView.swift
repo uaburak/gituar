@@ -6,6 +6,8 @@ import UniformTypeIdentifiers
 
 struct ImportableSong: Codable, Identifiable {
     var id: String { (songName ?? "") + (artist ?? "") }
+    /// İsteğe bağlı. Dosyadaki tüm şarkılarda varsa içe aktarımda bu ID'ler korunur.
+    var docId: String?
     var songName: String?
     var artist: String?
     var originalKey: String?
@@ -19,6 +21,7 @@ struct MySongsView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
 
     @State private var songToEdit: Song?
+    @State private var songToDelete: Song?
     @State private var navigateToNewSong = false
 
     var body: some View {
@@ -64,11 +67,13 @@ struct MySongsView: View {
                             .padding(.vertical, 4)
                         }
                         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                            Button(role: .destructive) {
-                                viewModel.deleteSong(song)
+                            // Silme geri alınamaz — önce onay sor
+                            Button {
+                                songToDelete = song
                             } label: {
                                 Label("Sil", systemImage: "trash")
                             }
+                            .tint(.red)
                             Button {
                                 songToEdit = song
                             } label: {
@@ -78,12 +83,37 @@ struct MySongsView: View {
                         }
                     }
                     .listStyle(.plain)
+                    .scrollEdgeEffectStyle(.soft)
+                    .refreshable { await viewModel.refresh() }
                 }
             } else {
-                Text("Şarkılarınızı görmek için giriş yapmalısınız.")
+                ContentUnavailableView {
+                    Label("Giriş yapmalısın", systemImage: "person.crop.circle.badge.plus")
+                } description: {
+                    Text("Kendi şarkılarını eklemek ve görmek için bir hesapla giriş yap.")
+                } actions: {
+                    // Misafir modundan çıkıp giriş ekranına döner
+                    Button("Giriş Yap") { authViewModel.signOut() }
+                        .buttonStyle(.borderedProminent)
+                }
             }
         }
         .navigationTitle("Şarkılarım")
+        .alert(
+            "Bu şarkı kalıcı olarak silinsin mi?",
+            isPresented: Binding(
+                get: { songToDelete != nil },
+                set: { if !$0 { songToDelete = nil } }
+            ),
+            presenting: songToDelete
+        ) { song in
+            Button("Şarkıyı Sil", role: .destructive) {
+                viewModel.deleteSong(song)
+            }
+            Button("Vazgeç", role: .cancel) { }
+        } message: { song in
+            Text("“\(song.songName)” silinecek. Bu işlem geri alınamaz.")
+        }
         .navigationDestination(isPresented: $navigateToNewSong) {
             EditSongView(song: nil)
         }
@@ -91,9 +121,13 @@ struct MySongsView: View {
             EditSongView(song: song)
         }
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button { navigateToNewSong = true } label: {
-                    Image(systemName: "plus")
+            // Misafir şarkı kaydedemez — eklemeyi yalnızca giriş yapmış kullanıcıya göster
+            if authViewModel.currentUser != nil {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button { navigateToNewSong = true } label: {
+                        Image(systemName: "plus")
+                    }
+                    .accessibilityLabel("Yeni şarkı")
                 }
             }
         }
@@ -179,7 +213,15 @@ struct EditSongView: View {
     @State private var showImportPreview = false
     @State private var importParseError: String? = nil
 
-    private let allNotes = ["C", "C#", "Db", "D", "D#", "Eb", "E", "F", "F#", "Gb", "G", "G#", "Ab", "A", "A#", "Bb", "B"]
+    private var canSave: Bool {
+        !songName.trimmingCharacters(in: .whitespaces).isEmpty &&
+        !artist.trimmingCharacters(in: .whitespaces).isEmpty
+    }
+
+    /// Yayına (onaya) göndermek için akor/söz içeriği de dolu olmalı.
+    private var canPublish: Bool {
+        canSave && !content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
 
     var body: some View {
         ScrollView {
@@ -206,7 +248,7 @@ struct EditSongView: View {
                         formField(text: $artist, placeholder: "Sanatçı")
 
                         Menu {
-                            ForEach(allNotes, id: \.self) { note in
+                            ForEach(ChordTransposer.selectableKeys, id: \.self) { note in
                                 Button { originalKey = note } label: { Text(note) }
                             }
                         } label: {
@@ -263,7 +305,8 @@ struct EditSongView: View {
                     Button {
                         saveSong(asStatus: status == "approved" ? "approved" : "draft")
                     } label: {
-                        Text("Taslak Kaydet")
+                        // Yayındaki şarkıda bu buton taslağa çekmez, değişikliği kaydeder
+                        Text(status == "approved" ? "Kaydet" : "Taslak Kaydet")
                             .font(.system(size: 15, weight: .bold))
                             .foregroundStyle(.primary)
                             .frame(maxWidth: .infinity)
@@ -272,6 +315,8 @@ struct EditSongView: View {
                             .clipShape(Capsule())
                             .overlay(Capsule().stroke(Color(.separator), lineWidth: 1))
                     }
+                    .disabled(!canSave)
+                    .opacity(canSave ? 1 : 0.5)
 
                     if status != "pending" && status != "approved" {
                         Button {
@@ -285,12 +330,15 @@ struct EditSongView: View {
                                 .background(Color.accentColor)
                                 .clipShape(Capsule())
                         }
+                        .disabled(!canPublish)
+                        .opacity(canPublish ? 1 : 0.5)
                     }
                 }
                 .padding(.horizontal, 24)
                 .padding(.bottom, 40)
             }
         }
+        .scrollEdgeEffectStyle(.soft)
         .navigationTitle(song == nil ? "Yeni Şarkı" : "Düzenle")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -302,6 +350,7 @@ struct EditSongView: View {
                     } label: {
                         Image(systemName: "square.and.arrow.down")
                     }
+                    .accessibilityLabel("JSON'dan içe aktar")
                 }
                 // Paylaş — sadece mevcut şarkıda
                 if let song = song, let url = URL(string: "gituar://song/\(song.docId)") {
@@ -374,7 +423,6 @@ struct EditSongView: View {
         if targetStatus == "pending" && authViewModel.isAdmin { finalStatus = "approved" }
 
         let songToSave = Song(
-            id: song?.id,
             docId: song?.docId ?? "",
             artist: artist.trimmingCharacters(in: .whitespaces),
             songName: songName.trimmingCharacters(in: .whitespaces),

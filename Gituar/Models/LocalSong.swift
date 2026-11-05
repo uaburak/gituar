@@ -21,7 +21,7 @@ struct LocalSong: Identifiable, Codable, Hashable, Sendable {
     let content: String
     let addedBy: String?
     let ownerId: String?
-    /// ISO8601 tarih (JSON'da "createdAt" alanı). "Yeni Eklenenler" için gerekli.
+    /// JSON'daki "createdAt" alanı (sayı ya da ISO8601 metin). "Yeni Eklenenler" için gerekli.
     let createdAt: Date?
     /// Resmi şarkılar hep "approved" — "Onay bekleyen" filtresini geçer.
     let status: String?
@@ -50,6 +50,33 @@ struct LocalSong: Identifiable, Codable, Hashable, Sendable {
     static func == (lhs: LocalSong, rhs: LocalSong) -> Bool { lhs.docId == rhs.docId }
 }
 
+// MARK: - Decoding
+
+extension LocalSong {
+    /// `createdAt` hem JSONEncoder'ın varsayılan sayı biçimini hem de ISO8601 metni kabul eder;
+    /// tek bir kayıttaki tarih biçimi tüm kataloğun decode edilmesini bozmasın.
+    nonisolated init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        docId       = try c.decode(String.self, forKey: .docId)
+        artist      = try c.decode(String.self, forKey: .artist)
+        songName    = try c.decode(String.self, forKey: .songName)
+        originalKey = try c.decode(String.self, forKey: .originalKey)
+        content     = try c.decode(String.self, forKey: .content)
+        addedBy     = try c.decodeIfPresent(String.self, forKey: .addedBy)
+        ownerId     = try c.decodeIfPresent(String.self, forKey: .ownerId)
+        status      = try c.decodeIfPresent(String.self, forKey: .status)
+        if !c.contains(.createdAt) {
+            createdAt = nil
+        } else if let seconds = try? c.decode(Double.self, forKey: .createdAt) {
+            createdAt = Date(timeIntervalSinceReferenceDate: seconds)
+        } else if let text = try? c.decode(String.self, forKey: .createdAt) {
+            createdAt = try? Date(text, strategy: .iso8601)
+        } else {
+            createdAt = nil
+        }
+    }
+}
+
 // MARK: - LocalSong → Song bridge
 
 extension LocalSong {
@@ -65,23 +92,6 @@ extension LocalSong {
             ownerId: ownerId,
             addedBy: addedBy,
             status: status ?? "approved"  // resmi şarkılar her zaman onaylanış
-        )
-    }
-}
-
-extension Song {
-    /// Song → LocalSong dönüşümü (ihtiyaç duyulursa).
-    func toLocalSong() -> LocalSong {
-        LocalSong(
-            docId: docId,
-            artist: artist,
-            songName: songName,
-            originalKey: originalKey,
-            content: content,
-            addedBy: addedBy,
-            ownerId: ownerId,
-            createdAt: createdAt,
-            status: status
         )
     }
 }

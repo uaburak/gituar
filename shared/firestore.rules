@@ -1,0 +1,87 @@
+rules_version = '2';
+// Gituar — iOS ve web'in ortak Firestore kuralları. Tek kaynak bu dosya:
+//   firebase deploy --only firestore:rules
+// 2026-11-05: Console'daki canlı kurallarla (19 May 2026) birleştirildi; eklenenler: songs/catalog (fark senkronu),
+// metadata/admins (editör listesi), users.isAdmin yükseltme koruması, admin'in kullanıcı repertuarlarını okuması.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function owns(uid) { return signedIn() && request.auth.uid == uid; }
+    function isAdmin() {
+      return signedIn()
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+    }
+
+    // -- Resmi katalog: fark senkronu songs + catalog/meta okur (iOS, web build). Yalnızca admin yazar. --
+    match /songs/{songId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /catalog/{doc} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // -- Eski bundle şarkı metrikleri (geriye dönük) --
+    match /chords/{songId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // -- Kullanıcı katkıları (draft/pending/approved/rejected) --
+    match /user-chords/{songId} {
+      allow read: if true;
+      allow create: if signedIn() && request.resource.data.ownerId == request.auth.uid;
+      // Sahibi ve admin her şeyi; diğer girişli kullanıcılar yalnızca sayaçları günceller
+      allow update: if isAdmin() || owns(resource.data.ownerId)
+        || (signedIn() && request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(['totalViews', 'recentViews', 'repertoireAdds']));
+      allow delete: if isAdmin() || owns(resource.data.ownerId);
+    }
+
+    // -- Bundle şarkıların canlı metrikleri --
+    match /song-metrics/{songId} {
+      allow read: if true;
+      allow write: if signedIn();
+    }
+
+    // -- Sayaçlar / popülerlik kaydı: herkes okur, girişli kullanıcı yazar. admins listesini yalnızca admin yazar. --
+    match /metadata/admins {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /metadata/{doc} {
+      allow read: if true;
+      allow write: if signedIn() && doc != 'admins';
+    }
+
+    // -- Herkese açık repertuarlar (Keşfet, Editörün seçimleri) --
+    match /public-repertoires/{id} {
+      allow read: if true;
+      allow create: if signedIn() && request.resource.data.ownerId == request.auth.uid;
+      allow update, delete: if isAdmin() || owns(resource.data.ownerId);
+    }
+
+    // -- Kullanıcı profilleri. isAdmin alanını yalnızca admin değiştirebilir. --
+    match /users/{uid} {
+      allow read: if signedIn();
+      allow create: if owns(uid) && request.resource.data.get('isAdmin', false) == false;
+      allow update: if isAdmin()
+        || (owns(uid) && request.resource.data.get('isAdmin', false) == resource.data.get('isAdmin', false));
+      allow delete: if owns(uid) || isAdmin();
+
+      match /favorites/{id} { allow read, write: if owns(uid); }
+      match /preferences/{songId} { allow read, write: if owns(uid); }
+      // Özel repertuarlar: iOS ve web aynı alt koleksiyonu kullanır
+      match /repertoires/{id} { allow read, write: if owns(uid) || isAdmin(); }
+      match /sync_test/{id} { allow read, write: if owns(uid); }
+    }
+
+    // -- Şikayetler: girişli kullanıcı oluşturur, yalnızca admin okur/çözer --
+    match /reports/{id} {
+      allow create: if signedIn();
+      allow read, update, delete: if isAdmin();
+    }
+  }
+}

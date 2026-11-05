@@ -1,0 +1,181 @@
+// Şarkı sayfası: ton şeridi, kapo, akor gizle, yazı boyutu, otomatik kaydırma, ton kaydetme, repertuara ekle.
+import { transpose, semitoneOffset, prefersFlats, chordSpans } from "@shared/chords";
+import { esc } from "../lib/search-client.ts";
+
+const root = document.getElementById("song");
+if (root) init(root);
+
+function init(root: HTMLElement) {
+  const songId = root.dataset.id ?? "";
+  const originalKey = root.dataset.key ?? "C";
+  const originalRoot = root.dataset.root ?? "C";
+  const sheet = document.getElementById("sheet")!;
+  const pre = document.getElementById("chords")!;
+  const lines = [...pre.querySelectorAll<HTMLElement>(".line")].map((el) => ({ el, text: (el.textContent ?? "").replace(/\n$/, ""), chord: el.dataset.c === "1" }));
+  const keyButtons = [...root.querySelectorAll<HTMLButtonElement>(".key-strip button")];
+  const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
+
+  const prefKey = `gituar-pref-${songId}`;
+  let saved: { key: string; capo: number } | null = null;
+  try { saved = JSON.parse(localStorage.getItem(prefKey) ?? "null"); } catch {}
+  let selected = saved?.key ?? originalRoot;
+  let capo = saved?.capo ?? 0;
+  let fontSize = Number(localStorage.getItem("gituar-font") ?? 15) || 15;
+
+  function highlight(text: string): string {
+    let html = "";
+    let cursor = 0;
+    for (const sp of chordSpans(text)) {
+      html += esc(text.slice(cursor, sp.start)) + `<b class="chord">${esc(sp.chord)}</b>`;
+      cursor = sp.end;
+    }
+    return html + esc(text.slice(cursor));
+  }
+
+  function render() {
+    const offset = semitoneOffset(originalKey, selected) - capo;
+    const flats = prefersFlats(selected, originalKey);
+    for (const l of lines) {
+      if (!l.chord) continue;
+      l.el.innerHTML = highlight(transpose(l.text, offset, flats)) + "\n";
+    }
+    for (const b of keyButtons) b.setAttribute("aria-pressed", b.dataset.k === selected ? "true" : "false");
+    $("capo-val").textContent = String(capo);
+    $("font-val").textContent = String(fontSize);
+    sheet.style.setProperty("--sheet-font", `${fontSize}px`);
+    const modified = selected !== originalRoot || capo !== 0;
+    $("key-info").hidden = !modified;
+    $("key-info-text").textContent = capo
+      ? `${selected} tonunda, kapo ${capo} ile gösteriliyor`
+      : `${selected} tonunda gösteriliyor`;
+    $("btn-save").hidden = !modified || (saved?.key === selected && saved?.capo === capo);
+    $("btn-saved").hidden = !saved;
+    if (saved) $("saved-key").textContent = saved.capo ? `${saved.key} · kapo ${saved.capo}` : saved.key;
+    if (typeof updatePlayVisibility === "function") requestAnimationFrame(updatePlayVisibility);
+  }
+
+  for (const b of keyButtons) b.addEventListener("click", () => { selected = b.dataset.k!; render(); });
+  $("capo-dec").addEventListener("click", () => { capo = Math.max(0, capo - 1); render(); });
+  $("capo-inc").addEventListener("click", () => { capo = Math.min(9, capo + 1); render(); });
+  $("font-dec").addEventListener("click", () => { fontSize = Math.max(10, fontSize - 1); persistFont(); render(); });
+  $("font-inc").addEventListener("click", () => { fontSize = Math.min(30, fontSize + 1); persistFont(); render(); });
+  $("btn-chords").addEventListener("click", () => requestAnimationFrame(updatePlayVisibility));
+  $("btn-reset").addEventListener("click", () => { selected = originalRoot; capo = 0; render(); });
+  $("btn-saved").addEventListener("click", () => { if (saved) { selected = saved.key; capo = saved.capo; render(); } });
+  $("btn-save").addEventListener("click", () => {
+    saved = { key: selected, capo };
+    try { localStorage.setItem(prefKey, JSON.stringify(saved)); } catch {}
+    render();
+  });
+  $("btn-print").addEventListener("click", () => window.print());
+  const chordsBtn = $("btn-chords");
+  chordsBtn.addEventListener("click", () => {
+    const hidden = sheet.classList.toggle("hide-chords");
+    chordsBtn.setAttribute("aria-pressed", hidden ? "false" : "true");
+    chordsBtn.textContent = hidden ? "Akorları göster" : "Akorları gizle";
+  });
+  function persistFont() { try { localStorage.setItem("gituar-font", String(fontSize)); } catch {} }
+
+  // ---- Sayfayı oynat (otomatik kaydırma) ----
+  // Yalnızca akor bölgesini kaydırır: akorların üstünden başlar, akorların altı görününce durur.
+  // Akorlar ekrana sığıyorsa buton hiç gösterilmez.
+  const playBtn = $("btn-play");
+  const bar = $("play-bar");
+  const speedInput = $<HTMLInputElement>("play-speed");
+  let playing = false;
+  let paused = false;
+  let raf = 0;
+  let last = 0;
+  let carry = 0;
+  let wakeLock: { release(): Promise<void> } | null = null;
+  const pxPerSecond = () => Number(speedInput.value) * 6;
+  const headerH = () => (document.querySelector<HTMLElement>(".site-header")?.offsetHeight ?? 88);
+  const bottomMargin = 24;
+
+  function sheetFits(): boolean {
+    return sheet.offsetHeight <= window.innerHeight - headerH() - bottomMargin;
+  }
+  function updatePlayVisibility() {
+    const fits = sheetFits();
+    playBtn.hidden = fits;
+    if (fits && playing) stop();
+  }
+  function sheetBottomReached(): boolean {
+    return sheet.getBoundingClientRect().bottom <= window.innerHeight - bottomMargin;
+  }
+
+  function step(now: number) {
+    if (!playing) return;
+    if (!paused) {
+      const dt = (now - last) / 1000;
+      carry += pxPerSecond() * dt;
+      const px = Math.floor(carry);
+      if (px > 0) { window.scrollBy(0, px); carry -= px; }
+      if (sheetBottomReached()) setPaused(true);
+    }
+    last = now;
+    raf = requestAnimationFrame(step);
+  }
+  function setPaused(p: boolean) { paused = p; $("play-toggle").textContent = p ? "Devam" : "Durdur"; }
+  async function start() {
+    // Akorların üstü üst barın altına gelsin; zaten aşağıdaysa kaldığı yerden sürsün
+    const top = sheet.getBoundingClientRect().top + window.scrollY - headerH() - 8;
+    if (window.scrollY < top) window.scrollTo({ top, behavior: "smooth" });
+    playing = true; paused = false; last = performance.now(); carry = 0;
+    bar.classList.add("active"); playBtn.setAttribute("aria-pressed", "true"); setPaused(false);
+    raf = requestAnimationFrame(step);
+    try { wakeLock = await (navigator as unknown as { wakeLock?: { request(t: string): Promise<{ release(): Promise<void> }> } }).wakeLock?.request("screen") ?? null; } catch {}
+  }
+  function stop() {
+    playing = false; cancelAnimationFrame(raf);
+    bar.classList.remove("active"); playBtn.setAttribute("aria-pressed", "false");
+    wakeLock?.release().catch(() => {}); wakeLock = null;
+  }
+  playBtn.addEventListener("click", () => (playing ? stop() : start()));
+  $("play-toggle").addEventListener("click", () => {
+    // Sona gelmişse "Devam" akorların başına döner
+    if (paused && sheetBottomReached()) window.scrollTo({ top: sheet.getBoundingClientRect().top + window.scrollY - headerH() - 8 });
+    setPaused(!paused);
+  });
+  $("play-close").addEventListener("click", stop);
+  document.addEventListener("visibilitychange", () => { if (document.hidden && playing) setPaused(true); });
+  window.addEventListener("resize", updatePlayVisibility);
+  updatePlayVisibility();
+
+  // ---- Repertuara ekle (Firebase yalnızca burada yüklenir) ----
+  const dialog = $<HTMLDialogElement>("rep-dialog");
+  $("btn-rep").addEventListener("click", async () => {
+    const mod = await import("../lib/firebase-client.ts");
+    if (!mod.firebaseReady) { alert("Repertuarlar için web girişi yakında. Şimdilik iPhone uygulamasını kullanabilirsin."); return; }
+    const user = await mod.currentUser();
+    if (!user) { location.href = `/giris/?next=${encodeURIComponent(location.pathname)}`; return; }
+    const list = $("rep-list");
+    list.innerHTML = `<div class="row muted small">Yükleniyor…</div>`;
+    dialog.showModal();
+    const reps = await mod.listMyRepertoires(user.uid);
+    list.innerHTML = reps.length
+      ? reps.map((r) => `<button type="button" class="row" data-rep="${esc(r.id)}" data-public="${r.isPublic ? "1" : ""}" style="width:100%;border:0;background:none;cursor:pointer;text-align:left"><span class="row-body"><span class="row-title">${esc(r.name)}</span><span class="row-sub">${r.songIds.length} şarkı${r.isPublic ? " · herkese açık" : ""}${r.songIds.includes(songId) ? " · ekli" : ""}</span></span></button>`).join("")
+      : `<div class="row muted small">Henüz repertuar yok. Aşağıdan oluştur.</div>`;
+    list.querySelectorAll<HTMLButtonElement>("[data-rep]").forEach((b) =>
+      b.addEventListener("click", async () => {
+        b.disabled = true;
+        await mod.addSongToRepertoire(user.uid, { id: b.dataset.rep!, isPublic: b.dataset.public === "1" }, songId);
+        dialog.close();
+        alert("Repertuara eklendi.");
+      }),
+    );
+    const form = $<HTMLFormElement>("rep-new");
+    form.onsubmit = async (e) => {
+      e.preventDefault();
+      const name = (new FormData(form).get("name") as string).trim();
+      if (!name) return;
+      const id = await mod.createRepertoire(user.uid, name);
+      await mod.addSongToRepertoire(user.uid, { id, isPublic: false }, songId);
+      dialog.close();
+      alert(`"${name}" oluşturuldu ve şarkı eklendi.`);
+    };
+  });
+  $("rep-close").addEventListener("click", () => dialog.close());
+
+  render();
+}

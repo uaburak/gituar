@@ -1,0 +1,15 @@
+---
+import type { CatalogSong } from "@shared/types";
+import SongRow from "./SongRow.astro";
+import AdSlot from "./AdSlot.astro";
+interface Props { songs: CatalogSong[]; showArtist?: boolean; numbered?: boolean; adEvery?: number; unit?: string; id?: string }
+const { songs, showArtist = true, numbered = false, adEvery = 0, unit = "list", id } = Astro.props;
+---
+<div class="list" id={id}>
+  {songs.map((song, i) => (
+    <>
+      <SongRow song={song} showArtist={showArtist} index={numbered ? i + 1 : undefined} />
+      {adEvery > 0 && (i + 1) % adEvery === 0 && i + 1 < songs.length && <AdSlot size="inline" unit={`${unit}-${i + 1}`} />}
+    </>
+  ))}
+</div>

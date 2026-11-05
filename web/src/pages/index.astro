@@ -1,0 +1,61 @@
+---
+import Base from "../layouts/Base.astro";
+import SongList from "../components/SongList.astro";
+import ArtistRow from "../components/ArtistRow.astro";
+import AdSlot from "../components/AdSlot.astro";
+import Icon from "../components/Icon.astro";
+import { catalog, newestSongs, topArtists } from "../lib/catalog.ts";
+import { siteUrl, homeJsonLd } from "../lib/seo.ts";
+import { APP_STORE_URL } from "../lib/site.ts";
+
+const c = catalog();
+const newest = newestSongs(10);
+const artists = topArtists(8);
+const songCount = c.songs.length.toLocaleString("tr-TR");
+const artistCount = c.artists.length.toLocaleString("tr-TR");
+const title = `Gitar Akorları – ${songCount} Türkçe Şarkı Akoru`;
+const description = `Gitar akorları: ${songCount} Türkçe şarkı akoru, ${artistCount} sanatçı. Akor transpoze, kapo ve otomatik kaydırma ile çal, repertuar oluştur. iOS uygulamasıyla aynı katalog.`;
+---
+<Base title={title} description={description} jsonLd={homeJsonLd(siteUrl(Astro.site))}>
+  <section class="hero">
+    <h1>Türkçe gitar akorları</h1>
+    <p>Bugün ne çalıyoruz? {songCount} şarkı akoru, {artistCount} sanatçı. Tonu değiştir, kapo tak, sayfayı oynat.</p>
+    <form class="search-big" action="/ara/" method="get" role="search">
+      <Icon name="search" />
+      <input type="search" name="q" placeholder="Şarkı ya da sanatçı ara" autocomplete="off" aria-label="Ara" autofocus />
+      <button class="btn btn-primary" type="submit">Ara</button>
+    </form>
+    <div class="chip-row">
+      <a class="btn chip" href="/sanatcilar/">Sanatçı akorları</a>
+      <a class="btn chip" href="#yeni">Yeni eklenen akorlar</a>
+      <button class="btn chip" id="btn-random" type="button">Rastgele akor</button>
+    </div>
+  </section>
+
+  <section class="section" id="editor" hidden>
+    <div class="section-head"><h2>Editörün seçimleri</h2><span class="muted small">Gituar ekibinin repertuarları</span></div>
+    <div class="grid-3" id="editor-picks"></div>
+  </section>
+
+  <section class="section" id="yeni">
+    <div class="section-head"><h2>Yeni eklenen şarkı akorları</h2><a href="/sanatcilar/">Sanatçıya göre bul</a></div>
+    <SongList songs={newest} />
+    <AdSlot size="inline" unit="home-inline" />
+  </section>
+
+  <section class="section">
+    <div class="section-head"><h2>Popüler sanatçıların akorları</h2><a href="/sanatcilar/">Tüm sanatçı akorları</a></div>
+    <div class="grid-2">{artists.map((a) => <ArtistRow artist={a} />)}</div>
+  </section>
+
+  <section class="section about">
+    <div class="section-head"><h2>Şarkı akorları, transpoze ve kapo</h2></div>
+    <div class="about-cols">
+      <p>Gituar'da {artistCount} sanatçının {songCount} şarkısının gitar akorları söz üstünde, orijinal tonuyla durur. <a href="/sanatcilar/">Sanatçı akorları dizininden</a> ya da aramadan şarkıyı bul, akorları sözlerle birlikte çal.</p>
+      <p>Akor transpoze için ton şeridinden yeni tonu seç; akorlar anında kayar, söz hizası bozulmaz. Kapo takıyorsan perdeyi gir, sayfa çaldığın akor adlarını gösterir. Otomatik kaydırma ile elini gitardan çekmeden çalarsın. Akor adları ukulele için de aynıdır.</p>
+      <p>Repertuar oluşturup şarkılarını topla; <a href={APP_STORE_URL} rel="noopener">iPhone uygulaması</a> aynı kataloğu ve repertuarları kullanır. Akorlar topluluk tarafından eklenir, hatalı akoru <a href="/iletisim/">bildirebilirsin</a>.</p>
+    </div>
+  </section>
+  <script src="../scripts/random.ts"></script>
+  <script src="../scripts/editor-picks.ts"></script>
+</Base>

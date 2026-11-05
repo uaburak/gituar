@@ -15,6 +15,8 @@ class AuthViewModel: ObservableObject {
     @Published var isCheckingProfile: Bool = false
     @Published var isInitialCheckDone: Bool = false
     @Published var userProfile: UserProfile? = nil
+    /// Profil bağlantı hatası yüzünden okunamadı ve daha önce tamamlandığı da bilinmiyor.
+    @Published var profileCheckFailed: Bool = false
 
     var isAdmin: Bool {
         userProfile?.isAdmin ?? false
@@ -31,24 +33,60 @@ class AuthViewModel: ObservableObject {
                     self?.isGuestMode = false
                     self?.checkUserProfile(uid: user.uid)
                 } else {
+                    // Çıkış yapan kullanıcının profili (ve admin yetkisi) misafir modunda kalmasın
+                    self?.userProfile = nil
                     self?.isProfileComplete = false
+                    self?.profileCheckFailed = false
                     self?.isInitialCheckDone = true // Oturum yoksa kontrol bitti
                 }
             }
         }
     }
 
+    private func profileCompleteKey(_ uid: String) -> String { "profileComplete_\(uid)" }
+
     func checkUserProfile(uid: String) {
         isCheckingProfile = true
-        Task { [weak self] in
-            let profile = try? await UserService.shared.fetchUserProfile(uid: uid)
-            DispatchQueue.main.async {
-                self?.userProfile = profile
-                self?.isProfileComplete = (profile != nil)
-                self?.isCheckingProfile = false
-                self?.isInitialCheckDone = true // Profil kontrolü bitti, artık her şey hazır
+        profileCheckFailed = false
+        if userProfile?.uid != uid { userProfile = nil }
+
+        Task { @MainActor [weak self] in
+            do {
+                let profile = try await UserService.shared.fetchUserProfile(uid: uid)
+                guard let self, self.currentUser?.uid == uid else { return }
+                self.userProfile = profile
+                self.isProfileComplete = (profile != nil)
+                UserDefaults.standard.set(profile != nil, forKey: self.profileCompleteKey(uid))
+            } catch {
+                guard let self, self.currentUser?.uid == uid else { return }
+                // Bağlantı hatası "profil yok" demek değildir. Profilin daha önce tamamlandığını
+                // biliyorsak devam et; bilmiyorsak profil formunu açmak yerine tekrar denemeyi öner
+                // (form mevcut profilin üzerine yazabilirdi).
+                if UserDefaults.standard.bool(forKey: self.profileCompleteKey(uid)) {
+                    self.isProfileComplete = true
+                } else {
+                    self.profileCheckFailed = true
+                }
+                print("⚠️ checkUserProfile: \(error.localizedDescription)")
             }
+            self?.isCheckingProfile = false
+            self?.isInitialCheckDone = true // Profil kontrolü bitti, artık her şey hazır
         }
+    }
+
+    /// Profil bağlantı hatası yüzünden okunamadıysa (ör. açılışta internet yoktu) yeniden dener.
+    func refreshProfileIfNeeded() {
+        guard let uid = currentUser?.uid, !isCheckingProfile else { return }
+        guard profileCheckFailed || (isProfileComplete && userProfile == nil) else { return }
+        checkUserProfile(uid: uid)
+    }
+
+    /// CompleteProfileView profili kaydettikten sonra çağırır.
+    func profileDidComplete(_ profile: UserProfile) {
+        userProfile = profile
+        isProfileComplete = true
+        profileCheckFailed = false
+        UserDefaults.standard.set(true, forKey: profileCompleteKey(profile.uid))
     }
 
     deinit {
@@ -65,9 +103,13 @@ class AuthViewModel: ObservableObject {
 
     var displayName: String {
         if isGuestMode { return "Misafir" }
-        return currentUser?.displayName
-            ?? currentUser?.email?.components(separatedBy: "@").first
-            ?? "Kullanıcı"
+        // Profildeki ad her zaman dolu; Apple ile girişte Auth displayName çoğu zaman boş gelir
+        if let profile = userProfile {
+            let fullName = "\(profile.firstName) \(profile.lastName)".trimmingCharacters(in: .whitespaces)
+            if !fullName.isEmpty { return fullName }
+        }
+        if let name = currentUser?.displayName, !name.isEmpty { return name }
+        return currentUser?.email?.components(separatedBy: "@").first ?? "Kullanıcı"
     }
 
     var userEmail: String {
@@ -185,7 +227,7 @@ class AuthViewModel: ObservableObject {
                nsError.code == ASAuthorizationError.canceled.rawValue { return }
             if nsError.domain == "com.apple.AuthenticationServices.AuthorizationError",
                nsError.code == 1000 {
-                errorMessage = "Apple ile giriş şu anda kullanılamıyor.\nXcode'da 'Sign In with Apple' capability'sini ekle ve Firebase Console'da Apple provider'ını etkinleştir."
+                errorMessage = "Apple ile giriş şu anda kullanılamıyor.\nCihazında Apple hesabına giriş yaptığından emin ol ve tekrar dene."
             } else {
                 errorMessage = friendlyError(error)
             }
@@ -216,9 +258,10 @@ class AuthViewModel: ObservableObject {
     private func friendlyError(_ error: Error) -> String {
         let nsError = error as NSError
         switch nsError.code {
-        case 17020: return "İnternet bağlantısı yok. Bağlantını kontrol et."
-        case 17004: return "Bu hesap devre dışı bırakılmış."
-        case 17011: return "Bu e-posta ile kayıtlı hesap bulunamadı."
+        case AuthErrorCode.networkError.rawValue: return "İnternet bağlantısı yok. Bağlantını kontrol et."
+        case AuthErrorCode.userDisabled.rawValue: return "Bu hesap devre dışı bırakılmış."
+        case AuthErrorCode.invalidCredential.rawValue: return "Kimlik doğrulanamadı. Lütfen tekrar dene."
+        case AuthErrorCode.userNotFound.rawValue: return "Bu e-posta ile kayıtlı hesap bulunamadı."
         default: return error.localizedDescription
         }
     }

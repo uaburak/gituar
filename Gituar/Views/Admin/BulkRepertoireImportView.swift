@@ -22,7 +22,7 @@ struct BulkRepertoireImportView: View {
     // MARK: - Body
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             Group {
                 switch phase {
                 case .idle:      idleView
@@ -115,6 +115,7 @@ struct BulkRepertoireImportView: View {
             }
         }
         .listStyle(.insetGrouped)
+        .scrollEdgeEffectStyle(.soft)
     }
 
     // MARK: - Preview
@@ -187,6 +188,7 @@ struct BulkRepertoireImportView: View {
             }
         }
         .listStyle(.insetGrouped)
+        .scrollEdgeEffectStyle(.soft)
     }
 
     // MARK: - Importing
@@ -287,6 +289,7 @@ struct BulkRepertoireImportView: View {
             }
         }
         .listStyle(.insetGrouped)
+        .scrollEdgeEffectStyle(.soft)
     }
 
     // MARK: - Logic

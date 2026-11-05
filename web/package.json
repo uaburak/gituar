@@ -1,0 +1,21 @@
+{
+  "name": "@gituar/web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "check": "astro check",
+    "deploy": "bash scripts/deploy-vercel.sh"
+  },
+  "dependencies": {
+    "@astrojs/sitemap": "^3.4.0",
+    "astro": "^5.12.0",
+    "firebase": "^12.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.0"
+  }
+}

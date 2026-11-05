@@ -1,0 +1,53 @@
+---
+import Base from "../../layouts/Base.astro";
+import Icon from "../../components/Icon.astro";
+import { catalog, artistPath, type ArtistGroup } from "../../lib/catalog.ts";
+import { siteUrl, artistsIndexJsonLd } from "../../lib/seo.ts";
+import { turkeyNormalized } from "@shared/turkish";
+
+const groups = new Map<string, ArtistGroup[]>();
+for (const a of catalog().artists) {
+  const first = turkeyNormalized(a.name)[0] ?? "#";
+  const letter = /[a-z]/.test(first) ? first.toUpperCase() : "#";
+  if (!groups.has(letter)) groups.set(letter, []);
+  groups.get(letter)!.push(a);
+}
+const letters = [...groups.keys()].sort((x, y) => (x === "#" ? 1 : y === "#" ? -1 : x.localeCompare(y)));
+const artistTotal = catalog().artists.length;
+const count = artistTotal.toLocaleString("tr-TR");
+const anchor = (l: string) => `h-${l === "#" ? "diger" : l}`;
+---
+<Base
+  title="Sanatçılar – Gitar Akorları A'dan Z'ye"
+  description={`${count} sanatçının gitar akorları alfabetik dizinde. Sanatçıyı seç, şarkı akorlarını orijinal tonuyla gör; transpoze ve kapo ile çal.`}
+  jsonLd={artistsIndexJsonLd(siteUrl(Astro.site), artistTotal)}
+>
+  <div class="page-head">
+    <nav class="crumbs" aria-label="Sayfa yolu"><a href="/">Ana sayfa</a><span>/</span>Sanatçılar</nav>
+    <div class="title-row">
+      <div><h1>Sanatçı akorları</h1><p>{count} sanatçının gitar akorları, A'dan Z'ye</p></div>
+      <form class="search-inline" role="search" onsubmit="return false">
+        <Icon name="search" />
+        <input type="search" id="artist-filter" placeholder="Sanatçı ara" autocomplete="off" aria-label="Sanatçı ara" />
+        <kbd class="key" aria-hidden="true">/</kbd>
+      </form>
+    </div>
+  </div>
+  <div class="artists-layout">
+    <nav class="letters" aria-label="Harfler">{letters.map((l) => <a href={`#${anchor(l)}`} data-letter={anchor(l)}>{l === "#" ? "0-9" : l}</a>)}</nav>
+    <div>
+      {letters.map((l) => (
+        <section class="artist-group" id={anchor(l)} data-group>
+          <div class="artist-letter"><h2>{l === "#" ? "0-9" : l}</h2><span>{groups.get(l)!.length} sanatçı</span></div>
+          <div class="artist-cols">
+            {groups.get(l)!.map((a) => (
+              <a class="artist-row" href={artistPath(a.slug)} title={`${a.name} akorları`}><span>{a.name}</span><span class="artist-count">{a.songs.length} akor</span></a>
+            ))}
+          </div>
+        </section>
+      ))}
+      <p class="muted small" id="filter-empty" hidden style="margin-top:24px">Bu aramayla eşleşen sanatçı yok.</p>
+    </div>
+  </div>
+  <script src="../../scripts/artist-filter.ts"></script>
+</Base>

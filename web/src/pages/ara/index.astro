@@ -1,0 +1,22 @@
+---
+import Base from "../../layouts/Base.astro";
+import Icon from "../../components/Icon.astro";
+---
+<Base title="Ara" description="Şarkı ya da sanatçı ara." noindex>
+  <form class="search-big" role="search" style="max-width:none;margin-top:8px" action="/ara/" method="get">
+    <Icon name="search" />
+    <input type="search" name="q" id="q" placeholder="Şarkı ya da sanatçı" autocomplete="off" aria-label="Ara" autofocus />
+    <button class="icon-btn" type="button" id="q-clear" aria-label="Temizle" hidden><Icon name="close" /></button>
+  </form>
+  <p class="muted small" id="search-status" style="margin:16px 0 0">Yazmaya başla…</p>
+  <section id="artist-results" hidden>
+    <p class="caption" style="margin:24px 0 8px">Sanatçılar</p>
+    <div class="list" id="artist-list"></div>
+  </section>
+  <section id="song-results" hidden>
+    <p class="caption" style="margin:24px 0 8px">Şarkılar</p>
+    <div class="list" id="results"></div>
+    <button class="btn chip" id="show-more" type="button" hidden style="margin-top:16px"></button>
+  </section>
+  <script src="../../scripts/search.ts"></script>
+</Base>

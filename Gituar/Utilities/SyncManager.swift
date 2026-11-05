@@ -66,13 +66,8 @@ final class SyncManager {
     static let shared = SyncManager()
 
     // MARK: Keys
-    private let lastSyncKey         = "gtr_last_full_sync"
-    private let lastWriteFlushKey   = "gtr_last_write_flush"
     private let pendingWritesFile   = "pending_writes.json"
     private let songsCacheFile      = "songs_cache.json"
-
-    // 24-hour interval
-    private let syncInterval: TimeInterval = 86_400
 
     private let db = Firestore.firestore()
 
@@ -127,42 +122,10 @@ final class SyncManager {
             return songs
         } catch {
             print("❌ SyncManager: Cache decode failed: \(error) — will force sync")
-            // Delete corrupted cache so next launch re-syncs
+            // Delete corrupted cache; the next sync rewrites it
             try? FileManager.default.removeItem(at: url)
-            UserDefaults.standard.removeObject(forKey: lastSyncKey)
             return nil
         }
-    }
-
-    // MARK: - Diagnostics helpers (used by SyncTestView)
-
-    var cacheFileURL: URL { cacheURL(songsCacheFile) }
-
-    var cacheFileExists: Bool {
-        FileManager.default.fileExists(atPath: cacheURL(songsCacheFile).path)
-    }
-
-    var cacheFileSizeKB: Int {
-        let size = (try? FileManager.default.attributesOfItem(atPath: cacheURL(songsCacheFile).path)[.size] as? Int) ?? 0
-        return size / 1024
-    }
-
-    func isCacheStale() -> Bool {
-        guard let last = UserDefaults.standard.object(forKey: lastSyncKey) as? Date else {
-            return true // never synced
-        }
-        return Date().timeIntervalSince(last) >= syncInterval
-    }
-
-    func markSyncCompleted() {
-        UserDefaults.standard.set(Date(), forKey: lastSyncKey)
-    }
-
-    /// Deletes local cache and timestamp → forces Firestore sync on next launch.
-    func resetCache() {
-        try? FileManager.default.removeItem(at: cacheURL(songsCacheFile))
-        UserDefaults.standard.removeObject(forKey: lastSyncKey)
-        print("🗑️ SyncManager: Cache reset — will force sync on next launch.")
     }
 
     // MARK: - Pending Writes Queue
@@ -186,30 +149,11 @@ final class SyncManager {
         print("📝 SyncManager: Enqueued \(write.operation.rawValue) for \(write.collection)/\(write.documentId)")
     }
 
-    func removePendingWrite(id: String) {
-        var writes = loadPendingWrites()
-        writes.removeAll { $0.id == id }
-        savePendingWrites(writes)
-    }
-
     var hasPendingWrites: Bool {
         !loadPendingWrites().isEmpty
     }
 
-    var pendingWriteCount: Int {
-        loadPendingWrites().count
-    }
-
-
-
     // MARK: - Flush Pending Writes
-
-    func shouldFlushWrites() -> Bool {
-        guard let last = UserDefaults.standard.object(forKey: lastWriteFlushKey) as? Date else {
-            return hasPendingWrites
-        }
-        return hasPendingWrites && Date().timeIntervalSince(last) >= syncInterval
-    }
 
     /// Flush all queued writes to Firestore.
     func flushPendingWrites() async {
@@ -248,9 +192,6 @@ final class SyncManager {
         remaining.removeAll { flushedIds.contains($0.id) }
         savePendingWrites(remaining)
 
-        if flushedIds.count > 0 {
-            UserDefaults.standard.set(Date(), forKey: lastWriteFlushKey)
-        }
         print("✅ SyncManager: Flush complete. \(flushedIds.count) succeeded, \(remaining.count) remaining.")
     }
 
@@ -258,7 +199,7 @@ final class SyncManager {
 
     /// Fetches ONLY the user-chords collection from Firestore and updates the local cache.
     /// Official/system songs are loaded from Firebase Storage via ChordsStorageManager.
-    func performFullSync(collectionChords: String, collectionUserChords: String) async throws -> [Song] {
+    func performFullSync(collectionUserChords: String) async throws -> [Song] {
         print("🔄 SyncManager: Syncing user-chords from Firestore…")
 
         let userSnap = try await db.collection(collectionUserChords).getDocuments()
@@ -305,12 +246,7 @@ final class SyncManager {
         }
 
         // Only cache user-chords — official songs don't need caching here
-        let saved = saveSongsToCache(userSongs)
-        if saved {
-            markSyncCompleted()
-        } else {
-            print("⚠️ SyncManager: Cache write failed — sync timestamp NOT updated to force retry next launch")
-        }
+        saveSongsToCache(userSongs)
 
         print("✅ SyncManager: Sync complete. \(userSongs.count) user songs fetched from Firestore.")
         return userSongs

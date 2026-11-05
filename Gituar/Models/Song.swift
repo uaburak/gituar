@@ -74,7 +74,16 @@ struct Song: Identifiable, Codable, Hashable, Sendable {
         songName   = try c.decode(String.self,  forKey: .songName)
         originalKey = try c.decode(String.self, forKey: .originalKey)
         content    = try c.decode(String.self,  forKey: .content)
-        createdAt  = try c.decodeIfPresent(Date.self,   forKey: .createdAt)
+        // createdAt normalde Firestore Timestamp'tir. Eski sürümlerin düzenleme akışı bazı dökümanlara
+        // sayı (referans tarihinden itibaren saniye) olarak yazdı; bu yüzden tüm şarkı decode
+        // edilemiyordu — iki biçimi de kabul et.
+        if let date = try? c.decodeIfPresent(Date.self, forKey: .createdAt) {
+            createdAt = date
+        } else if let seconds = try? c.decodeIfPresent(Double.self, forKey: .createdAt) {
+            createdAt = Date(timeIntervalSinceReferenceDate: seconds)
+        } else {
+            createdAt = nil
+        }
         totalViews    = try c.decodeIfPresent(Int.self,    forKey: .totalViews)
         recentViews   = try c.decodeIfPresent(Int.self,    forKey: .recentViews)
         repertoireAdds = try c.decodeIfPresent(Int.self,   forKey: .repertoireAdds)
@@ -108,20 +117,6 @@ struct Song: Identifiable, Codable, Hashable, Sendable {
     }
 
     
-    // Popülerlik Puanı Algoritması
-    // Formula: (TotalViews * 0.1) + (RecentViews * 0.6) + (RepertoireAdds * 0.3)
-    var popularityScore: Double {
-        let wTotal = 0.1
-        let wRecent = 0.6
-        let wAdds = 0.3
-        
-        let total = Double(totalViews ?? 0)
-        let recent = Double(recentViews ?? 0)
-        let adds = Double(repertoireAdds ?? 0)
-        
-        return (total * wTotal) + (recent * wRecent) + (adds * wAdds)
-    }
-    
     func hash(into hasher: inout Hasher) {
         hasher.combine(docId)
     }
@@ -129,6 +124,13 @@ struct Song: Identifiable, Codable, Hashable, Sendable {
     static func == (lhs: Song, rhs: Song) -> Bool {
         return lhs.docId == rhs.docId
     }
+
+    /// `==` yalnızca docId'ye bakar; bu ise iki kaydın aynı şarkı içeriğini taşıyıp taşımadığını söyler.
+    func hasSameContent(as other: Song) -> Bool {
+        ownerId == other.ownerId &&
+        songName == other.songName &&
+        artist == other.artist &&
+        originalKey == other.originalKey &&
+        content == other.content
+    }
 }
-
-

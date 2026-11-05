@@ -41,6 +41,7 @@ struct GenericRepertoireListView: View {
                     }
                     .padding(20)
                 }
+                .scrollEdgeEffectStyle(.soft)
             }
         }
         .navigationTitle(title)

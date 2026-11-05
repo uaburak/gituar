@@ -1,0 +1,96 @@
+// Yönetim: onay bekleyen kullanıcı şarkıları ve şikayetler (yalnızca users/{uid}.isAdmin; kurallar sunucuda da zorlar).
+import { firebaseReady, currentUser, isAdminUser, listPendingChords, setChordStatus, listReports, setReportStatus } from "../lib/firebase-client.ts";
+import { esc } from "../lib/search-client.ts";
+
+const $ = (id: string) => document.getElementById(id)!;
+const status = $("admin-status");
+const fmt = (d?: Date) => (d ? d.toLocaleDateString("tr-TR", { day: "numeric", month: "short", year: "numeric" }) : "");
+let reportFilter: "open" | "closed" = "open";
+
+async function loadPending() {
+  const list = $("pending-list");
+  const items = await listPendingChords();
+  $("pending-count").textContent = items.length ? `${items.length} şarkı` : "Bekleyen yok";
+  list.innerHTML = items.length
+    ? items.map((c) => `<div class="row admin-row" data-id="${esc(c.id)}">
+        <div class="row-body">
+          <span class="row-title">${esc(c.songName)} <span class="muted">· ${esc(c.artist)}</span></span>
+          <span class="row-sub">${esc(c.originalKey || "–")}${c.addedBy ? ` · @${esc(c.addedBy)}` : ""}${c.createdAt ? ` · ${fmt(c.createdAt)}` : ""}</span>
+          <details class="admin-details"><summary>İçeriği göster</summary><pre class="chords admin-pre">${esc(c.content)}</pre></details>
+        </div>
+        <div class="admin-actions">
+          <button class="btn btn-primary btn-mini" data-act="approved" type="button">Onayla</button>
+          <button class="btn btn-mini btn-danger" data-act="rejected" type="button">Reddet</button>
+        </div>
+      </div>`).join("")
+    : `<div class="row muted small">Onay bekleyen şarkı yok.</div>`;
+  list.querySelectorAll<HTMLButtonElement>("[data-act]").forEach((b) =>
+    b.addEventListener("click", async () => {
+      const row = b.closest<HTMLElement>(".admin-row")!;
+      row.querySelectorAll("button").forEach((x) => (x.disabled = true));
+      try {
+        await setChordStatus(row.dataset.id!, b.dataset.act as "approved" | "rejected");
+        row.remove();
+        const left = list.querySelectorAll(".admin-row").length;
+        $("pending-count").textContent = left ? `${left} şarkı` : "Bekleyen yok";
+        if (!left) list.innerHTML = `<div class="row muted small">Onay bekleyen şarkı yok.</div>`;
+      } catch (e) {
+        row.querySelectorAll("button").forEach((x) => (x.disabled = false));
+        alert("Kaydedilemedi: " + ((e as Error).message ?? e));
+      }
+    }),
+  );
+}
+
+async function loadReports() {
+  const list = $("reports-list");
+  list.innerHTML = `<div class="row muted small">Yükleniyor…</div>`;
+  const items = await listReports(reportFilter === "open" ? ["pending", "in_progress"] : ["reviewed", "dismissed"]);
+  const label: Record<string, string> = { pending: "Bekliyor", in_progress: "İnceleniyor", reviewed: "Çözüldü", dismissed: "Yoksayıldı" };
+  list.innerHTML = items.length
+    ? items.map((r) => `<div class="row admin-row" data-id="${esc(r.id)}">
+        <div class="row-body">
+          <span class="row-title">${esc(r.songName)}${r.songArtist ? ` <span class="muted">· ${esc(r.songArtist)}</span>` : ""}</span>
+          <span class="row-sub"><strong>${esc(r.reason)}</strong>${r.ownerUsername ? ` · şarkı: @${esc(r.ownerUsername)}` : ""}${r.reportedAt ? ` · ${fmt(r.reportedAt)}` : ""} · ${label[r.status] ?? esc(r.status)}</span>
+        </div>
+        <div class="admin-actions">
+          ${r.status === "pending" ? `<button class="btn btn-mini" data-act="in_progress" type="button">İncelemeye al</button>` : ""}
+          ${reportFilter === "open" ? `<button class="btn btn-primary btn-mini" data-act="reviewed" type="button">Çözüldü</button><button class="btn btn-mini" data-act="dismissed" type="button">Yoksay</button>` : `<button class="btn btn-mini" data-act="in_progress" type="button">Yeniden aç</button>`}
+        </div>
+      </div>`).join("")
+    : `<div class="row muted small">${reportFilter === "open" ? "Açık şikayet yok." : "Kapatılan şikayet yok."}</div>`;
+  list.querySelectorAll<HTMLButtonElement>("[data-act]").forEach((b) =>
+    b.addEventListener("click", async () => {
+      const row = b.closest<HTMLElement>(".admin-row")!;
+      row.querySelectorAll("button").forEach((x) => (x.disabled = true));
+      try {
+        await setReportStatus(row.dataset.id!, b.dataset.act as "in_progress" | "reviewed" | "dismissed");
+        await loadReports();
+      } catch (e) {
+        row.querySelectorAll("button").forEach((x) => (x.disabled = false));
+        alert("Kaydedilemedi: " + ((e as Error).message ?? e));
+      }
+    }),
+  );
+}
+
+(async () => {
+  if (!firebaseReady) { status.textContent = "Web girişi yapılandırılmamış."; return; }
+  const user = await currentUser();
+  if (!user) { $("admin-auth").hidden = false; status.textContent = ""; return; }
+  if (!(await isAdminUser(user.uid))) { $("admin-denied").hidden = false; status.textContent = ""; return; }
+  $("admin-pending").hidden = false;
+  $("admin-reports").hidden = false;
+  $("admin-refresh").hidden = false;
+  status.textContent = "";
+  $("report-filter").querySelectorAll<HTMLButtonElement>("[data-f]").forEach((b) =>
+    b.addEventListener("click", () => {
+      reportFilter = b.dataset.f as "open" | "closed";
+      $("report-filter").querySelectorAll(".chip").forEach((c) => c.classList.toggle("active", c === b));
+      loadReports();
+    }),
+  );
+  const refresh = () => Promise.all([loadPending(), loadReports()]).catch((e) => { status.textContent = "Yüklenemedi: " + ((e as Error).message ?? e); });
+  $("admin-refresh").addEventListener("click", refresh);
+  await refresh();
+})();

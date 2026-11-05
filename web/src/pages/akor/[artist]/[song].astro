@@ -1,0 +1,65 @@
+---
+import Base from "../../../layouts/Base.astro";
+import SongSheet from "../../../components/SongSheet.astro";
+import SongList from "../../../components/SongList.astro";
+import AdSlot from "../../../components/AdSlot.astro";
+import Icon from "../../../components/Icon.astro";
+import { catalog, sameKeySongs, artistPath, type CatalogSong } from "../../../lib/catalog.ts";
+import { siteUrl, songTitle, songDescription, songJsonLd, usedChords } from "../../../lib/seo.ts";
+
+export async function getStaticPaths() {
+  return catalog().songs.map((song) => ({ params: { artist: song.artistSlug, song: song.slug }, props: { song } }));
+}
+
+const { song } = Astro.props as { song: CatalogSong };
+const artist = catalog().artistBySlug.get(song.artistSlug);
+const others = (artist?.songs ?? []).filter((s) => s.id !== song.id).slice(0, 8);
+const similar = sameKeySongs(song, 5);
+const chords = usedChords(song.content);
+const base = siteUrl(Astro.site);
+const title = songTitle(song);
+const description = songDescription(song, chords);
+const artistUrl = base + artistPath(song.artistSlug);
+---
+<Base title={title} description={description} songId={song.id} ogType="music.song" jsonLd={songJsonLd(song, base)}>
+  <Fragment slot="head">
+    <meta property="music:musician" content={artistUrl} />
+  </Fragment>
+  <div class="page-head song-head">
+    <nav class="crumbs" aria-label="Sayfa yolu"><a href="/">Ana sayfa</a><span>/</span><a href="/sanatcilar/">Sanatçılar</a><span>/</span><a href={artistPath(song.artistSlug)}>{song.artist}</a><span>/</span>{song.songName}</nav>
+    <div class="title-row">
+      <div>
+        <h1>{song.songName} <span class="h1-kw">akorları</span></h1>
+        <div class="song-meta">
+          <a href={artistPath(song.artistSlug)}>{song.artist}</a>
+          {song.originalKey && <><span class="dot">·</span><span>Orijinal ton {song.originalKey}</span></>}
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn" id="btn-rep" type="button"><Icon name="bookmark" class="icon-sm" /> Repertuara ekle</button>
+        <button class="icon-btn" id="btn-print" type="button" aria-label="Yazdır" title="Yazdır"><Icon name="print" /></button>
+      </div>
+    </div>
+    <p class="song-intro">
+      {song.songName}, <a href={artistPath(song.artistSlug)}>{song.artist}</a> tarafından seslendirilen şarkının gitar akorları.
+      {song.originalKey && chords.length > 0 && <>Orijinal ton {song.originalKey}; kullanılan akorlar: <span class="mono">{chords.join(", ")}</span>.</>}
+      {song.originalKey && chords.length === 0 && <>Orijinal ton {song.originalKey}.</>}
+      {!song.originalKey && chords.length > 0 && <>Kullanılan akorlar: <span class="mono">{chords.join(", ")}</span>.</>}
+      Tonu değiştirebilir, kapo ekleyebilir, otomatik kaydırma ile çalabilirsin.
+    </p>
+  </div>
+  <SongSheet song={song} />
+  <AdSlot size="rect" unit="song-after" />
+  {similar.length > 0 && (
+    <section class="section">
+      <div class="section-head"><h2>{song.originalKey ? `${song.originalKey} tonunda benzer şarkı akorları` : "Benzer şarkı akorları"}</h2></div>
+      <SongList songs={similar} />
+    </section>
+  )}
+  {others.length > 0 && (
+    <section class="section">
+      <div class="section-head"><h2>{song.artist} akorları</h2><a href={artistPath(song.artistSlug)}>Tüm {song.artist} akorları ({artist?.songs.length})</a></div>
+      <SongList songs={others} showArtist={false} />
+    </section>
+  )}
+</Base>

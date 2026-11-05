@@ -6,7 +6,7 @@ interface Props { q?: string }
 const { q = "" } = Astro.props;
 ---
 <header class="site-header">
-  <div class="header-pill">
+  <div class="nav-inner">
     <Logo />
     <nav class="nav" aria-label="Ana menü">
       <a href="/sanatcilar/">Sanatçılar</a>
@@ -24,10 +24,13 @@ const { q = "" } = Astro.props;
       <a class="btn btn-appstore" href={APP_STORE_URL} rel="noopener" title="Gituar'ı App Store'dan indir">
         <Icon name="download" class="icon-sm" /><span>App Store</span>
       </a>
-    </div>
-    <div class="header-mobile">
-      <a href="/ara/" class="icon-btn" aria-label="Ara"><Icon name="search" /></a>
-      <button class="icon-btn" id="menu-toggle" type="button" aria-label="Menü" aria-expanded="false" aria-controls="header-menu"><Icon name="menu" /></button>
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="Koyu tema" title="Koyu tema">
+        <Icon name="moon" class="icon icon-moon" /><Icon name="sun" class="icon icon-sun" />
+      </button>
+      <div class="header-mobile">
+        <a href="/ara/" class="icon-btn" aria-label="Ara"><Icon name="search" /></a>
+        <button class="icon-btn" id="menu-toggle" type="button" aria-label="Menü" aria-expanded="false" aria-controls="header-menu"><Icon name="menu" /></button>
+      </div>
     </div>
     <div class="header-menu" id="header-menu">
       <a href="/sanatcilar/">Sanatçılar</a>

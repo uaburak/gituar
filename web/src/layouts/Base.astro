@@ -56,8 +56,7 @@ const ogImage = existsSync(fileURLToPath(new URL("../../public/og.png", import.m
     <!-- Safari'de yerel "App Store'dan indir" bandı; uygulama yüklüyse "Aç" olur ve şarkıya gider -->
     <meta name="apple-itunes-app" content={`app-id=${APP_STORE_ID}, app-argument=${appArgument}`} />
     {ADSENSE_CLIENT && <meta name="google-adsense-account" content={ADSENSE_CLIENT} />}
-    <meta name="theme-color" content="#fbfbfd" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#ffffff" id="theme-color" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="manifest" href="/site.webmanifest" />
     <link rel="sitemap" href="/sitemap-index.xml" />
@@ -86,7 +85,7 @@ const ogImage = existsSync(fileURLToPath(new URL("../../public/og.png", import.m
   </head>
   <body>
     <Header q={q} />
-    <div class="shell">
+    <div class:list={["shell", { "shell-plain": !ads }]}>
       {ads && <aside class="side-ad" aria-label="Reklam sütunu"><AdSlot size="side" unit="side-left" /></aside>}
       <main class="page"><slot /></main>
       {ads && <aside class="side-ad" aria-label="Reklam sütunu"><AdSlot size="side" unit="side-right" /></aside>}

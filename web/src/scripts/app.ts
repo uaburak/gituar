@@ -4,13 +4,16 @@ import { ADSENSE_CLIENT } from "../lib/site.ts";
 
 const html = document.documentElement;
 
-// Gece modu — düğme alt bilgide; etiketi geçerli temaya göre değişir
+// Tema: varsayılan aydınlık; üst bardaki düğme koyu/aydınlık arasında geçer (localStorage "gituar-theme")
 const themeBtn = document.getElementById("theme-toggle");
-function isDark(): boolean {
-  const current = html.getAttribute("data-theme");
-  return current ? current === "dark" : window.matchMedia("(prefers-color-scheme: dark)").matches;
+const themeMeta = document.getElementById("theme-color");
+function isDark(): boolean { return html.getAttribute("data-theme") === "dark"; }
+function syncThemeLabel() {
+  const label = isDark() ? "Aydınlık tema" : "Koyu tema";
+  themeBtn?.setAttribute("aria-label", label);
+  themeBtn?.setAttribute("title", label);
+  themeMeta?.setAttribute("content", isDark() ? "#000000" : "#ffffff");
 }
-function syncThemeLabel() { if (themeBtn) themeBtn.textContent = isDark() ? "Aydınlık tema" : "Gece modu"; }
 themeBtn?.addEventListener("click", () => {
   const next = isDark() ? "light" : "dark";
   html.setAttribute("data-theme", next);

@@ -401,6 +401,10 @@ a.card:hover, .editor-hero:hover { text-decoration: none; transform: scale(1.02)
 .tb { height: 32px; padding: 0 14px; font-size: 14px; font-weight: 500; }
 .btn-outline { background: var(--surface); box-shadow: inset 0 0 0 1px var(--hairline); }
 .btn-round { width: 40px; padding: 0; }
+/* Yazdır: "Sayfayı oynat" görünürken yalnızca ikon; oynat gizliyse (akorlar ekrana sığıyor) yazıyla */
+.btn-print-label { display: none; }
+#btn-play[hidden] ~ #btn-print { width: auto; padding: 0 16px; }
+#btn-play[hidden] ~ #btn-print .btn-print-label { display: inline; }
 .song-actions .btn { height: 40px; font-size: 14px; font-weight: 600; }
 .song-actions .btn-primary { padding: 0 20px; }
 .rail-card { padding: 24px; display: grid; gap: 12px; justify-items: start; }

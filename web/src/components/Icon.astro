@@ -1,6 +1,6 @@
 ---
 // Tek dosyada hat ikonları (Wecra "İkon/*" bileşenlerinin karşılığı). 24'lük kutu, currentColor.
-interface Props { name: "search" | "download" | "menu" | "close" | "print" | "bookmark" | "play" | "pause" | "plus" | "minus" | "chevron" | "random" | "moon" | "sun" | "star" | "people" | "mic" | "google" | "crown" | "apple" | "flag" | "down" | "reset"; class?: string }
+interface Props { name: "search" | "download" | "menu" | "close" | "print" | "bookmark" | "play" | "pause" | "plus" | "minus" | "chevron" | "random" | "moon" | "sun" | "star" | "people" | "mic" | "google" | "crown" | "apple" | "flag" | "down" | "reset" | "eye" | "eye-off" | "save" | "history"; class?: string }
 const { name, class: className = "icon" } = Astro.props;
 const stroke = { fill: "none", stroke: "currentColor", "stroke-width": "1.8", "stroke-linecap": "round", "stroke-linejoin": "round" } as const;
 ---
@@ -27,3 +27,7 @@ const stroke = { fill: "none", stroke: "currentColor", "stroke-width": "1.8", "s
 {name === "flag" && <svg class={className} viewBox="0 0 24 24" {...stroke} aria-hidden="true"><path d="M5 21V4m0 0h11l-2 4 2 4H5"/></svg>}
 {name === "down" && <svg class={className} viewBox="0 0 24 24" {...stroke} aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>}
 {name === "reset" && <svg class={className} viewBox="0 0 24 24" {...stroke} aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.4-5.7L4 8.7"/><path d="M4 4v4.7h4.7"/></svg>}
+{name === "eye" && <svg class={className} viewBox="0 0 24 24" {...stroke} aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>}
+{name === "eye-off" && <svg class={className} viewBox="0 0 24 24" {...stroke} aria-hidden="true"><path d="M10.6 5.1A10 10 0 0 1 12 5c6.4 0 10 7 10 7a17 17 0 0 1-2.7 3.6M6.6 6.6C3.9 8.3 2 12 2 12s3.6 7 10 7a9.8 9.8 0 0 0 5.4-1.6"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2M3 3l18 18"/></svg>}
+{name === "save" && <svg class={className} viewBox="0 0 24 24" {...stroke} aria-hidden="true"><path d="M5 4h11l3 3v12a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1z"/><path d="M8 4v5h7V4M8 20v-6h8v6"/></svg>}
+{name === "history" && <svg class={className} viewBox="0 0 24 24" {...stroke} aria-hidden="true"><path d="M3 12a9 9 0 1 0 2.6-6.4L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/></svg>}

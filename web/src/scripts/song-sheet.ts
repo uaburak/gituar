@@ -89,7 +89,11 @@ function init(root: HTMLElement) {
     $("btn-reset").hidden = !modified;
     $("btn-save").hidden = !modified || (saved?.key === selected && saved?.capo === capo);
     $("btn-saved").hidden = !saved;
-    if (saved) $("saved-key").textContent = saved.capo ? `${saved.key} · kapo ${saved.capo}` : saved.key;
+    if (saved) {
+      const label = `Kayıtlı tona dön: ${saved.key + keySuffix}${saved.capo ? ` · kapo ${saved.capo}` : ""}`;
+      $("btn-saved").title = label;
+      $("btn-saved").setAttribute("aria-label", label);
+    }
     if (typeof updatePlayVisibility === "function") requestAnimationFrame(updatePlayVisibility);
   }
 
@@ -113,7 +117,9 @@ function init(root: HTMLElement) {
   chordsBtn.addEventListener("click", () => {
     const hidden = sheet.classList.toggle("hide-chords");
     chordsBtn.setAttribute("aria-pressed", hidden ? "false" : "true");
-    chordsBtn.textContent = hidden ? "Akorları göster" : "Akorları gizle";
+    const label = hidden ? "Akorları göster" : "Akorları gizle";
+    chordsBtn.title = label;
+    chordsBtn.setAttribute("aria-label", label);
   });
   function persistFont() { try { localStorage.setItem("gituar-font", String(fontSize)); } catch {} }
 

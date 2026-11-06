@@ -398,6 +398,12 @@ a.card:hover, .editor-hero:hover { text-decoration: none; transform: scale(1.02)
 .key-pick:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
 .tool-sep { width: 1px; height: 24px; background: var(--hairline); }
 .btn-reset { background: #ff3b30; color: #fff; }
+.btn-save { background: var(--accent); color: var(--on-accent); }
+.btn-save:hover { background: var(--accent-hover); filter: none; }
+.btn-chords .icon-off { display: none; }
+.btn-chords[aria-pressed="false"] .icon-on { display: none; }
+.btn-chords[aria-pressed="false"] .icon-off { display: block; }
+.btn-chords[aria-pressed="false"] { background: var(--inverse); color: var(--on-inverse); }
 .btn-reset:hover { background: #e0352b; filter: none; }
 .tb { height: 32px; padding: 0 14px; font-size: 14px; font-weight: 500; }
 /* Akorları gizle ve ardından gelenler (Tonu kaydet, sıfırla) araç çubuğunun sağına yaslı */

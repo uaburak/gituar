@@ -1,9 +1,13 @@
 ---
 import type { CatalogSong } from "@shared/types";
 import { songPath } from "@shared/catalog";
-interface Props { song: CatalogSong; showArtist?: boolean; index?: number; note?: string }
-const { song, showArtist = true, index, note } = Astro.props;
+import Icon from "./Icon.astro";
+import { songChords, LEVEL_LABEL } from "../lib/chord-stats.ts";
+interface Props { song: CatalogSong; showArtist?: boolean; index?: number; note?: string; level?: boolean }
+const { song, showArtist = true, index, note, level = true } = Astro.props;
 // Bağlantı metni "{Şarkı} akorları [Sanatçı] [Ton]" olur; `.row-title` yalnızca şarkı adını taşır (song-filter.ts onu okur).
+const analysis = level ? songChords(song) : null;
+const lv = analysis && analysis.chords.length > 0 ? analysis.level : null;
 ---
 <a class="row" href={songPath(song)}>
   {index !== undefined && <span class="row-num" aria-hidden="true">{String(index).padStart(2, "0")}</span>}
@@ -11,5 +15,7 @@ const { song, showArtist = true, index, note } = Astro.props;
     <span class="row-line"><span class="row-title">{song.songName}</span><span class="row-kw">akorları</span></span>
     {(showArtist || note) && <span class="row-sub">{[showArtist ? song.artist : "", note ?? ""].filter(Boolean).join(" · ")}</span>}
   </span>
+  {lv && <span class={`row-level level-${lv}`}>{LEVEL_LABEL[lv]}</span>}
   {song.originalKey && <span class="row-key">{song.originalKey}</span>}
+  <Icon name="chevron" class="chevron" />
 </a>

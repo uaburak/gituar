@@ -1,4 +1,5 @@
 ---
+import AdSlot from "../../components/AdSlot.astro";
 import Base from "../../layouts/Base.astro";
 import SongList from "../../components/SongList.astro";
 import { catalog } from "../../lib/catalog.ts";
@@ -49,7 +50,8 @@ const jsonLd = [
     <>
       <div class="grid-3 pick-grid" id="editor-picks" style="margin-top:24px"></div>
       <p class="muted small" id="editor-status" style="margin-top:16px">Yükleniyor…</p>
-      <script src="../../scripts/editor-picks.ts"></script>
+      <AdSlot size="leaderboard" unit="editor" />
+  <script src="../../scripts/editor-picks.ts"></script>
     </>
   )}
 </Base>

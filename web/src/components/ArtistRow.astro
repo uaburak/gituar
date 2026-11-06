@@ -4,11 +4,11 @@ import { artistPath } from "@shared/catalog";
 import Icon from "./Icon.astro";
 interface Props { artist: ArtistGroup }
 const { artist } = Astro.props;
-const initial = (artist.name[0] ?? "?").toLocaleUpperCase("tr-TR");
 ---
 <a class="row" href={artistPath(artist.slug)}>
-  <span class="row-avatar" aria-hidden="true">{initial}</span>
-  <span class="row-body"><span class="row-line"><span class="row-title">{artist.name}</span><span class="row-kw">akorları</span></span></span>
-  <span class="row-count">{artist.songs.length} akor</span>
+  <span class="row-body">
+    <span class="row-line"><span class="row-title">{artist.name}</span><span class="row-kw">akorları</span></span>
+    <span class="row-sub">{artist.songs.length} şarkı</span>
+  </span>
   <Icon name="chevron" class="chevron" />
 </a>

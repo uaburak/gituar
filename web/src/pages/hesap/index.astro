@@ -3,8 +3,8 @@ export const prerender = true;
 import Base from "../../layouts/Base.astro";
 ---
 <Base title="Hesabım" noindex ads={false}>
-  <div class="page-head"><h1>Hesabım</h1></div>
-  <div style="max-width:520px">
+  <div class="narrow">
+    <div class="page-head"><h1>Hesabım</h1></div>
     <div id="acc-auth" class="alert" hidden>Hesabını görmek için <a href="/giris/?next=/hesap/">giriş yap</a>.</div>
     <p class="muted small" id="acc-status">Yükleniyor…</p>
 

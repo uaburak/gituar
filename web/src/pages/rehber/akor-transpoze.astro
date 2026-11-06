@@ -1,5 +1,6 @@
 ---
 export const prerender = true;
+import AdSlot from "../../components/AdSlot.astro";
 import Base from "../../layouts/Base.astro";
 import { siteUrl, breadcrumbJsonLd } from "../../lib/seo.ts";
 const base = siteUrl(Astro.site);
@@ -36,4 +37,5 @@ const jsonLd = [
       {faq.map(([q, a]) => (<details class="faq"><summary>{q}</summary><p>{a}</p></details>))}
     </div>
   </article>
-</Base>
+<AdSlot size="leaderboard" unit="guide-transpose" />
+  </Base>

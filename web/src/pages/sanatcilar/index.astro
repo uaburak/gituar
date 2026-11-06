@@ -1,4 +1,5 @@
 ---
+import AdSlot from "../../components/AdSlot.astro";
 import Base from "../../layouts/Base.astro";
 import Icon from "../../components/Icon.astro";
 import { catalog, artistPath, type ArtistGroup } from "../../lib/catalog.ts";
@@ -49,5 +50,6 @@ const anchor = (l: string) => `h-${l === "#" ? "diger" : l}`;
       <p class="muted small" id="filter-empty" hidden style="margin-top:24px">Bu aramayla eşleşen sanatçı yok.</p>
     </div>
   </div>
+  <AdSlot size="leaderboard" unit="artists" />
   <script src="../../scripts/artist-filter.ts"></script>
 </Base>

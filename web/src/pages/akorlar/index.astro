@@ -1,4 +1,5 @@
 ---
+import AdSlot from "../../components/AdSlot.astro";
 import Base from "../../layouts/Base.astro";
 import ChordDiagram from "../../components/ChordDiagram.astro";
 import { chordPages } from "../../lib/chord-stats.ts";
@@ -40,4 +41,5 @@ const jsonLd = [
       </div>
     </section>
   ))}
-</Base>
+<AdSlot size="leaderboard" unit="chords-index" />
+  </Base>

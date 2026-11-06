@@ -1,4 +1,5 @@
 ---
+import AdSlot from "../../components/AdSlot.astro";
 import Base from "../../layouts/Base.astro";
 import SongList from "../../components/SongList.astro";
 import { newestSongs } from "../../lib/catalog.ts";
@@ -21,4 +22,5 @@ const jsonLd = [
     <p>Kataloğa en son eklenen şarkılar, en yeniden eskiye.</p>
   </div>
   <SongList songs={songs} adEvery={25} unit="new" />
-</Base>
+<AdSlot size="leaderboard" unit="newest" />
+  </Base>

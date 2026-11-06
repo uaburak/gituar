@@ -1,4 +1,5 @@
 ---
+import AdSlot from "../../components/AdSlot.astro";
 import Base from "../../layouts/Base.astro";
 import { catalog } from "../../lib/catalog.ts";
 import { keySlug, keyTurkish } from "../../lib/keys.ts";
@@ -21,4 +22,5 @@ const description = "Gitar akorlarını tona göre bul: majör ve minör tonlard
       <a class="card pick" href={`/ton/${keySlug(k)}/`}><span class="pick-tile mono" aria-hidden="true">{k}</span><span class="pick-body"><span class="pick-title">{label} tonu</span><span class="muted small">{keyTurkish(k)}</span></span><span class="pick-arrow" aria-hidden="true">›</span></a>
     ))}
   </div>
-</Base>
+<AdSlot size="leaderboard" unit="keys" />
+  </Base>

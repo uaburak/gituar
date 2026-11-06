@@ -1,4 +1,5 @@
 ---
+import AdSlot from "../../components/AdSlot.astro";
 import Base from "../../layouts/Base.astro";
 import Icon from "../../components/Icon.astro";
 import SongList from "../../components/SongList.astro";
@@ -48,5 +49,6 @@ const songsTitle = popularSongs.length ? "Popüler şarkılar" : "";
     <div class="list" id="results"></div>
     <button class="btn chip" id="show-more" type="button" hidden style="margin-top:16px"></button>
   </section>
+  <AdSlot size="leaderboard" unit="search" />
   <script src="../../scripts/search.ts"></script>
 </Base>

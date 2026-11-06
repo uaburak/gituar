@@ -1,5 +1,6 @@
 ---
 // Katalogdan hesaplanan, başka yerde bulunmayan istatistikler: en sık akorlar, akor sayısı dağılımı, tonlar.
+import AdSlot from "../../components/AdSlot.astro";
 import Base from "../../layouts/Base.astro";
 import { catalog } from "../../lib/catalog.ts";
 import { chordStats, chordHref, easySongs, capoEasySongs } from "../../lib/chord-stats.ts";
@@ -73,4 +74,5 @@ void keyInfo;
       <p>Her şarkının akor satırları ayrıştırıldı. Bas notası (D/F# gibi) atıldı, aynı akorun eşsesli yazımları (A# ve Bb gibi) birleştirildi, bir şarkıda tekrar eden akor bir kez sayıldı. Açık akorlar: C, D, E, G, A, Am, Em, Dm ve bunların 7, sus ve maj7 biçimleri.</p>
     </div>
   </article>
-</Base>
+<AdSlot size="leaderboard" unit="guide-top" />
+  </Base>

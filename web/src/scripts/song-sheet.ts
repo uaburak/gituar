@@ -21,7 +21,7 @@ async function checkRemoved(id: string) {
     meta.name = "robots";
     meta.content = "noindex";
     document.head.appendChild(meta);
-    document.querySelectorAll("#song, .song-chords, .song-intro, .title-row .actions").forEach((el) => el.remove());
+    document.querySelectorAll("#song, .song-chords, .song-intro, .song-more, .song-ads").forEach((el) => el.remove());
     const note = document.createElement("div");
     note.className = "alert";
     note.innerHTML = 'Bu içerik kaldırıldı. Sorunun varsa <a href="/iletisim/">bizimle iletişime geç</a>.';
@@ -36,8 +36,18 @@ function init(root: HTMLElement) {
   const sheet = document.getElementById("sheet")!;
   const pre = document.getElementById("chords")!;
   const lines = [...pre.querySelectorAll<HTMLElement>(".line")].map((el) => ({ el, text: (el.textContent ?? "").replace(/\n$/, ""), chord: el.dataset.c === "1" }));
-  const keyButtons = [...root.querySelectorAll<HTMLButtonElement>(".key-strip button")];
   const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
+  // Ton seçici: − [ton ▾] +; liste eşsesli yazımları da içerir (C#/Db), ±1 yarım sesle bir sonraki perdeye geçer.
+  const keySelect = $<HTMLSelectElement>("key-select");
+  const keys = [...keySelect.options].map((o) => o.value);
+  const keySuffix = (originalKey ?? "").trim().slice(originalRoot.length);
+  const PC: Record<string, number> = { C: 0, "C#": 1, Db: 1, D: 2, "D#": 3, Eb: 3, E: 4, F: 5, "F#": 6, Gb: 6, G: 7, "G#": 8, Ab: 8, A: 9, "A#": 10, Bb: 10, B: 11 };
+  function stepKey(dir: 1 | -1): string {
+    const target = (((PC[selected] ?? 0) + dir) % 12 + 12) % 12;
+    const options = keys.filter((k) => PC[k] === target);
+    const flat = selected.includes("b") || (!selected.includes("#") && originalRoot.includes("b"));
+    return options.find((k) => (flat ? k.includes("b") : !k.includes("b"))) ?? options[0] ?? selected;
+  }
 
   const prefKey = `gituar-pref-${songId}`;
   let saved: { key: string; capo: number } | null = null;
@@ -63,22 +73,26 @@ function init(root: HTMLElement) {
       if (!l.chord) continue;
       l.el.innerHTML = highlight(transpose(l.text, offset, flats)) + "\n";
     }
-    for (const b of keyButtons) b.setAttribute("aria-pressed", b.dataset.k === selected ? "true" : "false");
+    keySelect.value = selected;
+    $("key-label").textContent = selected + keySuffix;
+    $("key-note").hidden = selected !== originalRoot;
     $("capo-val").textContent = String(capo);
     $("font-val").textContent = String(fontSize);
     sheet.style.setProperty("--sheet-font", `${fontSize}px`);
     const modified = selected !== originalRoot || capo !== 0;
     $("key-info").hidden = !modified;
     $("key-info-text").textContent = capo
-      ? `${selected} tonunda, kapo ${capo} ile gösteriliyor`
-      : `${selected} tonunda gösteriliyor`;
+      ? `${selected + keySuffix} tonunda, kapo ${capo} ile gösteriliyor`
+      : `${selected + keySuffix} tonunda gösteriliyor`;
     $("btn-save").hidden = !modified || (saved?.key === selected && saved?.capo === capo);
     $("btn-saved").hidden = !saved;
     if (saved) $("saved-key").textContent = saved.capo ? `${saved.key} · kapo ${saved.capo}` : saved.key;
     if (typeof updatePlayVisibility === "function") requestAnimationFrame(updatePlayVisibility);
   }
 
-  for (const b of keyButtons) b.addEventListener("click", () => { selected = b.dataset.k!; render(); });
+  keySelect.addEventListener("change", () => { selected = keySelect.value; render(); });
+  $("key-dec").addEventListener("click", () => { selected = stepKey(-1); render(); });
+  $("key-inc").addEventListener("click", () => { selected = stepKey(1); render(); });
   $("capo-dec").addEventListener("click", () => { capo = Math.max(0, capo - 1); render(); });
   $("capo-inc").addEventListener("click", () => { capo = Math.min(9, capo + 1); render(); });
   $("font-dec").addEventListener("click", () => { fontSize = Math.max(10, fontSize - 1); persistFont(); render(); });

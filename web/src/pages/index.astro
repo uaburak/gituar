@@ -1,22 +1,29 @@
 ---
 import Base from "../layouts/Base.astro";
 import SongList from "../components/SongList.astro";
-import ArtistRow from "../components/ArtistRow.astro";
 import AdSlot from "../components/AdSlot.astro";
 import Icon from "../components/Icon.astro";
+import ChordDiagram from "../components/ChordDiagram.astro";
 import { catalog, newestSongs, topArtists } from "../lib/catalog.ts";
+import { chordPages } from "../lib/chord-stats.ts";
+import { chordShapes } from "../lib/chord-theory.ts";
+import { artistPath } from "@shared/catalog";
 import { siteUrl, homeJsonLd } from "../lib/seo.ts";
 import { APP_STORE_URL } from "../lib/site.ts";
 
-const newest = newestSongs(8);
+const newest = newestSongs(6);
+// Öne çıkanlar: gerçek popülerlik puanı (kişi başına görüntülenme/favori/repertuar); puan yoksa yeniler dışından en yeniler.
+const scored = [...catalog().songs].filter((s) => (s.score ?? 0) > 0).sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
+const trending = (scored.length >= 6 ? scored : [...scored, ...newestSongs(12).filter((s) => !scored.includes(s) && !newest.includes(s))]).slice(0, 6);
 const artists = topArtists(8);
+const chords = chordPages().slice(0, 9).map((c) => ({ ...c, shape: chordShapes(c.root, c.quality)[0] })).filter((c) => c.shape);
 const title = "Gitar Akorları – Türkçe Şarkı Akorları, Transpoze ve Kapo";
 const description = "Türkçe şarkıların gitar akorları: topluluğun paylaştığı akorları transpoze, kapo ve otomatik kaydırma ile çal, repertuar oluştur. iPhone uygulamasıyla aynı akorlar.";
 ---
 <Base title={title} description={description} jsonLd={homeJsonLd(siteUrl(Astro.site))}>
   <h1 class="visually-hidden">Türkçe gitar akorları</h1>
 
-  <section class="home-tiles">
+  <section class="home-top">
     <a class="card editor-hero" href="/editorun-secimleri/" id="editor">
       <span class="editor-hero-body">
         <Icon name="star" class="icon editor-star" />
@@ -24,16 +31,16 @@ const description = "Türkçe şarkıların gitar akorları: topluluğun paylaş
         <span class="editor-hero-sub" id="editor-count">Gituar ekibinin özel listeleri</span>
       </span>
     </a>
-    <div class="tile-grid">
+    <div class="home-tiles">
       <a class="card tile" href="/sanatcilar/">
         <Icon name="people" class="icon tile-icon tile-icon-people" />
         <span class="tile-title">Sanatçılar</span>
-        <span class="tile-sub">A'dan Z'ye tüm sanatçılar</span>
+        <span class="tile-sub">A'dan Z'ye bütün sanatçılar</span>
       </a>
       <a class="card tile" href="/repertuarlarim/">
         <Icon name="mic" class="icon tile-icon tile-icon-mic" />
         <span class="tile-title">Repertuarlarım</span>
-        <span class="tile-sub">Listeler</span>
+        <span class="tile-sub">Listelerin web'de ve iPhone'da aynı</span>
       </a>
     </div>
   </section>
@@ -41,70 +48,66 @@ const description = "Türkçe şarkıların gitar akorları: topluluğun paylaş
   <section class="home-search">
     <form class="search-big" action="/ara/" method="get" role="search">
       <Icon name="search" />
-      <input type="search" name="q" placeholder="Şarkı ya da sanatçı ara" autocomplete="off" aria-label="Şarkı ya da sanatçı ara" />
+      <input type="search" name="q" placeholder="Şarkı ya da sanatçı ara — örneğin “sezen gülümse”" autocomplete="off" aria-label="Şarkı ya da sanatçı ara" />
       <button class="btn btn-primary" type="submit">Ara</button>
     </form>
     <div class="chip-row">
-      <a class="btn chip" href="/sanatcilar/">Sanatçı akorları</a>
-      <a class="btn chip" href="#yeni">Yeni eklenen akorlar</a>
-      <button class="btn chip" id="btn-random" type="button">Rastgele akor</button>
+      <a class="btn chip" href="/kolay-gitar-akorlari/">Kolay şarkılar</a>
+      <a class="btn chip" href="/yeni-eklenenler/">Yeni eklenenler</a>
+      <a class="btn chip" href="#one-cikanlar">Öne çıkanlar</a>
+      <button class="btn chip" id="btn-random" type="button"><Icon name="random" class="icon-sm" />Rastgele şarkı</button>
+      <a class="btn chip" href="/ton/">Tonlar</a>
     </div>
   </section>
 
-  <section class="section" id="yeni">
-    <div class="two-col">
-      <div>
-        <div class="section-head"><h2>Yeni eklenen akorlar</h2><a href="/sanatcilar/">Sanatçıya göre bul<span aria-hidden="true"> ›</span></a></div>
-        <SongList songs={newest} />
-      </div>
-      <div>
-        <div class="section-head"><h2>Popüler sanatçılar</h2><a href="/sanatcilar/">Tüm sanatçı akorları<span aria-hidden="true"> ›</span></a></div>
-        <div class="list">{artists.map((a) => <ArtistRow artist={a} />)}</div>
-      </div>
-    </div>
-    <AdSlot size="inline" unit="home-inline" />
-  </section>
+  <div class="two-col section" id="yeni">
+    <section>
+      <div class="section-head"><h2>Yeni eklenen akorlar</h2><a href="/yeni-eklenenler/">Tümü ›</a></div>
+      <SongList songs={newest} />
+    </section>
+    <section id="one-cikanlar">
+      <div class="section-head"><h2>Öne çıkanlar</h2><a href="/ara/">Tümü ›</a></div>
+      <SongList songs={trending} />
+    </section>
+  </div>
+
+  <AdSlot size="leaderboard" unit="home-1" />
+
+  {chords.length > 0 && (
+    <section class="section">
+      <div class="section-head"><div><h2>Gitar akor tablosu</h2><p class="section-sub">En çok kullanılan akorlar ve onlarla çalınan şarkılar</p></div><a href="/akorlar/">Bütün akorlar ›</a></div>
+      <div class="card home-chords">{chords.map((c) => <ChordDiagram shape={c.shape} label={c.name} href={`/akorlar/${c.slug}/`} />)}</div>
+    </section>
+  )}
 
   <section class="section">
-    <div class="section-head center"><h2>Çalmayı kolaylaştıran araçlar</h2></div>
-    <div class="grid-3 feature-grid">
-      <div class="feature">
-        <div class="feature-icon" aria-hidden="true"><span class="feature-glyph">A→C</span></div>
-        <h3>Akor transpoze</h3>
-        <p>Ton şeridinden yeni tonu seç; akorlar anında kayar, söz hizası bozulmaz. <a href="/rehber/akor-transpoze/">Nasıl yapılır ›</a></p>
-      </div>
-      <div class="feature">
-        <div class="feature-icon" aria-hidden="true"><span class="feature-glyph">Kapo</span></div>
-        <h3>Kapo hesabı</h3>
-        <p>Perdeyi gir, sayfa gerçekte çaldığın akor adlarını gösterir. <a href="/rehber/kapo/">Kapo rehberi ›</a></p>
-      </div>
-      <div class="feature">
-        <div class="feature-icon" aria-hidden="true"><Icon name="play" class="icon" /></div>
-        <h3>Sayfayı oynat</h3>
-        <p>Otomatik kaydırma akor alanında akar, hızı sana uyar. <a href="/ton/">Tona göre şarkılar ›</a></p>
-      </div>
+    <div class="section-head"><h2>Popüler sanatçılar</h2><a href="/sanatcilar/">Bütün sanatçılar ›</a></div>
+    <div class="artist-grid">
+      {artists.map((a) => (
+        <a class="card artist-card" href={artistPath(a.slug)}>
+          <span class="artist-card-name">{a.name}</span>
+          <span class="artist-card-sub">{a.songs.length} şarkı</span>
+        </a>
+      ))}
     </div>
   </section>
+
+  <AdSlot size="leaderboard" unit="home-2" />
 
   <section class="section">
     <div class="promo-card">
-      <div class="promo-text">
-        <p class="eyebrow">iPhone uygulaması</p>
-        <h2>Gituar cebinde</h2>
-        <p>Aynı katalog, aynı repertuarlar. Çevrimdışı çalışır; Pro ile web ve iPhone'da reklamsız.</p>
+      <div class="promo-left">
+        <img src="/img/app-icon.png" width="88" height="88" alt="" class="promo-icon" />
+        <div>
+          <h2>Gituar iPhone'da da</h2>
+          <p>Aynı akorlar ve repertuarlar, çevrimdışı çalma ve otomatik kaydırma.</p>
+        </div>
       </div>
-      <a class="btn btn-primary btn-lg" href={APP_STORE_URL} rel="noopener"><Icon name="download" class="icon-sm" />App Store'dan indir</a>
+      <a class="btn btn-appstore-light" href={APP_STORE_URL} rel="noopener"><Icon name="apple" class="icon-sm" />App Store'dan indir</a>
     </div>
   </section>
 
-  <section class="section about">
-    <div class="section-head"><h2>Şarkı akorları, transpoze ve kapo</h2></div>
-    <div class="about-cols">
-      <p>Gituar'da akorları kullanıcılar ekler; her şarkının gitar akorları söz üstünde, orijinal tonuyla durur. <a href="/sanatcilar/">Sanatçı akorları dizininden</a> ya da aramadan şarkıyı bul, akorları sözlerle birlikte çal.</p>
-      <p>Akor transpoze için ton şeridinden yeni tonu seç; akorlar anında kayar, söz hizası bozulmaz. Kapo takıyorsan perdeyi gir, sayfa çaldığın akor adlarını gösterir. Otomatik kaydırma ile elini gitardan çekmeden çalarsın. Akor adları ukulele için de aynıdır.</p>
-      <p>Repertuar oluşturup şarkılarını topla; <a href={APP_STORE_URL} rel="noopener">iPhone uygulaması</a> aynı kataloğu ve repertuarları kullanır. Akorlar topluluk tarafından eklenir, hatalı akoru <a href="/iletisim/">bildirebilirsin</a>.</p>
-    </div>
-  </section>
+  <p class="home-about">Gituar, Türkçe şarkıların gitar akorlarını bir araya getirir. Akorları kullanıcılar ekler, editörler onaylar. Her şarkıyı kendi tonuna taşıyabilir, <a href="/rehber/kapo/">kapo hesabı</a> yapabilir ve otomatik kaydırmayla çalabilirsin. <a href="/rehber/akor-transpoze/">Akor transpoze</a> için ton seçiciyi kullan; akor adları <a href="/rehber/ukulele-akorlari/">ukulele</a> için de aynıdır.</p>
   <script src="../scripts/random.ts"></script>
   <script src="../scripts/editor-count.ts"></script>
 </Base>

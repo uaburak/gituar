@@ -13,13 +13,17 @@ function syncThemeLabel() {
   themeBtn?.setAttribute("aria-label", label);
   themeBtn?.setAttribute("title", label);
   themeMeta?.setAttribute("content", isDark() ? "#000000" : "#f5f5f7");
+  const footerLabel = document.querySelector("#theme-toggle-footer span");
+  if (footerLabel) footerLabel.textContent = isDark() ? "Gündüz modu" : "Gece modu";
 }
-themeBtn?.addEventListener("click", () => {
+function toggleTheme() {
   const next = isDark() ? "light" : "dark";
   html.setAttribute("data-theme", next);
   try { localStorage.setItem("gituar-theme", next); } catch {}
   syncThemeLabel();
-});
+}
+themeBtn?.addEventListener("click", toggleTheme);
+document.getElementById("theme-toggle-footer")?.addEventListener("click", toggleTheme);
 syncThemeLabel();
 
 // Mobil menü (üst bardaki ☰)

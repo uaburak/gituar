@@ -6,51 +6,65 @@ import Icon from "./Icon.astro";
 interface Props { song: CatalogSong }
 const { song } = Astro.props;
 const originalRoot = rootNote(song.originalKey);
+// Tonun kök dışındaki kısmı (C#m → "m"); seçicide her kök bu ekle gösterilir.
+const keySuffix = (song.originalKey ?? "").trim().slice(originalRoot.length);
 ---
-<article id="song" data-id={song.id} data-key={song.originalKey} data-root={originalRoot} data-title={`${song.artist} - ${song.songName}`} data-name={song.songName} data-artist={song.artist}>
+<article id="song" class="song-layout" data-id={song.id} data-key={song.originalKey} data-root={originalRoot} data-title={`${song.artist} - ${song.songName}`} data-name={song.songName} data-artist={song.artist}>
   <div class="tools" role="toolbar" aria-label="Akor araçları">
-    <div class="tool-row">
-      <span class="tool-label">Ton</span>
-      <div class="key-strip" role="group" aria-label="Ton seç">
-        {selectableKeys.map((k) => (
-          <button type="button" data-k={k} aria-pressed={k === originalRoot ? "true" : "false"} class:list={[{ original: k === originalRoot }]}>{k}</button>
-        ))}
-      </div>
+    <div class="ctl" aria-label="Ton">
+      <button type="button" class="ctl-btn" id="key-dec" aria-label="Tonu yarım ses indir"><Icon name="minus" class="icon-sm" /></button>
+      <label class="key-pick">
+        <select id="key-select" aria-label="Ton seç">
+          {selectableKeys.map((k) => <option value={k} selected={k === originalRoot}>{k + keySuffix}</option>)}
+        </select>
+        <span class="key-pick-label" id="key-label" aria-hidden="true">{originalRoot + keySuffix}</span>
+        <Icon name="down" class="icon-sm" />
+      </label>
+      <button type="button" class="ctl-btn" id="key-inc" aria-label="Tonu yarım ses yükselt"><Icon name="plus" class="icon-sm" /></button>
+      <span class="ctl-note" id="key-note">Orijinal</span>
     </div>
-    <div class="tool-row">
-      <span class="tool-label">Ayar</span>
-      <div class="stepper" aria-label="Kapo">
-        <button type="button" id="capo-dec" aria-label="Kapo azalt"><Icon name="minus" class="icon-sm" /></button>
-        <span class="val">Kapo <span id="capo-val">0</span></span>
-        <button type="button" id="capo-inc" aria-label="Kapo artır"><Icon name="plus" class="icon-sm" /></button>
-      </div>
-      <div class="stepper" aria-label="Yazı boyutu">
-        <button type="button" id="font-dec" aria-label="Yazıyı küçült"><Icon name="minus" class="icon-sm" /></button>
-        <span class="val">Yazı <span id="font-val">15</span></span>
-        <button type="button" id="font-inc" aria-label="Yazıyı büyüt"><Icon name="plus" class="icon-sm" /></button>
-      </div>
-      <button class="btn tb" id="btn-chords" type="button" aria-pressed="true">Akorları gizle</button>
-      <span class="spacer"></span>
-      <button class="btn btn-text tb" id="btn-saved" type="button" hidden title="Kaydettiğin tona dön">Kayıtlı ton <b id="saved-key"></b></button>
-      <button class="btn btn-text tb" id="btn-save" type="button" hidden>Tonu kaydet</button>
-      <button class="btn btn-primary tb" id="btn-play" type="button" aria-pressed="false"><Icon name="play" class="icon-sm" /> Sayfayı oynat</button>
+    <span class="tool-sep" aria-hidden="true"></span>
+    <div class="ctl" aria-label="Kapo">
+      <span class="ctl-label">Kapo</span>
+      <button type="button" class="ctl-btn" id="capo-dec" aria-label="Kapo azalt"><Icon name="minus" class="icon-sm" /></button>
+      <span class="ctl-val" id="capo-val">0</span>
+      <button type="button" class="ctl-btn" id="capo-inc" aria-label="Kapo artır"><Icon name="plus" class="icon-sm" /></button>
     </div>
-  </div>
-  <div class="key-info" id="key-info" hidden>
-    <span id="key-info-text"></span>
-    <button type="button" id="btn-reset">Orijinale dön</button>
-  </div>
-  <div class="sheet" id="sheet">
-    <pre class="chords" id="chords" set:html={sheetHtml(song.content)} />
-  </div>
-  <div class="ugc-note">
-    <div class="ugc-head">
-      <span class="ugc-by">@anonim</span>
-      <button type="button" class="ugc-report" id="report-open">Şikayet Et</button>
+    <span class="tool-sep" aria-hidden="true"></span>
+    <div class="ctl" aria-label="Yazı boyutu">
+      <span class="ctl-label">Yazı</span>
+      <button type="button" class="ctl-btn" id="font-dec" aria-label="Yazıyı küçült"><Icon name="minus" class="icon-sm" /></button>
+      <span class="ctl-val" id="font-val">15</span>
+      <button type="button" class="ctl-btn" id="font-inc" aria-label="Yazıyı büyüt"><Icon name="plus" class="icon-sm" /></button>
     </div>
-    <p>⚠️ Gituar, kullanıcıların kendi içeriklerini paylaştığı bir topluluk platformudur. Tüm içerikler kullanıcı sorumluluğundadır.</p>
-    <p>Bu içerik müzik eğitimi amacı ile yayımlanmış olup hakları kendi sahiplerine aittir. Telif ihlali içerdiğini düşünüyorsanız bizimle <a href="/iletisim/">iletişime</a> geçebilirsiniz.</p>
+    <span class="tool-sep" aria-hidden="true"></span>
+    <button class="btn tb" id="btn-chords" type="button" aria-pressed="true">Akorları gizle</button>
+    <button class="btn btn-text tb" id="btn-saved" type="button" hidden title="Kaydettiğin tona dön">Kayıtlı ton <b id="saved-key"></b></button>
+    <button class="btn btn-text tb" id="btn-save" type="button" hidden>Tonu kaydet</button>
   </div>
+  <div class="song-actions">
+    <button class="btn btn-primary" id="btn-play" type="button" aria-pressed="false"><Icon name="play" class="icon-sm" /> Sayfayı oynat</button>
+    <button class="btn btn-outline" id="btn-rep" type="button"><Icon name="bookmark" class="icon-sm" /> Repertuara ekle</button>
+    <button class="btn btn-outline btn-round" id="btn-print" type="button" aria-label="Yazdır" title="Yazdır"><Icon name="print" class="icon-sm" /></button>
+  </div>
+  <div class="song-main">
+    <div class="key-info" id="key-info" hidden>
+      <span id="key-info-text"></span>
+      <button type="button" id="btn-reset">Orijinale dön</button>
+    </div>
+    <div class="sheet" id="sheet">
+      <pre class="chords" id="chords" set:html={sheetHtml(song.content)} />
+    </div>
+    <div class="ugc-note">
+      <div class="ugc-head">
+        <span class="ugc-by">Ekleyen @anonim</span>
+        <button type="button" class="ugc-report" id="report-open"><Icon name="flag" class="icon-sm" />Şikayet et</button>
+      </div>
+      <p>Gituar, kullanıcıların kendi içeriklerini paylaştığı bir topluluk platformudur; tüm içerikler kullanıcı sorumluluğundadır. Bu içerik müzik eğitimi amacıyla yayımlanmış olup hakları sahiplerine aittir. Telif ihlali içerdiğini düşünüyorsan bizimle <a href="/iletisim/">iletişime</a> geç.</p>
+    </div>
+    <slot name="after" />
+  </div>
+  <aside class="song-rail" aria-label="Şarkı bilgileri"><slot name="rail" /></aside>
   <div class="play-bar" id="play-bar" aria-label="Otomatik kaydırma">
     <button class="btn tb" id="play-toggle" type="button">Durdur</button>
     <input type="range" id="play-speed" min="1" max="10" step="1" value="4" aria-label="Kaydırma hızı" />

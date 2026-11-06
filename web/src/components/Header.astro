@@ -1,4 +1,5 @@
 ---
+// Üst bar (Wecra web-yeni · Web/Üst bar): içerikle aynı 1280'lik sütunda; logo + menü solda, arama · Pro · Giriş · tema sağda.
 import Logo from "./Logo.astro";
 import Icon from "./Icon.astro";
 import { APP_STORE_URL } from "../lib/site.ts";
@@ -8,19 +9,17 @@ import { APP_STORE_URL } from "../lib/site.ts";
     <Logo />
     <nav class="nav" aria-label="Ana menü">
       <a href="/sanatcilar/">Sanatçılar</a>
-      <a href="/repertuarlarim/">Repertuarlarım</a>
       <a href="/akorlar/">Akorlar</a>
-      <a href="/pro/">Pro</a>
+      <a href="/kolay-gitar-akorlari/">Kolay şarkılar</a>
+      <a href="/repertuarlarim/">Repertuarlarım</a>
       <a href="/admin/" id="admin-link" hidden>Yönetim</a>
     </nav>
     <div class="header-actions">
       <a class="search-mini" id="search-open" href="/ara/" aria-label="Ara (⌘K)">
-        <Icon name="search" /><span class="search-mini-label">Ara</span><kbd class="key" id="search-kbd" aria-hidden="true">⌘K</kbd>
+        <Icon name="search" /><span class="search-mini-label">Şarkı ya da sanatçı ara</span><kbd class="key" id="search-kbd" aria-hidden="true">⌘K</kbd>
       </a>
+      <a class="pro-pill" href="/pro/"><Icon name="crown" class="icon-sm" />Pro</a>
       <a href="/giris/" class="btn btn-text" id="auth-btn">Giriş yap</a>
-      <a class="btn btn-appstore" href={APP_STORE_URL} rel="noopener" title="Gituar'ı App Store'dan indir">
-        <Icon name="download" class="icon-sm" /><span>App Store</span>
-      </a>
       <button class="icon-btn" id="theme-toggle" type="button" aria-label="Koyu tema" title="Koyu tema">
         <Icon name="moon" class="icon icon-moon" /><Icon name="sun" class="icon icon-sun" />
       </button>
@@ -31,6 +30,8 @@ import { APP_STORE_URL } from "../lib/site.ts";
     </div>
     <div class="header-menu" id="header-menu">
       <a href="/sanatcilar/">Sanatçılar</a>
+      <a href="/akorlar/">Akorlar</a>
+      <a href="/kolay-gitar-akorlari/">Kolay şarkılar</a>
       <a href="/repertuarlarim/">Repertuarlarım</a>
       <a href="/pro/">Gituar Pro</a>
       <a href="/admin/" id="admin-link-mobile" hidden>Yönetim</a>

@@ -11,17 +11,15 @@ const links = [
 ];
 ---
 <Base title={title} description={description} ads={false}>
-  <article class="guide">
-    <div class="page-head">
-      <div class="crumbs"><a href="/">Ana sayfa</a><span>/</span>{title}</div>
+  <div class="crumbs"><a href="/">Ana sayfa</a><span>/</span>{title}</div>
+  <div class="legal-layout">
+    <nav class="card legal-menu" aria-label="Yasal sayfalar">
+      {links.map((l) => <a href={l.path} aria-current={l.path === path ? "page" : undefined}>{l.label}</a>)}
+    </nav>
+    <article class="guide-body legal-body">
       <h1>{title}</h1>
-      <p class="muted small">Son güncelleme: {updated}</p>
-    </div>
-    <div class="guide-body legal-body">
+      <p class="legal-updated">Son güncelleme: {updated}</p>
       <slot />
-      <nav class="legal-nav" aria-label="Yasal sayfalar">
-        {links.filter((l) => l.path !== path).map((l) => <a href={l.path}>{l.label}</a>)}
-      </nav>
-    </div>
-  </article>
+    </article>
+  </div>
 </Base>

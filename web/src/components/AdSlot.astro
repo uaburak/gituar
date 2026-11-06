@@ -7,7 +7,8 @@ const { size, unit, class: className = "" } = Astro.props;
 const labels = { side: "160 × 600", leaderboard: "728 × 90", rect: "300 × 250", inline: "Liste içi · her 10 satırda bir", sticky: "320 × 50" };
 const format = size === "side" ? "vertical" : size === "rect" ? "rectangle" : size === "sticky" ? "horizontal" : "auto";
 // AdSense birimi (data-ad-slot) yer türüne göre .env'den gelir; `unit` yalnızca ölçüm/etiket içindir.
-const slot = ADSENSE_SLOTS[size];
+// 728×90 için ayrı birim yoksa duyarlı liste içi birimi kullanılır.
+const slot = ADSENSE_SLOTS[size] || (size === "leaderboard" ? ADSENSE_SLOTS.inline : "");
 const live = Boolean(ADSENSE_CLIENT && slot);
 // AdSense'te sabit boyutlu oluşturulan birimler (yan 160×600, mobil alt 320×50); diğerleri duyarlı
 const fixed = size === "side" ? { w: 160, h: 600 } : size === "sticky" ? { w: 320, h: 50 } : null;

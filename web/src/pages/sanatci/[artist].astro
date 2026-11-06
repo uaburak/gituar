@@ -1,6 +1,7 @@
 ---
 import Base from "../../layouts/Base.astro";
 import SongList from "../../components/SongList.astro";
+import AdSlot from "../../components/AdSlot.astro";
 import Icon from "../../components/Icon.astro";
 import { catalog, type ArtistGroup } from "../../lib/catalog.ts";
 import { siteUrl, artistTitle, artistDescription, artistJsonLd } from "../../lib/seo.ts";
@@ -10,7 +11,6 @@ import { songChords, chordHref } from "../../lib/chord-stats.ts";
 const foundArtist = catalog().artistBySlug.get(Astro.params.artist ?? "");
 if (!foundArtist) return Astro.rewrite("/404/");
 const artist: ArtistGroup = foundArtist;
-const initial = (artist.name[0] ?? "?").toLocaleUpperCase("tr-TR");
 const base = siteUrl(Astro.site);
 const featured = featuredSongIds(artist.slug).map((id) => catalog().byId.get(id)).filter((s) => s !== undefined);
 const thin = isThinArtist(artist.slug);
@@ -39,40 +39,43 @@ const easyNotes = Object.fromEntries(easiest.map((s) => [s.id, songChords(s).cho
 <Base noindex={thin} title={artistTitle(artist)} description={artistDescription(artist)} ogType="profile" jsonLd={artistJsonLd(artist, base)}>
   <div class="page-head">
     <nav class="crumbs" aria-label="Sayfa yolu"><a href="/">Ana sayfa</a><span>/</span><a href="/sanatcilar/">Sanatçılar</a><span>/</span>{artist.name}</nav>
-    <div class="artist-head">
-      <span class="row-avatar lg" aria-hidden="true">{initial}</span>
-      <div>
-        <h1>{artist.name} <span class="h1-kw">akorları</span></h1>
-        <p>{artist.songs.length} şarkının gitar akorları · A'dan Z'ye · orijinal ton, transpoze ve kapo</p>
-      </div>
-    </div>
-    <form class="search-inline" role="search" style="margin-top:20px" onsubmit="return false">
-      <Icon name="search" />
-      <input type="search" id="song-filter" placeholder={`${artist.name} şarkılarında ara`} autocomplete="off" aria-label="Şarkılarda ara" />
-    </form>
+    <h1>{artist.name} <span class="h1-kw">akorları</span></h1>
+    {n >= 3 ? (
+      <p class="artist-facts">
+        {n} şarkı{topKey && <> · en sık ton <strong>{topKey[0]}</strong></>}
+        {topChords.length > 0 && <> · en çok kullanılan akorlar {topChords.slice(0, 4).map(([name, c], i) => { const href = chordHref(c.root, c.quality); return <>{i > 0 && ", "}{href ? <a class="mono" href={href}>{name}</a> : <span class="mono">{name}</span>}</>; })}</>}
+        {easyCount > 0 && <> · {easyCount} şarkı barresiz</>}
+      </p>
+    ) : <p>{artist.songs.length} şarkının gitar akorları · orijinal ton, transpoze ve kapo</p>}
   </div>
-  {n >= 3 && (
-    <p class="answer artist-facts">
-      Gituar'da {artist.name} için {n} şarkının akoru var.
-      {topKey && <> En çok kullanılan ton <strong>{topKey[0]}</strong> ({topKey[1]} şarkı).</>}
-      {topChords.length > 0 && <> En sık geçen akorlar: {topChords.map(([name, c], i) => { const href = chordHref(c.root, c.quality); return <>{i > 0 && ", "}{href ? <a class="mono" href={href}>{name}</a> : <span class="mono">{name}</span>}</>; })}.</>}
-      {easyCount > 0 && <> {easyCount} şarkı yalnızca açık akorlarla, barre olmadan çalınıyor.</>}
-    </p>
-  )}
-  <SongList songs={artist.songs} showArtist={false} numbered adEvery={10} unit="artist" id="artist-songs" />
-  {n >= 5 && easiest.length >= 3 && (
-    <section class="section" style="margin-top:40px">
-      <div class="section-head"><h2>En kolay {artist.name} şarkıları</h2><a href="/kolay-gitar-akorlari/">Kolay gitar akorları ›</a></div>
-      <SongList songs={easiest} showArtist={false} notes={easyNotes} />
-    </section>
-  )}
-  <p class="muted small" id="filter-empty" hidden>Bu aramayla eşleşen şarkı yok.</p>
-  {featured.length > 0 && (
-    <section class="section" style="margin-top:40px">
-      <div class="section-head"><h2>{artist.name} düetleri ve birlikte söyledikleri</h2></div>
-      <SongList songs={featured} />
-    </section>
-  )}
+  <div class="with-rail">
+    <div>
+      <div class="artist-tools">
+        <form class="search-inline" role="search" onsubmit="return false">
+          <Icon name="search" />
+          <input type="search" id="song-filter" placeholder={`${artist.name} şarkılarında ara`} autocomplete="off" aria-label="Şarkılarda ara" />
+        </form>
+      </div>
+      <SongList songs={artist.songs} showArtist={false} numbered adEvery={10} unit="artist" id="artist-songs" />
+      <p class="muted small" id="filter-empty" hidden>Bu aramayla eşleşen şarkı yok.</p>
+    </div>
+    <aside class="rail">
+      {n >= 5 && easiest.length >= 3 && (
+        <section>
+          <div class="section-head"><h2>En kolay şarkıları</h2><a href="/kolay-gitar-akorlari/">Tümü ›</a></div>
+          <SongList songs={easiest} showArtist={false} notes={easyNotes} />
+        </section>
+      )}
+      {featured.length > 0 && (
+        <section>
+          <div class="section-head"><h2>Düetleri</h2></div>
+          <SongList songs={featured} />
+        </section>
+      )}
+      <AdSlot size="rect" unit="artist-rail" />
+    </aside>
+  </div>
+  <AdSlot size="leaderboard" unit="artist-after" />
   <p class="muted small" style="margin-top:24px">Aradığın şarkı yok mu? <a href="/sanatcilar/">Tüm sanatçıların akorları</a> dizinine bak ya da <a href="/iletisim/">şarkı öner</a>.</p>
   <script src="../../scripts/song-filter.ts"></script>
 </Base>

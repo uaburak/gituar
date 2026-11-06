@@ -78,12 +78,11 @@ export async function newestSongs(limit = 100): Promise<SongEntry[]> {
 }
 
 export function rowHtml(e: SongEntry): string {
-  return `<a class="row" href="${e.p}"><span class="row-body"><span class="row-title">${esc(e.s)}</span><span class="row-sub">${esc(e.a)}</span></span>${e.k ? `<span class="row-key">${esc(e.k)}</span>` : ""}</a>`;
+  return `<a class="row" href="${e.p}"><span class="row-body"><span class="row-title">${esc(e.s)}</span><span class="row-sub">${esc(e.a)}</span></span>${e.k ? `<span class="row-key">${esc(e.k)}</span>` : ""}<svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></a>`;
 }
 
 export function artistRowHtml(a: ArtistHit): string {
-  const initial = (a.name.trim()[0] ?? "?").toLocaleUpperCase("tr-TR");
-  return `<a class="row" href="${a.path}"><span class="row-avatar" aria-hidden="true">${esc(initial)}</span><span class="row-body"><span class="row-title">${esc(a.name)}</span></span><span class="row-count">${a.count} akor</span></a>`;
+  return `<a class="row" href="${a.path}"><span class="row-body"><span class="row-title">${esc(a.name)}</span><span class="row-sub">${a.count} şarkı</span></span><svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></a>`;
 }
 
 export function esc(s: string): string {

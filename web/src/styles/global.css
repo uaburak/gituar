@@ -439,11 +439,9 @@ html.plus body { padding-bottom: 0; }
 .divider::before, .divider::after { content: ""; flex: 1; border-top: 1px solid var(--hairline); }
 
 /* ---------- Repertuar kartları ---------- */
-.rep-card { display: block; padding: 20px; color: var(--text); }
-.rep-card:hover { text-decoration: none; border-color: var(--strong); }
-.rep-card h3 { font-size: 15px; }
-.rep-card .rep-songs { margin: 14px 0 0; padding: 14px 0 0; border-top: 1px solid var(--hairline); font-size: 13px; display: grid; gap: 6px; }
-.rep-card .rep-more { color: var(--text-3); }
+.rep-create { display: flex; gap: 8px; padding: 10px; margin-bottom: 20px; }
+.rep-create .input { flex: 1; min-width: 0; }
+.rep-create[hidden] { display: none; }
 
 /* ---------- Alt bilgi: gri, küçük (Apple) ---------- */
 .site-footer { background: var(--page); border-top: 1px solid var(--hairline); padding: 28px 0 32px; color: var(--text-2); font-size: 12px; }

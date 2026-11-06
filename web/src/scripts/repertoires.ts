@@ -1,5 +1,5 @@
 import { firebaseReady, currentUser, listMyRepertoires, createRepertoire } from "../lib/firebase-client.ts";
-import { loadIndex, esc } from "../lib/search-client.ts";
+import { esc } from "../lib/search-client.ts";
 
 const status = document.getElementById("rep-status")!;
 const meta = document.getElementById("rep-meta")!;
@@ -16,18 +16,16 @@ const newBtn = document.getElementById("rep-new-btn") as HTMLButtonElement;
   newBtn.addEventListener("click", () => form.querySelector<HTMLInputElement>("input")?.focus());
 
   async function load() {
-    const [reps, index] = await Promise.all([listMyRepertoires(user!.uid), loadIndex()]);
-    const byId = new Map(index.map((e) => [e.i, e]));
-    grid.querySelectorAll(".rep-card:not(form)").forEach((el) => el.remove());
-    const cards = reps.map((r) => {
-      const names = r.songIds.map((id) => byId.get(id)).filter(Boolean).slice(0, 3)
-        .map((e) => `<span>${esc(e!.s)} · ${esc(e!.a)}</span>`).join("");
-      const more = r.songIds.length > 3 ? `<span class="rep-more">+${r.songIds.length - 3} şarkı</span>` : "";
-      return `<a class="card rep-card" href="/repertuar/?id=${esc(r.id)}"><h3>${esc(r.name)}</h3><span class="muted small">${r.songIds.length} şarkı${r.isPublic ? " · herkese açık" : ""}</span>${names || more ? `<div class="rep-songs">${names}${more}</div>` : ""}</a>`;
-    });
-    form.insertAdjacentHTML("beforebegin", cards.join(""));
+    const reps = await listMyRepertoires(user!.uid);
+    grid.innerHTML = reps
+      .map((r) => {
+        const initial = esc(r.name.trim().charAt(0).toLocaleUpperCase("tr-TR") || "?");
+        const sub = `${r.songIds.length} şarkı${r.isPublic ? " · herkese açık" : ""}`;
+        return `<a class="card pick" href="/repertuar/?id=${esc(r.id)}"><span class="pick-tile" aria-hidden="true">${initial}</span><span class="pick-body"><span class="pick-title">${esc(r.name)}</span><span class="muted small">${sub}</span></span><span class="pick-arrow" aria-hidden="true">›</span></a>`;
+      })
+      .join("");
     meta.textContent = `${reps.length} repertuar · iPhone'daki Gituar ile eşitlenir`;
-    status.textContent = reps.length ? "" : "Henüz repertuar yok. Sağdaki kartla bir tane oluştur.";
+    status.textContent = reps.length ? "" : "Henüz repertuar yok. Yukarıdan bir tane oluştur.";
   }
   form.addEventListener("submit", async (e) => {
     e.preventDefault();

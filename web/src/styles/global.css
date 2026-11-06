@@ -382,7 +382,7 @@ a.card:hover, .editor-hero:hover { text-decoration: none; transform: scale(1.02)
 .song-meta .dot { color: var(--text-3); }
 /* Şarkı düzeni (Wecra · Şarkı / Desktop): araç çubuğu | eylemler; akor kâğıdı | sağ panel (384) */
 .song-layout { display: grid; grid-template-columns: minmax(0, 1fr) 384px; column-gap: 24px; row-gap: 24px; align-items: start; }
-.tools { grid-column: 1; display: flex; align-items: center; flex-wrap: wrap; gap: 4px 12px; min-height: 40px; padding: 4px 12px 4px 4px; background: var(--surface); border-radius: 999px; }
+.tools { grid-column: 1; display: flex; align-items: center; flex-wrap: wrap; gap: 4px 12px; min-height: 40px; padding: 4px; background: var(--surface); border-radius: 999px; }
 .song-actions { grid-column: 2; display: flex; align-items: center; gap: 8px; min-height: 40px; }
 .song-main { grid-column: 1; min-width: 0; }
 .song-rail { grid-column: 2; display: grid; gap: 20px; align-content: start; position: sticky; top: 16px; }
@@ -399,6 +399,8 @@ a.card:hover, .editor-hero:hover { text-decoration: none; transform: scale(1.02)
 .btn-reset { background: #ff3b30; color: #fff; }
 .btn-reset:hover { background: #e0352b; filter: none; }
 .tb { height: 32px; padding: 0 14px; font-size: 14px; font-weight: 500; }
+/* Akorları gizle ve ardından gelenler (Tonu kaydet, sıfırla) araç çubuğunun sağına yaslı */
+#btn-chords { margin-left: auto; }
 .btn-outline { background: var(--surface); box-shadow: inset 0 0 0 1px var(--hairline); }
 .btn-round { width: 40px; padding: 0; }
 /* Yazdır: "Sayfayı oynat" görünürken yalnızca ikon; oynat gizliyse (akorlar ekrana sığıyor) yazıyla */
@@ -430,7 +432,7 @@ a.card:hover, .editor-hero:hover { text-decoration: none; transform: scale(1.02)
   .song-rail { position: static; }
   .song-actions { min-height: 0; }
   .tool-sep { display: none; }
-  .tools { gap: 8px 16px; border-radius: 20px; padding: 4px 12px 4px 4px; }
+  .tools { gap: 8px 16px; border-radius: 20px; padding: 4px; }
 }
 .sheet { padding: 32px 40px; background: var(--surface); border-radius: 20px; }
 /* Akor satırları kaynak veride orantılı yazı tipine göre boşluklanmış (iOS uygulaması ve Repertuarım gibi);

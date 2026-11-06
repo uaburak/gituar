@@ -382,8 +382,8 @@ a.card:hover, .editor-hero:hover { text-decoration: none; transform: scale(1.02)
 .song-meta .dot { color: var(--text-3); }
 /* Şarkı düzeni (Wecra · Şarkı / Desktop): araç çubuğu | eylemler; akor kâğıdı | sağ panel (384) */
 .song-layout { display: grid; grid-template-columns: minmax(0, 1fr) 384px; column-gap: 24px; row-gap: 24px; align-items: start; }
-.tools { grid-column: 1; display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; min-height: 56px; padding: 8px 12px; background: var(--surface); border-radius: 16px; }
-.song-actions { grid-column: 2; display: flex; align-items: center; gap: 8px; min-height: 56px; }
+.tools { grid-column: 1; display: flex; align-items: center; flex-wrap: wrap; gap: 4px 12px; min-height: 40px; padding: 4px 12px 4px 4px; background: var(--surface); border-radius: 999px; }
+.song-actions { grid-column: 2; display: flex; align-items: center; gap: 8px; min-height: 40px; }
 .song-main { grid-column: 1; min-width: 0; }
 .song-rail { grid-column: 2; display: grid; gap: 20px; align-content: start; position: sticky; top: 16px; }
 .ctl { display: inline-flex; align-items: center; gap: 6px; }
@@ -423,7 +423,7 @@ a.card:hover, .editor-hero:hover { text-decoration: none; transform: scale(1.02)
   .song-rail { position: static; }
   .song-actions { min-height: 0; }
   .tool-sep { display: none; }
-  .tools { gap: 10px 16px; }
+  .tools { gap: 8px 16px; border-radius: 20px; padding: 4px 12px 4px 4px; }
 }
 .sheet { padding: 32px 40px; background: var(--surface); border-radius: 20px; }
 /* Akor satırları kaynak veride orantılı yazı tipine göre boşluklanmış (iOS uygulaması ve Repertuarım gibi);

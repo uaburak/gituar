@@ -177,5 +177,38 @@ function init(root: HTMLElement) {
   });
   $("rep-close").addEventListener("click", () => dialog.close());
 
+  // ---- Şikayet Et (iOS ile aynı nedenler ve metinler; Firestore reports koleksiyonu) ----
+  const reportDialog = $<HTMLDialogElement>("report-dialog");
+  const showReportResult = (ok: boolean) => {
+    $("report-ask").hidden = true;
+    $("report-done").hidden = false;
+    $("report-done-title").textContent = ok ? "Şikayet Alındı" : "Şikayet Gönderilemedi";
+    $("report-done-text").textContent = ok
+      ? "Bildiriminiz için teşekkürler. İçerik en kısa sürede inceleme ekibimiz tarafından kontrol edilecektir."
+      : "Şikayet gönderilirken bir hata oluştu. İnternet bağlantınızı kontrol edip tekrar deneyin.";
+  };
+  $("report-open").addEventListener("click", async () => {
+    const mod = await import("../lib/firebase-client.ts");
+    const user = mod.firebaseReady ? await mod.currentUser() : null;
+    if (!user) { location.href = `/giris/?next=${encodeURIComponent(location.pathname)}`; return; }
+    $("report-ask").hidden = false;
+    $("report-done").hidden = true;
+    reportDialog.showModal();
+    reportDialog.querySelectorAll<HTMLButtonElement>(".report-reason").forEach((b) => {
+      b.disabled = false;
+      b.onclick = async () => {
+        reportDialog.querySelectorAll<HTMLButtonElement>(".report-reason").forEach((x) => (x.disabled = true));
+        try {
+          await mod.createReport(user.uid, { id: songId, name: root.dataset.name ?? "", artist: root.dataset.artist ?? "" }, b.dataset.reason!);
+          showReportResult(true);
+        } catch {
+          showReportResult(false);
+        }
+      };
+    });
+  });
+  $("report-cancel").addEventListener("click", () => reportDialog.close());
+  $("report-ok").addEventListener("click", () => reportDialog.close());
+
   render();
 }

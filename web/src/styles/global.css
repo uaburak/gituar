@@ -503,7 +503,29 @@ html.plus body { padding-bottom: 0; }
 }
 
 @media print {
-  .site-header, .site-footer, .tools, .side-ad, .ad-slot, .play-bar, .key-info, .sheet-note, .section, .title-row .actions { display: none !important; }
+  .site-header, .site-footer, .tools, .side-ad, .ad-slot, .play-bar, .key-info, .sheet-note, .ugc-note, .consent, .section, .title-row .actions { display: none !important; }
   body { background: #fff; color: #000; }
   .chords, .chords .chord, .chords .line[data-c="1"] { color: #000; }
 }
+
+/* ---------- Yasal sayfalar ve çerez bildirimi ---------- */
+.legal-body h2 { font-size: 19px; }
+.legal-nav { display: flex; flex-wrap: wrap; gap: 8px 18px; border-top: 1px solid var(--hairline); margin-top: 28px; padding-top: 16px; font-size: 14px; }
+.footer-legal { font-size: 13px; }
+.consent { position: fixed; left: 16px; bottom: 16px; z-index: 60; max-width: 420px; display: flex; align-items: center; gap: 14px; padding: 12px 14px 12px 18px; background: var(--surface); color: var(--text); border: 1px solid var(--hairline); border-radius: 16px; box-shadow: 0 8px 30px rgba(0,0,0,.12); font-size: 13px; line-height: 1.4; }
+.consent[hidden] { display: none; }
+.consent p { margin: 0; }
+.consent .btn { flex: none; }
+@media (max-width: 600px) { .consent { left: 12px; right: 12px; bottom: 12px; max-width: none; } }
+
+/* ---------- Şarkı alt bilgisi: topluluk notu ve şikayet (iOS ile aynı) ---------- */
+.ugc-note { margin-top: 28px; padding-top: 16px; border-top: 1px solid var(--hairline); display: grid; gap: 10px; font-size: 12px; line-height: 1.5; color: var(--text-2); }
+.ugc-note p { margin: 0; }
+.ugc-head { display: flex; align-items: center; justify-content: space-between; }
+.ugc-by { font-size: 13px; font-weight: 600; color: var(--text); }
+.ugc-report { border: 0; background: none; padding: 0; font: inherit; font-size: 12px; font-weight: 500; color: #ff3b30; cursor: pointer; }
+.ugc-report:hover { text-decoration: underline; }
+.report-dialog { max-width: 360px; }
+.report-title { font-size: 17px; font-weight: 600; margin: 0 0 6px; color: var(--text); }
+.report-actions { display: grid; gap: 8px; margin-top: 16px; }
+.report-reason { color: #ff3b30; }

@@ -7,7 +7,7 @@ import { sitemapLastmod } from "./sitemap-lastmod.mjs";
 const site = process.env.PUBLIC_SITE_URL ?? "https://gituar.com";
 
 // `noindex` basılan sayfalar (Base.astro) sitemap'e de girmez; robots.txt ile uyumlu tutulur.
-const NOINDEX_PATHS = /\/(ara|giris|repertuarlarim|repertuar|admin|iletisim|og|404)\/$/;
+const NOINDEX_PATHS = /\/(ara|giris|repertuarlarim|repertuar|admin|og|404)\/$/;
 
 export default defineConfig({
   site,

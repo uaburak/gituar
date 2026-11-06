@@ -7,7 +7,7 @@ interface Props { song: CatalogSong }
 const { song } = Astro.props;
 const originalRoot = rootNote(song.originalKey);
 ---
-<article id="song" data-id={song.id} data-key={song.originalKey} data-root={originalRoot} data-title={`${song.artist} - ${song.songName}`}>
+<article id="song" data-id={song.id} data-key={song.originalKey} data-root={originalRoot} data-title={`${song.artist} - ${song.songName}`} data-name={song.songName} data-artist={song.artist}>
   <div class="tools" role="toolbar" aria-label="Akor araçları">
     <div class="tool-row">
       <span class="tool-label">Ton</span>
@@ -43,15 +43,40 @@ const originalRoot = rootNote(song.originalKey);
   <div class="sheet" id="sheet">
     <pre class="chords" id="chords" set:html={sheetHtml(song.content)} />
   </div>
-  <p class="sheet-note">Akorda hata mı var? <a href="/iletisim/">Düzeltme öner</a></p>
+  <div class="ugc-note">
+    <div class="ugc-head">
+      <span class="ugc-by">@anonim</span>
+      <button type="button" class="ugc-report" id="report-open">Şikayet Et</button>
+    </div>
+    <p>⚠️ Gituar, kullanıcıların kendi içeriklerini paylaştığı bir topluluk platformudur. Tüm içerikler kullanıcı sorumluluğundadır.</p>
+    <p>Bu içerik müzik eğitimi amacı ile yayımlanmış olup hakları kendi sahiplerine aittir. Telif ihlali içerdiğini düşünüyorsanız bizimle <a href="/iletisim/">iletişime</a> geçebilirsiniz.</p>
+  </div>
   <div class="play-bar" id="play-bar" aria-label="Otomatik kaydırma">
     <button class="btn tb" id="play-toggle" type="button">Durdur</button>
     <input type="range" id="play-speed" min="1" max="10" step="1" value="4" aria-label="Kaydırma hızı" />
     <button class="btn btn-text tb" id="play-close" type="button">Kapat</button>
   </div>
 
+  <dialog id="report-dialog" class="card report-dialog">
+    <div id="report-ask">
+      <p class="report-title">İçeriği Şikayet Et</p>
+      <p class="muted small">Bu içeriği neden şikayet etmek istiyorsunuz? İnceleme ekibimiz en kısa sürede kontrol edecektir.</p>
+      <div class="report-actions">
+        <button type="button" class="btn btn-block report-reason" data-reason="Uygunsuz İçerik">Uygunsuz İçerik</button>
+        <button type="button" class="btn btn-block report-reason" data-reason="Telif Hakkı İhlali">Telif Hakkı İhlali</button>
+        <button type="button" class="btn btn-block report-reason" data-reason="Yanlış Akor/Söz">Yanlış Akor/Söz</button>
+        <button type="button" class="btn btn-text btn-block" id="report-cancel">Vazgeç</button>
+      </div>
+    </div>
+    <div id="report-done" hidden>
+      <p class="report-title" id="report-done-title"></p>
+      <p class="muted small" id="report-done-text"></p>
+      <div class="report-actions"><button type="button" class="btn btn-primary btn-block" id="report-ok">Tamam</button></div>
+    </div>
+  </dialog>
+
   <dialog id="rep-dialog" class="card">
-    <h2 style="margin-bottom:12px">Repertuara ekle</h2>
+    <p class="report-title" style="margin-bottom:12px">Repertuara ekle</p>
     <div id="rep-list" class="list" style="margin-bottom:16px"></div>
     <form id="rep-new" style="display:flex;gap:8px">
       <input class="input" name="name" placeholder="Yeni repertuar adı" style="flex:1" required />

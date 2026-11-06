@@ -235,6 +235,22 @@ export async function setReportStatus(id: string, status: "in_progress" | "revie
   await f.fsMod.updateDoc(f.fsMod.doc(f.db, "reports", id), { status });
 }
 
+/** Şarkı şikayeti: iOS SongDetailView.reportContent ile aynı alanlar; admin panelinde listelenir. */
+export async function createReport(uid: string, song: { id: string; name: string; artist: string }, reason: string): Promise<void> {
+  const f = await fb();
+  if (!f) throw new Error("firebase-not-configured");
+  await f.fsMod.addDoc(f.fsMod.collection(f.db, "reports"), {
+    songId: song.id,
+    songName: song.name,
+    songArtist: song.artist,
+    reason,
+    reportedAt: f.fsMod.serverTimestamp(),
+    status: "pending",
+    reportedBy: uid,
+    source: "web",
+  });
+}
+
 export async function signInGoogle(): Promise<void> {
   const f = await fb();
   if (!f) return;

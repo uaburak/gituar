@@ -1,0 +1,27 @@
+---
+// Yasal sayfalar için ortak kabuk: başlık, güncelleme tarihi, gövde ve diğer yasal sayfalara bağlantılar.
+import Base from "../layouts/Base.astro";
+interface Props { title: string; description: string; updated: string; path: string }
+const { title, description, updated, path } = Astro.props;
+const links = [
+  { path: "/hakkinda/", label: "Hakkında ve SSS" },
+  { path: "/kullanim-sartlari/", label: "Kullanım Şartları" },
+  { path: "/gizlilik/", label: "Gizlilik ve Çerez Politikası" },
+  { path: "/iletisim/", label: "İletişim ve telif" },
+];
+---
+<Base title={title} description={description} ads={false}>
+  <article class="guide">
+    <div class="page-head">
+      <div class="crumbs"><a href="/">Ana sayfa</a><span>/</span>{title}</div>
+      <h1>{title}</h1>
+      <p class="muted small">Son güncelleme: {updated}</p>
+    </div>
+    <div class="guide-body legal-body">
+      <slot />
+      <nav class="legal-nav" aria-label="Yasal sayfalar">
+        {links.filter((l) => l.path !== path).map((l) => <a href={l.path}>{l.label}</a>)}
+      </nav>
+    </div>
+  </article>
+</Base>

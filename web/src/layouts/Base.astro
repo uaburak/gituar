@@ -93,6 +93,21 @@ const ogImage = existsSync(fileURLToPath(new URL("../../public/og.png", import.m
       {ads && <aside class="side-ad" aria-label="Reklam sütunu"><AdSlot size="side" unit="side-right" /></aside>}
     </div>
     <Footer />
+    <div class="consent" id="consent" hidden role="region" aria-label="Çerez bildirimi">
+      <p>Bu siteyi kullanarak <a href="/kullanim-sartlari/">Kullanım Şartlarımızı</a> ve <a href="/gizlilik/">Gizlilik ve Çerez Politikamızı</a> kabul etmiş olursun.</p>
+      <button type="button" class="btn" id="consent-ok">Anladım</button>
+    </div>
+    <script is:inline>
+      (function () {
+        var box = document.getElementById("consent");
+        try { if (localStorage.getItem("gituar-consent") === "1") return; } catch (e) {}
+        box.hidden = false;
+        document.getElementById("consent-ok").addEventListener("click", function () {
+          try { localStorage.setItem("gituar-consent", "1"); } catch (e) {}
+          box.hidden = true;
+        });
+      })();
+    </script>
     <SearchPalette />
     {ads && <AdSlot size="sticky" unit="mobile-sticky" />}
     <script src="../scripts/app.ts"></script>

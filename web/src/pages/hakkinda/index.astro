@@ -1,0 +1,24 @@
+---
+import LegalPage from "../../components/LegalPage.astro";
+import { catalog } from "../../lib/catalog.ts";
+const c = catalog();
+const songs = c.songs.length.toLocaleString("tr-TR");
+const artists = c.artists.length.toLocaleString("tr-TR");
+const faq: [string, string][] = [
+  ["Gituar ücretsiz mi?", "Evet. Tüm akorlar, transpoze, kapo ve repertuarlar ücretsizdir. Reklamsız kullanmak istersen Gituar Pro aboneliğini alabilirsin."],
+  ["Repertuar nasıl oluşturulur?", "Giriş yaptıktan sonra Repertuarlarım sayfasından yeni repertuar oluştur. Şarkı sayfasındaki \"Repertuara ekle\" düğmesiyle şarkıları listene ekle. Repertuarların web ve iPhone'da aynıdır."],
+  ["Gituar'ı telefonumun ana ekranına nasıl eklerim?", "En iyi deneyim için App Store'daki Gituar uygulamasını indir. Android'de tarayıcının menüsünden \"Ana ekrana ekle\" seçeneğini kullanabilirsin."],
+  ["Akor gönderebilir miyim?", "Evet. iPhone uygulamasında giriş yaptıktan sonra yeni şarkı ekleyebilirsin. Gönderdiğin akorlar editör onayından sonra yayımlanır."],
+  ["Gönderdiğim akor neden yayımlanmadı?", "Eksik ya da hatalı akorlar, başka bir kaynaktan birebir kopyalanmış içerikler ve kullanım şartlarına aykırı gönderiler onaylanmaz. Farklı bir sorun olduğunu düşünüyorsan bize yaz."],
+  ["Akorda hata buldum, ne yapayım?", "Şarkı sayfasının altındaki \"Hata bildir\" bağlantısını kullan ya da iletisim@gituar.com adresine yaz."],
+  ["Gituar Pro aboneliğini nasıl iptal ederim?", "Abonelik App Store üzerinden yönetilir. iPhone'da Ayarlar > adın > Abonelikler bölümünden iptal edebilirsin."],
+];
+const jsonLd = { "@context": "https://schema.org", "@type": "FAQPage", mainEntity: faq.map(([q, a]) => ({ "@type": "Question", name: q, acceptedAnswer: { "@type": "Answer", text: a } })) };
+---
+<LegalPage title="Hakkında" path="/hakkinda/" updated="6 Kasım 2026" description={`Gituar nedir? ${songs} Türkçe şarkının gitar akoru, ${artists} sanatçı, transpoze, kapo ve repertuarlar. Sık sorulan sorular ve iletişim.`}>
+  <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+  <p><strong>Gituar</strong>, Türkçe şarkıların gitar akorlarını bir araya getiren ücretsiz bir akor sitesi ve iPhone uygulamasıdır. Katalogda {songs} şarkı ve {artists} sanatçı var. Akorları kendi tonuna transpoze edebilir, kapo hesabı yapabilir, otomatik kaydırmayla çalabilir ve şarkılarını repertuarlarda toplayabilirsin.</p>
+  <p>Öneri, görüş ve şikayetlerini <a href="mailto:iletisim@gituar.com">iletisim@gituar.com</a> adresine yazabilirsin.</p>
+  <h2>Sık sorulan sorular</h2>
+  {faq.map(([q, a]) => (<details class="faq"><summary>{q}</summary><p>{a}</p></details>))}
+</LegalPage>

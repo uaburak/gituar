@@ -80,10 +80,7 @@ function init(root: HTMLElement) {
     $("font-val").textContent = String(fontSize);
     sheet.style.setProperty("--sheet-font", `${fontSize}px`);
     const modified = selected !== originalRoot || capo !== 0;
-    $("key-info").hidden = !modified;
-    $("key-info-text").textContent = capo
-      ? `${selected + keySuffix} tonunda, kapo ${capo} ile gösteriliyor`
-      : `${selected + keySuffix} tonunda gösteriliyor`;
+    $("btn-reset").hidden = !modified;
     $("btn-save").hidden = !modified || (saved?.key === selected && saved?.capo === capo);
     $("btn-saved").hidden = !saved;
     if (saved) $("saved-key").textContent = saved.capo ? `${saved.key} · kapo ${saved.capo}` : saved.key;

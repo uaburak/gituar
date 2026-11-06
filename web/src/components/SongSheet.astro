@@ -41,6 +41,7 @@ const keySuffix = (song.originalKey ?? "").trim().slice(originalRoot.length);
     <button class="btn tb" id="btn-chords" type="button" aria-pressed="true">Akorları gizle</button>
     <button class="btn btn-text tb" id="btn-saved" type="button" hidden title="Kaydettiğin tona dön">Kayıtlı ton <b id="saved-key"></b></button>
     <button class="btn btn-primary tb" id="btn-save" type="button" hidden>Tonu kaydet</button>
+    <button class="ctl-btn btn-reset" id="btn-reset" type="button" hidden aria-label="Orijinal tona ve kapoya dön" title="Orijinale dön"><Icon name="reset" class="icon-sm" /></button>
   </div>
   <div class="song-actions">
     <button class="btn btn-primary" id="btn-play" type="button" aria-pressed="false"><Icon name="play" class="icon-sm" /> Sayfayı oynat</button>
@@ -48,10 +49,6 @@ const keySuffix = (song.originalKey ?? "").trim().slice(originalRoot.length);
     <button class="btn btn-outline btn-round" id="btn-print" type="button" aria-label="Yazdır" title="Yazdır"><Icon name="print" class="icon-sm" /></button>
   </div>
   <div class="song-main">
-    <div class="key-info" id="key-info" hidden>
-      <span id="key-info-text"></span>
-      <button type="button" id="btn-reset">Orijinale dön</button>
-    </div>
     <div class="sheet" id="sheet">
       <pre class="chords" id="chords" set:html={sheetHtml(song.content)} />
     </div>

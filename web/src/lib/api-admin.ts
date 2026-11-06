@@ -14,8 +14,9 @@ async function call<T>(user: User, path: string, init: RequestInit = {}): Promis
   return data as T;
 }
 
-export async function apiIsAdmin(user: User): Promise<boolean> {
-  try { return (await call<{ isAdmin: boolean }>(user, "/v1/me")).isAdmin; } catch { return false; }
+/** true/false: API'nin cevabı; null: API'ye ulaşılamadı (ağ, CORS ya da sunucu hatası). */
+export async function apiIsAdmin(user: User): Promise<boolean | null> {
+  try { return (await call<{ isAdmin: boolean }>(user, "/v1/me")).isAdmin; } catch { return null; }
 }
 
 export async function listPending(user: User): Promise<PendingSong[]> {

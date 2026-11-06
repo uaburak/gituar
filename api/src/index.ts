@@ -409,7 +409,8 @@ function cors(req: Request, env: Env, res: Response): Response {
   const origin = req.headers.get("Origin");
   if (!origin) return res;
   const allowed = env.ALLOWED_ORIGINS.split(",").map((s) => s.trim());
-  const ok = allowed.includes(origin) || /^https:\/\/[a-z0-9-]+-uaburaks-projects\.vercel\.app$/.test(origin);
+  // Yerel geliştirme: localhost / 127.0.0.1 her portta (tarayıcı kimlik kartını yalnızca sayfanın kendi koduna verir)
+  const ok = allowed.includes(origin) || /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin) || /^https:\/\/[a-z0-9-]+-uaburaks-projects\.vercel\.app$/.test(origin);
   if (!ok) return res;
   const headers = new Headers(res.headers);
   headers.set("Access-Control-Allow-Origin", origin);

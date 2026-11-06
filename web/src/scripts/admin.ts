@@ -93,7 +93,9 @@ async function loadReports() {
   const user = await currentUser();
   if (!user) { $("admin-auth").hidden = false; status.textContent = ""; return; }
   me = user;
-  if (!(await apiIsAdmin(user))) { $("admin-denied").hidden = false; status.textContent = ""; return; }
+  const admin = await apiIsAdmin(user);
+  if (admin === null) { status.textContent = "Sunucuya ulaşılamadı. Bağlantını kontrol edip sayfayı yenile."; return; }
+  if (!admin) { $("admin-denied").hidden = false; status.textContent = ""; return; }
   $("admin-pending").hidden = false;
   $("admin-reports").hidden = false;
   $("admin-refresh").hidden = false;

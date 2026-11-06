@@ -1,7 +1,9 @@
 ---
+// Logo sayfaya gömülü (data URI, ~5 KB): ayrı istek yok, sayfa geçişlerinde yeniden yüklenip yanıp sönmez.
+import logo from "../assets/logo-64.png?inline";
 interface Props { class?: string }
 const { class: className = "brand" } = Astro.props;
 ---
 <a href="/" class={className} aria-label="Gituar ana sayfa">
-  <img class="brand-mark" src="/img/app-icon.png" width="32" height="32" alt="Gituar" />
+  <img class="brand-mark" src={logo} width="32" height="32" alt="Gituar" decoding="sync" />
 </a>

@@ -9,7 +9,7 @@ import { siteUrl, homeJsonLd } from "../lib/seo.ts";
 import { APP_STORE_URL } from "../lib/site.ts";
 
 const c = catalog();
-const newest = newestSongs(10);
+const newest = newestSongs(8);
 const artists = topArtists(8);
 const songCount = c.songs.length.toLocaleString("tr-TR");
 const artistCount = c.artists.length.toLocaleString("tr-TR");
@@ -18,8 +18,9 @@ const description = `Gitar akorları: ${songCount} Türkçe şarkı akoru, ${art
 ---
 <Base title={title} description={description} jsonLd={homeJsonLd(siteUrl(Astro.site))}>
   <section class="hero">
+    <p class="eyebrow">{songCount} akor · {artistCount} sanatçı</p>
     <h1>Türkçe gitar akorları</h1>
-    <p>Bugün ne çalıyoruz? {songCount} şarkı akoru, {artistCount} sanatçı. Tonu değiştir, kapo tak, sayfayı oynat.</p>
+    <p>Şarkıyı bul, tonu değiştir, kapo tak, sayfayı oynat. Akorlar sözlerin üstünde, orijinal tonuyla.</p>
     <form class="search-big" action="/ara/" method="get" role="search">
       <Icon name="search" />
       <input type="search" name="q" placeholder="Şarkı ya da sanatçı ara" autocomplete="off" aria-label="Ara" autofocus />
@@ -33,19 +34,54 @@ const description = `Gitar akorları: ${songCount} Türkçe şarkı akoru, ${art
   </section>
 
   <section class="section" id="editor" hidden>
-    <div class="section-head"><h2>Editörün seçimleri</h2><span class="muted small">Gituar ekibinin repertuarları</span></div>
-    <div class="grid-3" id="editor-picks"></div>
+    <div class="section-head"><div><h2>Editörün seçimleri</h2><p class="section-sub">Gituar ekibinin hazırladığı repertuarlar</p></div></div>
+    <div class="grid-3 pick-grid" id="editor-picks"></div>
   </section>
 
   <section class="section" id="yeni">
-    <div class="section-head"><h2>Yeni eklenen şarkı akorları</h2><a href="/sanatcilar/">Sanatçıya göre bul</a></div>
-    <SongList songs={newest} />
+    <div class="two-col">
+      <div>
+        <div class="section-head"><h2>Yeni eklenen akorlar</h2><a href="/sanatcilar/">Sanatçıya göre bul<span aria-hidden="true"> ›</span></a></div>
+        <SongList songs={newest} />
+      </div>
+      <div>
+        <div class="section-head"><h2>Popüler sanatçılar</h2><a href="/sanatcilar/">Tüm sanatçı akorları<span aria-hidden="true"> ›</span></a></div>
+        <div class="list">{artists.map((a) => <ArtistRow artist={a} />)}</div>
+      </div>
+    </div>
     <AdSlot size="inline" unit="home-inline" />
   </section>
 
   <section class="section">
-    <div class="section-head"><h2>Popüler sanatçıların akorları</h2><a href="/sanatcilar/">Tüm sanatçı akorları</a></div>
-    <div class="grid-2">{artists.map((a) => <ArtistRow artist={a} />)}</div>
+    <div class="section-head center"><h2>Çalmayı kolaylaştıran araçlar</h2></div>
+    <div class="grid-3 feature-grid">
+      <div class="feature">
+        <div class="feature-icon" aria-hidden="true"><span class="feature-glyph">A→C</span></div>
+        <h3>Akor transpoze</h3>
+        <p>Ton şeridinden yeni tonu seç; akorlar anında kayar, söz hizası bozulmaz.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon" aria-hidden="true"><span class="feature-glyph">Kapo</span></div>
+        <h3>Kapo hesabı</h3>
+        <p>Perdeyi gir, sayfa gerçekte çaldığın akor adlarını gösterir. Ukulele için de aynı adlar.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon" aria-hidden="true"><Icon name="play" class="icon" /></div>
+        <h3>Sayfayı oynat</h3>
+        <p>Otomatik kaydırma akor alanında akar, hızı sana uyar; elini gitardan çekmezsin.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="promo-card">
+      <div class="promo-text">
+        <p class="eyebrow">iPhone uygulaması</p>
+        <h2>Gituar cebinde</h2>
+        <p>Aynı katalog, aynı repertuarlar. Çevrimdışı çalışır; Plus ile web ve iPhone'da reklamsız.</p>
+      </div>
+      <a class="btn btn-primary btn-lg" href={APP_STORE_URL} rel="noopener"><Icon name="download" class="icon-sm" />App Store'dan indir</a>
+    </div>
   </section>
 
   <section class="section about">

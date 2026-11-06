@@ -118,10 +118,23 @@ firebase deploy --only hosting,firestore:rules
 - Authentication: Google, Apple ve E-posta/Şifre açık; yetkili alanlar localhost, koc-chords.firebaseapp.com, koc-chords.web.app.
 - Web Firebase ayarları `web/.env` (gitignore'da): `firebase apps:sdkconfig WEB 1:890664830560:web:e0bf44d1cf5e0a7b96e505`.
 
+### Tasarım (2026-11-05, Apple tarzı revizyon)
+
+- Varsayılan tema aydınlık; sistem tercihi izlenmez. Koyu tema yalnızca üst bardaki ay/güneş düğmesiyle
+  (`data-theme="dark"`, localStorage `gituar-theme`). Tokenlar Apple paleti: sayfa #fff, gri yüzey #f5f5f7,
+  metin #1d1d1f / #6e6e73, vurgu #0071e3, çizgi #d2d2d7; koyu: #000 / #1d1d1f / #f5f5f7 / #0a84ff.
+- Üst bar: tam genişlik 48 px cam şerit (Apple nav), 1024 px iç genişlik; logo, menü, kompakt arama, giriş,
+  App Store, tema düğmesi; mobilde menü açılır paneli düz zeminli.
+- Karşılama ortalı, 56 px başlık; kartlar gri ve kenarlıksız (18 px); alt bilgi gri, 12 px.
+- Reklamsız sayfalar (`ads={false}`) `.shell-plain` ile tek sütun; dolmayan AdSense birimleri gizlenir.
+- Wecra "Gituar" dosyası bu revizyonu henüz içermiyor (designer bağlantısı kapalıydı); açılınca eşitlenmeli.
+
 ### Yayın (2026-11-05)
 
 - Web **Vercel**'de yayınlanır: proje `gituar.com` (takım uaburaks-projects), alan adı gituar.com/www zaten projede, DNS Vercel.
-  Yayın: `web/` içinde `npm run deploy` (= `vercel build --prod` yerelde Astro build + `vercel deploy --prebuilt --prod`;
+  Asıl yayın: GitHub `uaburak/gituar` main'e push → Vercel build (kök `vercel.json`: `cd web && npm ci && npm run build`, çıktı `web/dist`;
+  PUBLIC_* ortam değişkenleri Vercel projesinde tanımlı). Bunun için Vercel → Settings → Git'te eski `gituar-web` deposu
+  kesilip `uaburak/gituar` bağlanmalı (CLI/otomasyon bu adımı yapamadı). Yedek yol: `web/` içinde `npm run deploy` (= `vercel build --prod` yerelde Astro build + `vercel deploy --prebuilt --prod`;
   Vercel'de build çalışmaz, `web/vercel.json` framework/trailingSlash/önbellek başlıklarını taşır). Bir kez `vercel login`
   ve `vercel link --project gituar.com` gerekir (`.vercel/` gitignore'da). Vercel CLI `~/.npm-global/bin/vercel`.
 - Firebase Hosting artık yalnızca `koc-chords.web.app → https://gituar.com` 301 yönlendirmesi (`firebase-redirect/`,

@@ -206,6 +206,34 @@ kbd.key {
 .about-cols { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); column-gap: 32px; color: var(--text-2); font-size: 14px; line-height: 1.55; }
 .about-cols p { margin: 0; }
 
+/* ---------- Ana sayfa bölümleri ---------- */
+.eyebrow { margin: 0 0 14px; font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-2); }
+.section-sub { margin: 4px 0 0; font-size: 14px; color: var(--text-2); }
+.section-head.center { justify-content: center; text-align: center; padding-bottom: 24px; }
+.section-head a { white-space: nowrap; }
+.two-col { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 48px; row-gap: 40px; }
+.two-col h2 { font-size: 22px; }
+.pick-grid { row-gap: 16px; }
+.pick { display: flex; align-items: center; gap: 14px; padding: 16px 18px; color: var(--text); transition: transform .2s ease, box-shadow .2s ease; }
+.pick:hover { text-decoration: none; transform: translateY(-2px); box-shadow: 0 14px 28px -18px rgba(0,0,0,.3); }
+.pick-tile { width: 44px; height: 44px; flex: none; border-radius: 12px; display: grid; place-items: center; font-size: 18px; font-weight: 700; color: #fff; background: linear-gradient(135deg, #0a84ff, #5ac8fa); }
+.pick-body { min-width: 0; flex: 1; display: grid; gap: 2px; }
+.pick-title { font-weight: 600; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pick-arrow { color: var(--text-3); font-size: 20px; line-height: 1; }
+.feature-grid { row-gap: 16px; }
+.feature { background: var(--muted); border-radius: var(--radius-lg); padding: 28px 24px; }
+:root[data-theme="dark"] .feature { background: var(--surface); }
+.feature-icon { width: 48px; height: 48px; border-radius: 999px; background: var(--accent-soft); color: var(--accent-text); display: grid; place-items: center; margin-bottom: 18px; }
+.feature-icon .icon { width: 20px; height: 20px; }
+.feature-glyph { font-size: 13px; font-weight: 700; letter-spacing: -0.01em; }
+.feature h3 { font-size: 19px; margin-bottom: 6px; letter-spacing: -0.01em; }
+.feature p { margin: 0; color: var(--text-2); font-size: 14px; line-height: 1.5; }
+.promo-card { background: var(--inverse); color: var(--on-inverse); border-radius: 24px; padding: 44px 48px; display: flex; align-items: center; justify-content: space-between; gap: 32px; }
+.promo-card .eyebrow { color: inherit; opacity: .6; margin-bottom: 10px; }
+.promo-card h2 { font-size: 36px; color: inherit; }
+.promo-card p:last-child { margin: 10px 0 0; max-width: 520px; font-size: 17px; opacity: .75; }
+.promo-card .btn { flex: none; }
+
 /* ---------- Sayfa başlıkları ---------- */
 .page-head { margin: 0 0 28px; }
 .crumbs { font-size: 12px; color: var(--text-2); margin-bottom: 16px; }
@@ -387,6 +415,10 @@ html.plus body { padding-bottom: 0; }
   .hero { padding-top: 24px; }
   .hero p { font-size: 17px; margin-bottom: 24px; }
   .about { padding: 28px 20px; border-radius: 18px; }
+  .two-col { grid-template-columns: minmax(0, 1fr); }
+  .promo-card { flex-direction: column; align-items: flex-start; padding: 28px 24px; border-radius: 18px; }
+  .promo-card h2 { font-size: 28px; }
+  .section { margin-top: 56px; }
   .page { padding-top: 24px; }
   .grid-2, .grid-3, .artist-cols { grid-template-columns: minmax(0, 1fr); column-gap: 0; }
   .about-cols { grid-template-columns: minmax(0, 1fr); row-gap: 12px; }

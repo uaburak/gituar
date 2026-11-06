@@ -38,7 +38,7 @@ const arr = (f: Fields, k: string) => (f[k]?.arrayValue?.values ?? []).map((v) =
       .slice(0, 9);
     if (!picks.length) return;
     grid.innerHTML = picks
-      .map((p) => `<a class="card rep-card" href="/repertuar/?id=${esc(p.id)}"><h3>${esc(p.name)}</h3><span class="muted small">${p.count} şarkı · Editör</span></a>`)
+      .map((p) => `<a class="card pick" href="/repertuar/?id=${esc(p.id)}"><span class="pick-tile" aria-hidden="true">${esc(p.name.trim().charAt(0).toLocaleUpperCase("tr-TR"))}</span><span class="pick-body"><span class="pick-title">${esc(p.name)}</span><span class="muted small">${p.count} şarkı · Editör repertuarı</span></span><span class="pick-arrow" aria-hidden="true">›</span></a>`)
       .join("");
     section.hidden = false;
   } catch (e) {

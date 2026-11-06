@@ -44,14 +44,32 @@ const diagrams = analysis.chords.slice(0, 12).map((c) => ({ ...c, shape: chordSh
     </div>
   </div>
   <SongSheet song={song}>
-    <p class="song-intro" slot="after">
-      {song.songName}, <a href={artistPath(song.artistSlug)}>{song.artist}</a> tarafından seslendirilen şarkının gitar akorları.
-      {song.originalKey && chords.length > 0 && <>Orijinal ton {song.originalKey}; kullanılan akorlar: <span class="mono">{chords.join(", ")}</span>.</>}
-      {song.originalKey && chords.length === 0 && <>Orijinal ton {song.originalKey}.</>}
-      {!song.originalKey && chords.length > 0 && <>Kullanılan akorlar: <span class="mono">{chords.join(", ")}</span>.</>}
-      {analysis.level === "kolay" && <>Barre gerektirmez, yalnızca açık akorlarla çalınır. </>}
-      Tonu değiştirebilir, kapo ekleyebilir, otomatik kaydırma ile çalabilirsin.
-    </p>
+    <Fragment slot="after">
+      <p class="song-intro">
+        {song.songName}, <a href={artistPath(song.artistSlug)}>{song.artist}</a> tarafından seslendirilen şarkının gitar akorları.
+        {song.originalKey && chords.length > 0 && <>Orijinal ton {song.originalKey}; kullanılan akorlar: <span class="mono">{chords.join(", ")}</span>.</>}
+        {song.originalKey && chords.length === 0 && <>Orijinal ton {song.originalKey}.</>}
+        {!song.originalKey && chords.length > 0 && <>Kullanılan akorlar: <span class="mono">{chords.join(", ")}</span>.</>}
+        {analysis.level === "kolay" && <>Barre gerektirmez, yalnızca açık akorlarla çalınır. </>}
+        Tonu değiştirebilir, kapo ekleyebilir, otomatik kaydırma ile çalabilirsin.
+      </p>
+    {(similar.length > 0 || others.length > 0) && (
+      <div class="song-more">
+        {similar.length > 0 && (
+          <section class="section">
+            <div class="section-head"><h2>{song.originalKey ? `${song.originalKey} tonunda benzer şarkılar` : "Benzer şarkılar"}</h2>{keyHref && <a href={keyHref}>Tümü ›</a>}</div>
+            <SongList songs={similar} />
+          </section>
+        )}
+        {others.length > 0 && (
+          <section class="section">
+            <div class="section-head"><h2>{song.artist} akorları</h2><a href={artistPath(song.artistSlug)}>Tümü ›</a></div>
+            <SongList songs={others.slice(0, 5)} showArtist={false} />
+          </section>
+        )}
+      </div>
+    )}
+    </Fragment>
     <Fragment slot="rail">
       {diagrams.length > 0 && (
         <section class="card rail-card song-chords">
@@ -72,20 +90,4 @@ const diagrams = analysis.chords.slice(0, 12).map((c) => ({ ...c, shape: chordSh
       <AdSlot size="rect" unit="song-rail" />
     </Fragment>
   </SongSheet>
-  {(similar.length > 0 || others.length > 0) && (
-    <div class="two-col song-more section">
-      {similar.length > 0 && (
-        <section>
-          <div class="section-head"><h2>{song.originalKey ? `${song.originalKey} tonunda benzer şarkılar` : "Benzer şarkılar"}</h2>{keyHref && <a href={keyHref}>Tümü ›</a>}</div>
-          <SongList songs={similar} />
-        </section>
-      )}
-      {others.length > 0 && (
-        <section>
-          <div class="section-head"><h2>{song.artist} akorları</h2><a href={artistPath(song.artistSlug)}>Tümü ›</a></div>
-          <SongList songs={others.slice(0, 5)} showArtist={false} />
-        </section>
-      )}
-    </div>
-  )}
 </Base>

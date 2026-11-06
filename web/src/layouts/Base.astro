@@ -80,6 +80,8 @@ const ogImage = new URL("/og.png", Astro.site ?? "https://gituar.com").href;
         try {
           var t = localStorage.getItem("gituar-theme");
           if (t) document.documentElement.setAttribute("data-theme", t);
+          // Masaüstünde yerel kaydırma çubuğu ilk çizimden gizli (sayfa kaymasın); yüzen çubuğu scrollbar.ts çizer
+          if (window.matchMedia("(pointer: fine)").matches) document.documentElement.classList.add("overlay-scroll");
           if (localStorage.getItem("gituar-auth") === "1") {
             document.documentElement.classList.add("signed-in");
             if (localStorage.getItem("gituar-admin") === "1") document.documentElement.classList.add("is-admin");
@@ -116,5 +118,6 @@ const ogImage = new URL("/og.png", Astro.site ?? "https://gituar.com").href;
     {ads && <AdSlot size="sticky" unit="mobile-sticky" />}
     <script src="../scripts/app.ts"></script>
     <script src="../scripts/shortcuts.ts"></script>
+    <script src="../scripts/scrollbar.ts"></script>
   </body>
 </html>

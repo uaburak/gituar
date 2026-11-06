@@ -50,6 +50,20 @@
   color-scheme: dark;
 }
 
+/* ---------- Yüzen kaydırma çubuğu (scrollbar.ts): yerel çubuk yer kaplamaz, sayfa sola kaymaz ---------- */
+html.overlay-scroll { scrollbar-width: none; }
+html.overlay-scroll::-webkit-scrollbar { display: none; }
+.vscroll { position: fixed; top: 0; right: 0; bottom: 0; width: 14px; z-index: 200; }
+.vscroll-thumb {
+  position: absolute; top: 0; right: 3px; width: 6px; border-radius: 6px; background: rgba(0, 0, 0, .32);
+  opacity: 0; transition: opacity .35s ease, width .15s ease, background-color .15s ease;
+}
+.vscroll.active .vscroll-thumb, .vscroll:hover .vscroll-thumb { opacity: 1; }
+.vscroll:hover .vscroll-thumb, .vscroll.dragging .vscroll-thumb { width: 9px; background: rgba(0, 0, 0, .45); }
+:root[data-theme="dark"] .vscroll-thumb { background: rgba(255, 255, 255, .32); }
+:root[data-theme="dark"] .vscroll:hover .vscroll-thumb, :root[data-theme="dark"] .vscroll.dragging .vscroll-thumb { background: rgba(255, 255, 255, .5); }
+@media print { .vscroll { display: none; } }
+
 /* ---------- Temel ---------- */
 *, *::before, *::after { box-sizing: border-box; }
 [hidden] { display: none !important; }

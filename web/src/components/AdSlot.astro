@@ -9,11 +9,31 @@ const format = size === "side" ? "vertical" : size === "rect" ? "rectangle" : si
 // AdSense birimi (data-ad-slot) yer türüne göre .env'den gelir; `unit` yalnızca ölçüm/etiket içindir.
 // 728×90 için ayrı birim yoksa duyarlı liste içi birimi kullanılır.
 const slot = ADSENSE_SLOTS[size] || (size === "leaderboard" ? ADSENSE_SLOTS.inline : "");
-const live = Boolean(ADSENSE_CLIENT && slot);
+// Yerelde (astro dev) AdSense reklam basmaz; reklamların sayfada nasıl duracağını görmek için gerçek ölçüde örnek reklam çizilir.
+// Canlıda hiçbir zaman çizilmez (import.meta.env.DEV yalnızca dev sunucusunda true).
+const demo = import.meta.env.DEV;
+const live = !demo && Boolean(ADSENSE_CLIENT && slot);
+const demoText = {
+  side: { t: "Gitar kursu", d: "Online derslerle akorları hızla öğren.", c: "Hemen başla" },
+  leaderboard: { t: "Yeni akustik gitarlar", d: "Yeni başlayanlar için seçilmiş modeller, ücretsiz kargo.", c: "İncele" },
+  rect: { t: "Tel seti %20 indirimli", d: "Bronz ve nikel teller, tüm markalar.", c: "Satın al" },
+  inline: { t: "Müzik uygulaması", d: "Akort cihazı ve metronom tek uygulamada.", c: "İndir" },
+  sticky: { t: "Gitar pena seti", d: "12'li karışık set.", c: "Al" },
+}[size];
 // AdSense'te sabit boyutlu oluşturulan birimler (yan 160×600, mobil alt 320×50); diğerleri duyarlı
 const fixed = size === "side" ? { w: 160, h: 600 } : size === "sticky" ? { w: 320, h: 50 } : null;
 ---
-{(live || !ADSENSE_CLIENT) && (
+{demo && (
+  <div class:list={["ad-slot", `ad-${size}`, "ad-demo", className]} data-unit={unit} aria-label="Örnek reklam (yalnızca yerelde)">
+    <div class="ad-demo-box">
+      <span class="ad-demo-tag">Test reklamı · {labels[size]}</span>
+      <span class="ad-demo-img" aria-hidden="true"></span>
+      <span class="ad-demo-text"><b>{demoText.t}</b><span>{demoText.d}</span></span>
+      <span class="ad-demo-cta">{demoText.c}</span>
+    </div>
+  </div>
+)}
+{!demo && (live || !ADSENSE_CLIENT) && (
   <div class:list={["ad-slot", `ad-${size}`, className]} data-unit={unit} aria-label="Reklam">
     {live
       ? (fixed

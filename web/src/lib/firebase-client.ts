@@ -48,7 +48,10 @@ export function onUser(cb: (u: User | null) => void): void {
   }
   p.then((f) =>
     f.authMod.onAuthStateChanged(f.auth, (u) => {
-      try { u ? localStorage.setItem("gituar-auth", "1") : localStorage.removeItem("gituar-auth"); } catch {}
+      try {
+        if (u) localStorage.setItem("gituar-auth", "1");
+        else { localStorage.removeItem("gituar-auth"); localStorage.removeItem("gituar-user"); }
+      } catch {}
       cb(u);
     }),
   );
@@ -235,7 +238,7 @@ export async function signOutUser(): Promise<void> {
   const f = await fb();
   if (!f) return;
   await f.authMod.signOut(f.auth);
-  try { localStorage.removeItem("gituar-auth"); } catch {}
+  try { localStorage.removeItem("gituar-auth"); localStorage.removeItem("gituar-user"); } catch {}
   setPlus(false);
 }
 
@@ -285,6 +288,6 @@ export async function deleteAccount(user: User, apiUrl: string): Promise<void> {
   await fs.deleteDoc(fs.doc(f.db, "users", user.uid)).catch(() => {});
   await f.authMod.deleteUser(user);
   try {
-    for (const k of ["gituar-auth", "gituar-plus", "gituar-admin"]) localStorage.removeItem(k);
+    for (const k of ["gituar-auth", "gituar-user", "gituar-plus", "gituar-admin"]) localStorage.removeItem(k);
   } catch {}
 }

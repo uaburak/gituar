@@ -20,6 +20,20 @@ import { APP_STORE_URL } from "../lib/site.ts";
       </a>
       <a class="pro-pill" href="/pro/"><Icon name="crown" class="icon-sm" />Pro</a>
       <a href="/giris/" class="btn btn-text" id="auth-btn">Giriş yap</a>
+      <a href="/hesap/" class="header-avatar" id="header-avatar" aria-label="Hesabım" title="Hesabım">
+        <img id="header-avatar-img" alt="" width="32" height="32" referrerpolicy="no-referrer" hidden /><span id="header-avatar-initial"></span>
+      </a>
+      <script is:inline>
+        // Giriş yapılmışsa avatar, sayfa çizilmeden önce kayıtlı ad/fotoğrafla dolar (titreme olmasın).
+        (function () {
+          try {
+            var u = JSON.parse(localStorage.getItem("gituar-user") || "null");
+            if (!u) return;
+            document.getElementById("header-avatar-initial").textContent = (u.n || "?").charAt(0).toLocaleUpperCase("tr-TR");
+            if (u.p) { var img = document.getElementById("header-avatar-img"); img.src = u.p; img.hidden = false; }
+          } catch (e) {}
+        })();
+      </script>
       <button class="icon-btn" id="theme-toggle" type="button" aria-label="Koyu tema" title="Koyu tema">
         <Icon name="moon" class="icon icon-moon" /><Icon name="sun" class="icon icon-sun" />
       </button>

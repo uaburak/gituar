@@ -51,9 +51,10 @@ try { hadSession = localStorage.getItem("gituar-auth") === "1"; } catch {}
 if (firebaseReady && hadSession) {
   onUser((user) => {
     for (const btn of authBtns) {
-      btn.textContent = user ? user.displayName?.split(" ")[0] || "Hesabım" : "Giriş yap";
+      btn.textContent = user ? "Hesabım" : "Giriş yap";
       btn.href = user ? "/hesap/" : "/giris/";
     }
+    setHeaderUser(user ? { n: user.displayName || user.email || "", p: user.photoURL || "" } : null);
     if (user) refreshPlus(user.uid).then((plus) => { if (!plus) loadAds(); });
     else loadAds();
     // Yönetim bağlantısı yalnızca admin hesaplarda (users/{uid}.isAdmin)
@@ -64,6 +65,20 @@ if (firebaseReady && hadSession) {
 } else {
   loadAds();
 }
+
+/** Üst bardaki profil resmi / baş harf; bilgi bir sonraki sayfa açılışı için saklanır (Header.astro'daki satır içi betik okur). */
+function setHeaderUser(u: { n: string; p: string } | null) {
+  html.classList.toggle("signed-in", Boolean(u));
+  try { u ? localStorage.setItem("gituar-user", JSON.stringify(u)) : localStorage.removeItem("gituar-user"); } catch {}
+  const initial = document.getElementById("header-avatar-initial");
+  const img = document.getElementById("header-avatar-img") as HTMLImageElement | null;
+  if (!u || !initial || !img) return;
+  initial.textContent = (u.n.trim()[0] ?? "?").toLocaleUpperCase("tr-TR");
+  if (u.p) { if (img.getAttribute("src") !== u.p) img.src = u.p; img.hidden = false; }
+  else { img.hidden = true; img.removeAttribute("src"); }
+}
+// Fotoğraf yüklenemezse baş harf kalır
+document.getElementById("header-avatar-img")?.addEventListener("error", (e) => { (e.target as HTMLImageElement).hidden = true; });
 
 function loadAds() {
   if (adsLoaded || !ADSENSE_CLIENT || html.classList.contains("plus")) return;

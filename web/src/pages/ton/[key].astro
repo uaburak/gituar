@@ -35,7 +35,7 @@ const jsonLd = [
     <p>{key} tonunda sık kullanılan akorlar: <strong>{chords.join(", ")}</strong>. Şarkı sayfasında tonu değiştirip kapo ekleyebilirsin.</p>
   </div>
   <div class="chip-row" style="margin:0 0 24px">{chords.map((c) => <span class="btn chip mono">{c}</span>)}</div>
-  <SongList songs={list} adEvery={25} unit="ton" />
+  <SongList songs={list} />
   {total > LIMIT && <p class="muted small" style="margin-top:16px">En yeni {LIMIT} şarkı gösteriliyor; diğerleri için <a href={`/ara/?q=${encodeURIComponent(key)}`}>arama</a> ya da <a href="/sanatcilar/">sanatçı dizini</a>.</p>}
   <AdSlot size="leaderboard" unit="ton-bottom" />
 </Base>

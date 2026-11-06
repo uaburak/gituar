@@ -56,7 +56,7 @@ const easyNotes = Object.fromEntries(easiest.map((s) => [s.id, songChords(s).cho
           <input type="search" id="song-filter" placeholder={`${artist.name} şarkılarında ara`} autocomplete="off" aria-label="Şarkılarda ara" />
         </form>
       </div>
-      <SongList songs={artist.songs} showArtist={false} numbered adEvery={10} unit="artist" id="artist-songs" />
+      <SongList songs={artist.songs} showArtist={false} numbered id="artist-songs" />
       <p class="muted small" id="filter-empty" hidden>Bu aramayla eşleşen şarkı yok.</p>
     </div>
     <aside class="rail">

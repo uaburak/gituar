@@ -26,5 +26,5 @@ const jsonLd = [
     <h1>{n} akorlu kolay şarkılar</h1>
     <p class="answer">Bu listedeki şarkılar yalnızca {n} açık akorla çalınıyor ve hiç barre gerektirmiyor. Satırın altında şarkının akorları yazar; akorları bilmiyorsan <a href="/akorlar/">akor tablosuna</a> bak.</p>
   </div>
-  <SongList songs={songs.slice(0, LIMIT)} notes={notes} adEvery={25} unit="easy-n" />
+  <SongList songs={songs.slice(0, LIMIT)} notes={notes} />
 </Base>

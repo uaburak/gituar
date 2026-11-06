@@ -70,7 +70,7 @@ void SHARPS; void chordSlug;
 
   <section class="section">
     <div class="section-head"><h2>{name} akoruyla çalınan şarkılar</h2></div>
-    <SongList songs={songs.slice(0, LIMIT)} adEvery={20} />
+    <SongList songs={songs.slice(0, LIMIT)} />
   </section>
 
   {(sameRoot.length > 0 || neighbors.length > 0) && (

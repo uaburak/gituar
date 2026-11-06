@@ -443,6 +443,19 @@ a.card:hover, .editor-hero:hover { text-decoration: none; transform: scale(1.02)
 .chords .line[data-c="1"] { color: var(--chord); font-weight: 600; }
 .chords .chord { color: var(--chord); font-weight: 600; }
 .sheet.hide-chords .line[data-c="1"] { display: none; }
+/* Orijinal ton (kapo 0): akor adları Pro geçişiyle */
+.sheet.is-original .chords .chord {
+  background: var(--pro-gradient); -webkit-background-clip: text; background-clip: text; color: transparent;
+  -webkit-box-decoration-break: clone; box-decoration-break: clone;
+}
+.chords .chord { cursor: default; }
+/* Akor balonu (song-sheet.ts) */
+.chord-pop {
+  position: absolute; z-index: 70; display: grid; justify-items: center; gap: 2px; padding: 10px 12px 8px; pointer-events: none;
+  background: var(--surface); border-radius: 14px; box-shadow: 0 12px 32px -8px rgba(0,0,0,.25), 0 0 0 1px var(--hairline);
+}
+.chord-pop svg { width: 84px; height: auto; display: block; }
+.chord-pop .cd-label { font-family: var(--mono); font-weight: 600; font-size: 14px; color: var(--text); }
 .sheet-note { font-size: 12px; color: var(--text-2); margin: 16px 0 24px; }
 .play-bar {
   position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); z-index: 60; display: none; align-items: center; gap: 10px;
@@ -659,6 +672,8 @@ html.plus body { padding-bottom: 0; }
   .song-layout { display: block; }
   body { background: #fff; color: #000; }
   .chords, .chords .chord, .chords .line[data-c="1"] { color: #000; }
+  .sheet.is-original .chords .chord { background: none; color: #000; }
+  .chord-pop { display: none !important; }
 }
 
 /* ---------- Yasal sayfalar ve çerez bildirimi ---------- */

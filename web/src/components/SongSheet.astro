@@ -47,7 +47,7 @@ const keySuffix = (song.originalKey ?? "").trim().slice(originalRoot.length);
     <button class="btn btn-outline btn-round" id="btn-print" type="button" aria-label="Yazdır" title="Yazdır"><Icon name="print" class="icon-sm" /><span class="btn-print-label">Yazdır</span></button>
   </div>
   <div class="song-main">
-    <div class="sheet" id="sheet">
+    <div class="sheet is-original" id="sheet">
       <pre class="chords" id="chords" set:html={sheetHtml(song.content)} />
     </div>
     <div class="ugc-note">

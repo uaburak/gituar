@@ -2,6 +2,8 @@
 import { transpose, semitoneOffset, prefersFlats, chordSpans } from "@shared/chords";
 import { esc, songExists } from "../lib/search-client.ts";
 import { trackAction } from "../lib/actions.ts";
+import { simplifyChord, chordShapes } from "../lib/chord-theory.ts";
+import { chordSvg } from "../lib/chord-svg.ts";
 
 const root = document.getElementById("song");
 if (root) {
@@ -76,6 +78,8 @@ function init(root: HTMLElement) {
     keySelect.value = selected;
     $("key-label").textContent = selected + keySuffix;
     const isOriginal = selected === originalRoot;
+    // Orijinal ton ve kapo 0: akor adları Pro renginde
+    sheet.classList.toggle("is-original", isOriginal && capo === 0);
     $("key-pick").classList.toggle("is-original", isOriginal);
     $("key-pick").title = isOriginal ? "Orijinal ton" : `Orijinal ton ${originalRoot + keySuffix}`;
     $("capo-val").textContent = String(capo);
@@ -112,6 +116,37 @@ function init(root: HTMLElement) {
     chordsBtn.textContent = hidden ? "Akorları göster" : "Akorları gizle";
   });
   function persistFont() { try { localStorage.setItem("gituar-font", String(fontSize)); } catch {} }
+
+  // ---- Akor balonu: kâğıttaki akorun üstüne gelince diyagramı ----
+  const pop = document.createElement("div");
+  pop.className = "chord-pop";
+  pop.hidden = true;
+  pop.setAttribute("role", "tooltip");
+  document.body.appendChild(pop);
+  let popFor: HTMLElement | null = null;
+  pre.addEventListener("pointerover", (e) => {
+    const el = (e.target as HTMLElement).closest<HTMLElement>(".chord");
+    if (!el || el === popFor || e.pointerType === "touch") return;
+    const name = el.textContent ?? "";
+    const c = simplifyChord(name);
+    const shape = c ? chordShapes(c.root, c.quality)[0] : undefined;
+    if (!shape) { pop.hidden = true; popFor = null; return; }
+    popFor = el;
+    pop.innerHTML = chordSvg(shape, `${name} akoru`) + `<span class="cd-label">${esc(name)}</span>`;
+    pop.hidden = false;
+    const r = el.getBoundingClientRect();
+    const pw = pop.offsetWidth, ph = pop.offsetHeight;
+    const above = r.top - ph - 8 > 0;
+    const left = Math.min(Math.max(8, r.left + r.width / 2 - pw / 2), window.innerWidth - pw - 8);
+    pop.style.left = `${left + window.scrollX}px`;
+    pop.style.top = `${(above ? r.top - ph - 8 : r.bottom + 8) + window.scrollY}px`;
+  });
+  pre.addEventListener("pointerout", (e) => {
+    const to = e.relatedTarget as HTMLElement | null;
+    if (popFor && to && popFor.contains(to)) return;
+    if ((e.target as HTMLElement).closest(".chord")) { pop.hidden = true; popFor = null; }
+  });
+  window.addEventListener("scroll", () => { if (!pop.hidden) { pop.hidden = true; popFor = null; } }, { passive: true });
 
   // ---- Sayfayı oynat (otomatik kaydırma) ----
   // Yalnızca akor bölgesini kaydırır: akorların üstünden başlar, akorların altı görününce durur.

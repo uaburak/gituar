@@ -12,7 +12,7 @@ function syncThemeLabel() {
   const label = isDark() ? "Aydınlık tema" : "Koyu tema";
   themeBtn?.setAttribute("aria-label", label);
   themeBtn?.setAttribute("title", label);
-  themeMeta?.setAttribute("content", isDark() ? "#000000" : "#ffffff");
+  themeMeta?.setAttribute("content", isDark() ? "#000000" : "#f5f5f7");
 }
 themeBtn?.addEventListener("click", () => {
   const next = isDark() ? "light" : "dark";

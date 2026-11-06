@@ -121,8 +121,10 @@ firebase deploy --only hosting,firestore:rules
 ### Tasarım (2026-11-05, Apple tarzı revizyon)
 
 - Varsayılan tema aydınlık; sistem tercihi izlenmez. Koyu tema yalnızca üst bardaki ay/güneş düğmesiyle
-  (`data-theme="dark"`, localStorage `gituar-theme`). Tokenlar Apple paleti: sayfa #fff, gri yüzey #f5f5f7,
-  metin #1d1d1f / #6e6e73, vurgu #0071e3, çizgi #d2d2d7; koyu: #000 / #1d1d1f / #f5f5f7 / #0a84ff.
+  (`data-theme="dark"`, localStorage `gituar-theme`). Tokenlar Apple paleti: zemin #f5f5f7 (gri), beyaz kutular #fff
+  (listeler, kartlar, akor sayfası, özellik kutuları), ikincil yüzey #e8e8ed, metin #1d1d1f / #6e6e73, vurgu #0071e3,
+  çizgi #d2d2d7; koyu: #000 zemin / #1d1d1f kutular / #2c2c2e / #f5f5f7 / #0a84ff. (2026-11-06: tam beyaz zemin
+  istenmedi, apple.com gibi gri zemin + beyaz kutu düzenine geçildi.)
 - Üst bar: tam genişlik 48 px cam şerit (Apple nav), 1024 px iç genişlik; logo, menü, kompakt arama, giriş,
   App Store, tema düğmesi; mobilde menü açılır paneli düz zeminli.
 - Karşılama ortalı, 56 px başlık; kartlar gri ve kenarlıksız (18 px); alt bilgi gri, 12 px.

@@ -44,13 +44,13 @@
 }
 :root[data-theme="dark"] {
   /* Koyu: zemin siyah; kartlar koyu (zeminden az ayrışır), çizgiler sönük, metin hafif kırık beyaz */
-  --page: #000000; --surface: #121214; --muted: #222225; --ad: #141416;
-  --hairline: #26262b; --strong: #3a3a40;
+  --page: #000000; --surface: #0a0a0b; --muted: #1a1a1d; --ad: #0c0c0e;
+  --hairline: #1f1f23; --strong: #34343a;
   --text: #ececf1; --text-2: #a0a0ab; --text-3: #6f6f7a;
   --accent: #0a84ff; --accent-hover: #3394ff; --accent-text: #5aa8ff; --accent-soft: rgba(10, 132, 255, .16);
   --inverse: #ececf1; --on-inverse: #111113; --chord: #5aa8ff;
   --level-kolay: #32d74b; --level-orta: #ff9f0a; --level-ileri: #ff6961;
-  --nav-bg: rgba(0, 0, 0, 0.8); --pill-bg: rgba(18, 18, 20, 0.9); --pill-shadow: 0 8px 24px -8px rgba(0, 0, 0, .6);
+  --nav-bg: rgba(0, 0, 0, 0.8); --pill-bg: rgba(10, 10, 11, 0.9); --pill-shadow: 0 8px 24px -8px rgba(0, 0, 0, .6);
   color-scheme: dark;
 }
 

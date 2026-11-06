@@ -47,20 +47,13 @@ export function looksTurkish(text: string): boolean {
 // ---------- Şarkı sayfası ----------
 
 /** Başlık ve son ekin sığıp sığmadığı: `bare` true ise Base " · Gituar" eklemez. */
+/** Sekme/Google başlığı: "Sanatçı - Şarkı - Akor" (kullanıcının istediği biçim; " · Gituar" eki yok). Uzunsa kısaltılır. */
 export function songTitleParts(song: CatalogSong): { title: string; bare: boolean } {
   const name = song.songName.replace(/\s*\((?:ft\.?|feat\.?)[^)]*\)\s*/i, " ").trim();
   const artist = song.artist.split(/\s*(?:&|\bft\.?\s|\bfeat\.?\s)\s*/i)[0].trim() || song.artist;
-  const full = `${song.songName} Akorları – ${song.artist}`;
-  const short = `${name} Akorları – ${artist}`;
-  const key = song.originalKey;
-  const withSuffix = [
-    ...(key ? [`${full} | Gitar Akoru, Ton ${key}`, `${full} | Ton ${key}`] : []),
-    full,
-    ...(short !== full ? [short] : []),
-  ];
-  for (const c of withSuffix) if (c.length + TITLE_SUFFIX.length <= TITLE_MAX) return { title: c, bare: false };
-  for (const c of [full, short, `${name} Akorları`]) if (c.length <= TITLE_MAX) return { title: c, bare: true };
-  return { title: `${name} Akorları`, bare: true };
+  const candidates = [`${song.artist} - ${song.songName} - Akor`, `${artist} - ${name} - Akor`, `${name} - Akor`];
+  for (const c of candidates) if (c.length <= TITLE_MAX) return { title: c, bare: true };
+  return { title: candidates[candidates.length - 1], bare: true };
 }
 
 export function songTitle(song: CatalogSong): string {

@@ -31,7 +31,7 @@ Açıklamalar 155 karaktere sığacak biçimde isteğe bağlı parçaları (akor
 
 | Sayfa | Title (adaylar, uzundan kısaya) | Description | H1 |
 |---|---|---|---|
-| Şarkı | `{Şarkı} Akorları – {Sanatçı} \| Gitar Akoru, Ton {Ton}` → `… \| Ton {Ton}` → `{Şarkı} Akorları – {Sanatçı}` | `{Şarkı} akorları – {Sanatçı} şarkısının gitar akorları, orijinal ton {Ton}. Akorlar: Am, F, C, G. Transpoze, kapo ve otomatik kaydırma ile çal.` (akor listesi sığana kadar kısalır) | `{Şarkı} akorları` (akorları `.h1-kw` ile hafif) |
+| Şarkı | `{Sanatçı} - {Şarkı} - Akor` (" · Gituar" eki yok; 60 karakteri aşarsa feat. kısmı atılır, sonra `{Şarkı} - Akor`) | `{Şarkı} akorları – {Sanatçı} şarkısının gitar akorları, orijinal ton {Ton}. Akorlar: Am, F, C, G. Transpoze, kapo ve otomatik kaydırma ile çal.` (akor listesi sığana kadar kısalır) | `{Şarkı} - Akor` (tek yazı tipi); altında sanatçı/ton satırı ve SEO paragrafı |
 | Sanatçı | `{Sanatçı} Akorları – {N} Şarkı` → `{Sanatçı} Akorları` | `{Sanatçı} gitar akorları: {N} şarkı, orijinal ton bilgisiyle. {İlk 4 şarkı} ve daha fazlası. Transpoze ve kapo ile çal.` | `{Sanatçı} akorları` |
 | Ana sayfa | `Gitar Akorları – {N} Türkçe Şarkı Akoru` | `Gitar akorları: {N} Türkçe şarkı akoru, {M} sanatçı. Akor transpoze, kapo ve otomatik kaydırma ile çal, repertuar oluştur. iOS uygulamasıyla aynı katalog.` | `Türkçe gitar akorları` |
 | Sanatçılar | `Sanatçılar – Gitar Akorları A'dan Z'ye` | `{M} sanatçının gitar akorları alfabetik dizinde. Sanatçıyı seç, şarkı akorlarını orijinal tonuyla gör; transpoze ve kapo ile çal.` | `Sanatçı akorları` |

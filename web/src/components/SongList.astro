@@ -1,10 +1,21 @@
 ---
+// Şarkı listesi (Repertuarım düzeni): iki sütun, solda "A" rozeti, "Sanatçı - Şarkı".
+// `.row` ve `.row-title` (yalnızca şarkı adı) sanatçı sayfası filtresi için korunur.
 import type { CatalogSong } from "@shared/types";
-import SongRow from "./SongRow.astro";
-// Liste içinde reklam yok; reklamlar listelerin dışında (yan sütunlar, bölüm araları).
-interface Props { songs: CatalogSong[]; showArtist?: boolean; numbered?: boolean; id?: string; notes?: Record<string, string> }
-const { songs, showArtist = true, numbered = false, id, notes } = Astro.props;
+import { songPath } from "@shared/catalog";
+interface Props { songs: CatalogSong[]; showArtist?: boolean; numbered?: boolean; id?: string; notes?: Record<string, string>; cols?: 1 | 2 }
+const { songs, showArtist = true, id, notes, cols = 2 } = Astro.props;
 ---
-<div class="list" id={id}>
-  {songs.map((song, i) => <SongRow song={song} showArtist={showArtist} index={numbered ? i + 1 : undefined} note={notes?.[song.id]} />)}
-</div>
+<ul class:list={["rp-list", { "rp-split": cols === 2 }]} id={id}>
+  {songs.map((song) => (
+    <li>
+      <a class="row" href={songPath(song)} title={`${song.artist} - ${song.songName} akor`}>
+        <span class="rp-badge" aria-hidden="true">A</span>
+        <span class="rp-text">
+          {showArtist && <span class="row-artist">{song.artist} - </span>}<span class="row-title">{song.songName}</span>
+          {notes?.[song.id] && <span class="row-note"> · {notes[song.id]}</span>}
+        </span>
+      </a>
+    </li>
+  ))}
+</ul>

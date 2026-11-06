@@ -4,11 +4,11 @@ import { canonicalSongPath, keyInfo, minKeySongs } from "../../../lib/catalog-ru
 import Base from "../../../layouts/Base.astro";
 import SongSheet from "../../../components/SongSheet.astro";
 import SongList from "../../../components/SongList.astro";
-import AdSlot from "../../../components/AdSlot.astro";
+import ListSection from "../../../components/ListSection.astro";
 import ChordDiagram from "../../../components/ChordDiagram.astro";
 import { songChords, chordHref, LEVEL_LABEL } from "../../../lib/chord-stats.ts";
 import { chordShapes } from "../../../lib/chord-theory.ts";
-import { catalog, sameKeySongs, artistPath, songBySlug, type CatalogSong } from "../../../lib/catalog.ts";
+import { catalog, sameKeySongs, artistPath, songBySlug, newestSongs, type CatalogSong } from "../../../lib/catalog.ts";
 import { siteUrl, songTitleParts, songDescription, songJsonLd, usedChords } from "../../../lib/seo.ts";
 
 // İstek anında: adres veritabanında yoksa 404
@@ -16,9 +16,11 @@ const found = songBySlug(Astro.params.artist ?? "", Astro.params.song ?? "");
 if (!found) return Astro.rewrite("/404/");
 const song: CatalogSong = found;
 const artist = catalog().artistBySlug.get(song.artistSlug);
-const others = (artist?.songs ?? []).filter((s) => s.id !== song.id).slice(0, 8);
-const similar = sameKeySongs(song, 5);
-const diagramsShown = 8;
+const others = (artist?.songs ?? []).filter((s) => s.id !== song.id);
+const similar = sameKeySongs(song, 10);
+// Önerilen: önce aynı tondakiler, sonra sanatçının diğer şarkıları (en fazla 20)
+const suggested = [...similar, ...others.filter((s) => !similar.includes(s))].slice(0, 20);
+const newest = newestSongs(21).filter((s) => s.id !== song.id).slice(0, 20);
 const chords = usedChords(song.content);
 const base = siteUrl(Astro.site);
 const { title, bare } = songTitleParts(song);
@@ -34,62 +36,49 @@ const diagrams = analysis.chords.slice(0, 12).map((c) => ({ ...c, shape: chordSh
   <Fragment slot="head">
     <meta property="music:musician" content={artistUrl} />
   </Fragment>
-  <div class="page-head song-head">
+  <div class="rp-head">
     <nav class="crumbs" aria-label="Sayfa yolu"><a href="/">Ana sayfa</a><span>/</span><a href="/sanatcilar/">Sanatçılar</a><span>/</span><a href={artistPath(song.artistSlug)}>{song.artist}</a><span>/</span>{song.songName}</nav>
-    <h1>{song.songName} - Akor</h1>
+    <h1><a href={artistPath(song.artistSlug)}>{song.artist}</a> - {song.songName} - Akor</h1>
   </div>
   <SongSheet song={song}>
-    <Fragment slot="after">
-      <p class="song-intro">
-        {song.songName}, <a href={artistPath(song.artistSlug)}>{song.artist}</a> tarafından seslendirilen şarkının gitar akorları.
-        {song.originalKey && chords.length > 0 && <>Orijinal ton {song.originalKey}; kullanılan akorlar: {chords.join(", ")}.</>}
-        {song.originalKey && chords.length === 0 && <>Orijinal ton {song.originalKey}.</>}
-        {!song.originalKey && chords.length > 0 && <>Kullanılan akorlar: {chords.join(", ")}.</>}
-        {analysis.level === "kolay" && <>Barre gerektirmez, yalnızca açık akorlarla çalınır. </>}
-        Tonu değiştirebilir, kapo ekleyebilir, otomatik kaydırma ile çalabilirsin.
-      </p>
-    {(similar.length > 0 || others.length > 0) && (
-      <div class="song-more">
-        {similar.length > 0 && (
-          <section class="section">
-            <div class="section-head"><h2>{song.originalKey ? `${song.originalKey} tonunda benzer şarkılar` : "Benzer şarkılar"}</h2>{keyHref && <a href={keyHref}>Tümü ›</a>}</div>
-            <SongList songs={similar} />
-          </section>
-        )}
-        {others.length > 0 && (
-          <section class="section">
-            <div class="section-head"><h2>{song.artist} akorları</h2><a href={artistPath(song.artistSlug)}>Tümü ›</a></div>
-            <SongList songs={others.slice(0, 5)} showArtist={false} />
-          </section>
-        )}
-      </div>
-    )}
+    <Fragment slot="diagrams">
+      {diagrams.length > 0 ? (
+        <div class="chord-grid">{diagrams.map((d) => <ChordDiagram shape={d.shape} label={d.name} href={d.href} />)}</div>
+      ) : <p class="muted small">Bu şarkıdaki akorların diyagramı yok.</p>}
+      <p class="muted small rp-diagram-note">Diyagramlar orijinal tondaki akorları gösterir. Kâğıttaki bir akorun üstüne gelince de diyagramı açılır. <a href="/akorlar/">Bütün akorlar</a></p>
     </Fragment>
-    <Fragment slot="rail">
-      <section class="card rail-card song-info" aria-label="Şarkı bilgileri">
-        <dl class="info-list">
+    <Fragment slot="after">
+      <ListSection title="Rastgele" color="#af52de" action="btn-random" />
+      <ListSection title={`${song.artist} akorları`} icon="none" href={artistPath(song.artistSlug)} note={`${artist?.songs.length ?? 0} şarkı`} />
+      {suggested.length > 0 && (
+        <ListSection title="Önerilen akorlar" icon="none" open>
+          <SongList songs={suggested} />
+        </ListSection>
+      )}
+      {keyHref && <ListSection title={`${song.originalKey} tonundaki şarkılar`} icon="none" href={keyHref} />}
+      <ListSection title="Yeni Akorlar" icon="none">
+        <SongList songs={newest} />
+      </ListSection>
+      <ListSection title="Bilgiler" icon="none">
+        <dl class="rp-info">
           <div><dt>Sanatçı</dt><dd><a href={artistPath(song.artistSlug)}>{song.artist}</a></dd></div>
           {song.originalKey && <div><dt>Orijinal ton</dt><dd>{keyHref ? <a href={keyHref}>{song.originalKey}</a> : song.originalKey}</dd></div>}
           {analysis.chords.length > 0 && <div><dt>Zorluk</dt><dd><span class={`row-level level-${analysis.level}`}>{LEVEL_LABEL[analysis.level]}</span></dd></div>}
+          {chords.length > 0 && <div><dt>Akorlar</dt><dd>{chords.join(", ")}</dd></div>}
+          {analysis.capo && <div><dt>Kapo ile kolay</dt><dd>{analysis.capo.fret}. perde · {analysis.capo.shapes.join(", ")}</dd></div>}
         </dl>
-      </section>
-      {diagrams.length > 0 && (
-        <section class="card rail-card song-chords">
-          <div class="rail-head"><h2>Bu şarkının akorları</h2><a href="/akorlar/">Akor tablosu</a></div>
-          <div class="rail-diagrams">
-            {diagrams.slice(0, diagramsShown).map((d) => <ChordDiagram shape={d.shape} label={d.name} href={d.href} />)}
-          </div>
-          <p class="rail-note">Diyagramlar orijinal tondaki akorları gösterir.</p>
-        </section>
-      )}
-      {analysis.capo && (
-        <section class="card rail-card">
-          <span class="badge">İPUCU</span>
-          <p class="rail-tip">Barre zor gelirse kapoyu {analysis.capo.fret}. perdeye tak</p>
-          <p class="rail-tip-sub"><span class="mono">{analysis.capo.shapes.join(", ")}</span> tutarak aynı tonda çalarsın.</p>
-        </section>
-      )}
-      <AdSlot size="rect" unit="song-rail" />
+        <p class="song-intro">
+          {song.songName}, <a href={artistPath(song.artistSlug)}>{song.artist}</a> tarafından seslendirilen şarkının gitar akorları.
+          {song.originalKey && chords.length > 0 && <>Orijinal ton {song.originalKey}; kullanılan akorlar: {chords.join(", ")}.</>}
+          {song.originalKey && chords.length === 0 && <>Orijinal ton {song.originalKey}.</>}
+          {!song.originalKey && chords.length > 0 && <>Kullanılan akorlar: {chords.join(", ")}.</>}
+          {analysis.level === "kolay" && <>Barre gerektirmez, yalnızca açık akorlarla çalınır. </>}
+          Tonu değiştirebilir, kapo ekleyebilir, otomatik kaydırma ile çalabilirsin.
+        </p>
+      </ListSection>
+      <ListSection title="Bu içerik için hata bildir" icon="none" action="report-open-2" />
+      <ListSection title="gituar.com" icon="none" href="/" />
     </Fragment>
   </SongSheet>
+  <script src="../../../scripts/random.ts"></script>
 </Base>

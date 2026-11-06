@@ -33,23 +33,21 @@ async function checkRemoved(id: string) {
 
 function init(root: HTMLElement) {
   const songId = root.dataset.id ?? "";
+  // Son çaldıklarım (ana sayfa): en son 20 şarkı, yalnızca bu tarayıcıda
+  try {
+    const recent: { p: string; a: string; s: string }[] = JSON.parse(localStorage.getItem("gituar-recent") ?? "[]");
+    const entry = { p: location.pathname, a: root.dataset.artist ?? "", s: root.dataset.name ?? "" };
+    localStorage.setItem("gituar-recent", JSON.stringify([entry, ...recent.filter((r) => r.p !== entry.p)].slice(0, 20)));
+  } catch {}
   const originalKey = root.dataset.key ?? "C";
   const originalRoot = root.dataset.root ?? "C";
   const sheet = document.getElementById("sheet")!;
   const pre = document.getElementById("chords")!;
   const lines = [...pre.querySelectorAll<HTMLElement>(".line")].map((el) => ({ el, text: (el.textContent ?? "").replace(/\n$/, ""), chord: el.dataset.c === "1" }));
   const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
-  // Ton seçici: − [ton ▾] +; liste eşsesli yazımları da içerir (C#/Db), ±1 yarım sesle bir sonraki perdeye geçer.
-  const keySelect = $<HTMLSelectElement>("key-select");
-  const keys = [...keySelect.options].map((o) => o.value);
+  // Ton şeridi: her ton bir düğme (eşsesli yazımlar dahil); seçili olan vurgulu, orijinal olan çerçeveli.
+  const keyButtons = [...root.querySelectorAll<HTMLButtonElement>(".rp-keys button[data-k]")];
   const keySuffix = (originalKey ?? "").trim().slice(originalRoot.length);
-  const PC: Record<string, number> = { C: 0, "C#": 1, Db: 1, D: 2, "D#": 3, Eb: 3, E: 4, F: 5, "F#": 6, Gb: 6, G: 7, "G#": 8, Ab: 8, A: 9, "A#": 10, Bb: 10, B: 11 };
-  function stepKey(dir: 1 | -1): string {
-    const target = (((PC[selected] ?? 0) + dir) % 12 + 12) % 12;
-    const options = keys.filter((k) => PC[k] === target);
-    const flat = selected.includes("b") || (!selected.includes("#") && originalRoot.includes("b"));
-    return options.find((k) => (flat ? k.includes("b") : !k.includes("b"))) ?? options[0] ?? selected;
-  }
 
   const prefKey = `gituar-pref-${songId}`;
   let saved: { key: string; capo: number } | null = null;
@@ -75,13 +73,11 @@ function init(root: HTMLElement) {
       if (!l.chord) continue;
       l.el.innerHTML = highlight(transpose(l.text, offset, flats)) + "\n";
     }
-    keySelect.value = selected;
+    for (const b of keyButtons) b.setAttribute("aria-pressed", b.dataset.k === selected ? "true" : "false");
     $("key-label").textContent = selected + keySuffix;
     const isOriginal = selected === originalRoot;
     // Orijinal ton ve kapo 0: akor adları Pro renginde
     sheet.classList.toggle("is-original", isOriginal && capo === 0);
-    $("key-pick").classList.toggle("is-original", isOriginal);
-    $("key-pick").title = isOriginal ? "Orijinal ton" : `Orijinal ton ${originalRoot + keySuffix}`;
     $("capo-val").textContent = String(capo);
     $("font-val").textContent = String(fontSize);
     sheet.style.setProperty("--sheet-font", `${fontSize}px`);
@@ -92,14 +88,17 @@ function init(root: HTMLElement) {
     if (saved) {
       const label = `Kayıtlı tona dön: ${saved.key + keySuffix}${saved.capo ? ` · kapo ${saved.capo}` : ""}`;
       $("btn-saved").title = label;
-      $("btn-saved").setAttribute("aria-label", label);
+      $("btn-saved").textContent = `Kayıtlı Ton: ${saved.key + keySuffix}${saved.capo ? ` · ${saved.capo}` : ""}`;
     }
     if (typeof updatePlayVisibility === "function") requestAnimationFrame(updatePlayVisibility);
   }
 
-  keySelect.addEventListener("change", () => { selected = keySelect.value; render(); });
-  $("key-dec").addEventListener("click", () => { selected = stepKey(-1); render(); });
-  $("key-inc").addEventListener("click", () => { selected = stepKey(1); render(); });
+  for (const b of keyButtons) b.addEventListener("click", () => { selected = b.dataset.k!; render(); });
+  // Menü: ton şeridini ve akor diyagramlarını aç/kapat
+  for (const [btnId, panelId] of [["menu-keys", "key-strip"], ["menu-diagrams", "diagram-panel"]] as const) {
+    const btn = $(btnId), panel = $(panelId);
+    btn.addEventListener("click", () => { panel.hidden = !panel.hidden; btn.setAttribute("aria-expanded", String(!panel.hidden)); });
+  }
   $("capo-dec").addEventListener("click", () => { capo = Math.max(0, capo - 1); render(); });
   $("capo-inc").addEventListener("click", () => { capo = Math.min(9, capo + 1); render(); });
   $("font-dec").addEventListener("click", () => { fontSize = Math.max(10, fontSize - 1); persistFont(); render(); });
@@ -117,9 +116,7 @@ function init(root: HTMLElement) {
   chordsBtn.addEventListener("click", () => {
     const hidden = sheet.classList.toggle("hide-chords");
     chordsBtn.setAttribute("aria-pressed", hidden ? "false" : "true");
-    const label = hidden ? "Akorları göster" : "Akorları gizle";
-    chordsBtn.title = label;
-    chordsBtn.setAttribute("aria-label", label);
+    chordsBtn.textContent = hidden ? "Akorları Aç" : "Akorları Kapat";
   });
   function persistFont() { try { localStorage.setItem("gituar-font", String(fontSize)); } catch {} }
 
@@ -199,13 +196,13 @@ function init(root: HTMLElement) {
     const top = sheet.getBoundingClientRect().top + window.scrollY - headerH() - 8;
     if (window.scrollY < top) window.scrollTo({ top, behavior: "smooth" });
     playing = true; paused = false; last = performance.now(); carry = 0;
-    bar.classList.add("active"); playBtn.setAttribute("aria-pressed", "true"); setPaused(false);
+    bar.classList.add("active"); playBtn.setAttribute("aria-pressed", "true"); playBtn.textContent = "Durdur"; setPaused(false);
     raf = requestAnimationFrame(step);
     try { wakeLock = await (navigator as unknown as { wakeLock?: { request(t: string): Promise<{ release(): Promise<void> }> } }).wakeLock?.request("screen") ?? null; } catch {}
   }
   function stop() {
     playing = false; cancelAnimationFrame(raf);
-    bar.classList.remove("active"); playBtn.setAttribute("aria-pressed", "false");
+    bar.classList.remove("active"); playBtn.setAttribute("aria-pressed", "false"); playBtn.textContent = "Sayfayı Oynat";
     wakeLock?.release().catch(() => {}); wakeLock = null;
   }
   playBtn.addEventListener("click", () => (playing ? stop() : start()));
@@ -266,7 +263,7 @@ function init(root: HTMLElement) {
       ? "Bildiriminiz için teşekkürler. İçerik en kısa sürede inceleme ekibimiz tarafından kontrol edilecektir."
       : "Şikayet gönderilirken bir hata oluştu. İnternet bağlantınızı kontrol edip tekrar deneyin.";
   };
-  $("report-open").addEventListener("click", async () => {
+  const openReport = async () => {
     const mod = await import("../lib/firebase-client.ts");
     const user = mod.firebaseReady ? await mod.currentUser() : null;
     if (!user) { location.href = `/giris/?next=${encodeURIComponent(location.pathname)}`; return; }
@@ -285,7 +282,9 @@ function init(root: HTMLElement) {
         }
       };
     });
-  });
+  };
+  $("report-open").addEventListener("click", openReport);
+  document.getElementById("report-open-2")?.addEventListener("click", openReport);
   $("report-cancel").addEventListener("click", () => reportDialog.close());
   $("report-ok").addEventListener("click", () => reportDialog.close());
 

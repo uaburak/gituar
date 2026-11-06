@@ -1,9 +1,10 @@
 ---
 import Base from "../../layouts/Base.astro";
 import SongList from "../../components/SongList.astro";
-import AdSlot from "../../components/AdSlot.astro";
+import ListSection from "../../components/ListSection.astro";
+import ArtistRow from "../../components/ArtistRow.astro";
 import Icon from "../../components/Icon.astro";
-import { catalog, type ArtistGroup } from "../../lib/catalog.ts";
+import { catalog, topArtists, type ArtistGroup } from "../../lib/catalog.ts";
 import { siteUrl, artistTitle, artistDescription, artistJsonLd } from "../../lib/seo.ts";
 import { isThinArtist, featuredSongIds } from "../../lib/catalog-rules.mjs";
 import { songChords, chordHref } from "../../lib/chord-stats.ts";
@@ -34,48 +35,45 @@ const easiest = [...artist.songs]
   .sort((a, b) => rank[songChords(a).level] - rank[songChords(b).level] || songChords(a).chords.length - songChords(b).chords.length)
   .slice(0, 5);
 const easyCount = artist.songs.filter((s) => songChords(s).level === "kolay").length;
+const otherArtists = topArtists(21).filter((a) => a.slug !== artist.slug).slice(0, 20);
 const easyNotes = Object.fromEntries(easiest.map((s) => [s.id, songChords(s).chords.map((c) => c.name).join(" ")]));
 ---
 <Base noindex={thin} title={artistTitle(artist)} description={artistDescription(artist)} ogType="profile" jsonLd={artistJsonLd(artist, base)}>
-  <div class="page-head">
+  <div class="rp-head">
     <nav class="crumbs" aria-label="Sayfa yolu"><a href="/">Ana sayfa</a><span>/</span><a href="/sanatcilar/">Sanatçılar</a><span>/</span>{artist.name}</nav>
-    <h1>{artist.name} <span class="h1-kw">akorları</span></h1>
-    {n >= 3 ? (
+    <h1>{artist.name} akorları</h1>
+    {n >= 3 && (
       <p class="artist-facts">
         {n} şarkı{topKey && <> · en sık ton <strong>{topKey[0]}</strong></>}
-        {topChords.length > 0 && <> · en çok kullanılan akorlar {topChords.slice(0, 4).map(([name, c], i) => { const href = chordHref(c.root, c.quality); return <>{i > 0 && ", "}{href ? <a class="mono" href={href}>{name}</a> : <span class="mono">{name}</span>}</>; })}</>}
+        {topChords.length > 0 && <> · en çok kullanılan akorlar {topChords.slice(0, 4).map(([name, c], i) => { const href = chordHref(c.root, c.quality); return <>{i > 0 && ", "}{href ? <a href={href}>{name}</a> : name}</>; })}</>}
         {easyCount > 0 && <> · {easyCount} şarkı barresiz</>}
       </p>
-    ) : <p>{artist.songs.length} şarkının gitar akorları · orijinal ton, transpoze ve kapo</p>}
+    )}
+    <form class="search-inline rp-filter" role="search" onsubmit="return false">
+      <Icon name="search" />
+      <input type="search" id="song-filter" placeholder={`${artist.name} şarkılarında ara`} autocomplete="off" aria-label="Şarkılarda ara" />
+    </form>
   </div>
-  <div class="with-rail">
-    <div>
-      <div class="artist-tools">
-        <form class="search-inline" role="search" onsubmit="return false">
-          <Icon name="search" />
-          <input type="search" id="song-filter" placeholder={`${artist.name} şarkılarında ara`} autocomplete="off" aria-label="Şarkılarda ara" />
-        </form>
-      </div>
-      <SongList songs={artist.songs} showArtist={false} numbered id="artist-songs" />
-      <p class="muted small" id="filter-empty" hidden>Bu aramayla eşleşen şarkı yok.</p>
-    </div>
-    <aside class="rail">
-      {n >= 5 && easiest.length >= 3 && (
-        <section>
-          <div class="section-head"><h2>En kolay şarkıları</h2><a href="/kolay-gitar-akorlari/">Tümü ›</a></div>
-          <SongList songs={easiest} showArtist={false} notes={easyNotes} />
-        </section>
-      )}
-      {featured.length > 0 && (
-        <section>
-          <div class="section-head"><h2>Düetleri</h2></div>
-          <SongList songs={featured} />
-        </section>
-      )}
-      <AdSlot size="rect" unit="artist-rail" />
-    </aside>
-  </div>
-  <AdSlot size="leaderboard" unit="artist-after" />
-  <p class="muted small" style="margin-top:24px">Aradığın şarkı yok mu? <a href="/sanatcilar/">Tüm sanatçıların akorları</a> dizinine bak ya da <a href="/iletisim/">şarkı öner</a>.</p>
+  <ListSection title={`${artist.name} şarkıları`} icon="bolt" color="#ff3b30" open note={`${n} şarkı`}>
+    <SongList songs={artist.songs} showArtist={false} id="artist-songs" />
+    <p class="muted small" id="filter-empty" hidden>Bu aramayla eşleşen şarkı yok.</p>
+  </ListSection>
+  {n >= 5 && easiest.length >= 3 && (
+    <ListSection title={`En kolay ${artist.name} şarkıları`} icon="none" note="barresiz">
+      <SongList songs={easiest} showArtist={false} notes={easyNotes} />
+    </ListSection>
+  )}
+  {featured.length > 0 && (
+    <ListSection title="Düetleri" icon="none">
+      <SongList songs={featured} />
+    </ListSection>
+  )}
+  {otherArtists.length > 0 && (
+    <ListSection title="Diğer sanatçılar" icon="none" open>
+      <div class="list rp-artists">{otherArtists.map((a) => <ArtistRow artist={a} />)}</div>
+    </ListSection>
+  )}
+  <ListSection title="Bütün sanatçılar" icon="none" href="/sanatcilar/" note="A'dan Z'ye" />
+  <ListSection title="Şarkı öner" icon="none" href="/iletisim/" />
   <script src="../../scripts/song-filter.ts"></script>
 </Base>

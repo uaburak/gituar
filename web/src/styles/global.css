@@ -768,3 +768,143 @@ a.chord-diagram:hover { background: var(--muted); text-decoration: none; }
 .acc-confirm { display: flex; gap: 8px; align-items: flex-start; font-size: 14px; margin: 12px 0; }
 .btn-delete { background: #ff3b30; color: #fff; }
 .btn-delete[disabled] { opacity: .45; }
+
+/* =====================================================================
+   Repertuarım düzeni (dal: feature/web-repertuarim-duzen)
+   Tek beyaz panel; içinde 74 px başlıklı açılır liste bölümleri, iki sütunlu rozetli satırlar.
+   Renkler, zemin ve köşeler Gituar değişkenlerinden.
+   ===================================================================== */
+.ad-top { width: 728px; max-width: 100%; min-height: 90px; margin: 0 auto 24px; }
+.page-card { --card-pad: 24px; background: var(--surface); border-radius: 20px; padding: 0 var(--card-pad) var(--card-pad); overflow: hidden; }
+:root[data-theme="dark"] .page-card { box-shadow: inset 0 0 0 1px var(--hairline); }
+.page-card > :first-child:not(.rp-section):not(.rp-head) { margin-top: var(--card-pad); }
+/* Panel içindeki eski kartlar düzleşir: zemin yok, ince kenar */
+.page-card .card, .page-card .list, .page-card .sheet, .page-card .guide-body, .page-card .artist-cols, .page-card .tools {
+  background: transparent; box-shadow: inset 0 0 0 1px var(--hairline);
+}
+.page-card .section { margin-top: 32px; }
+
+/* Bölüm başlığı (Repertuarım "list-title"): tam genişlik, 74 px, altında ince çizgi */
+.rp-section { display: block; margin: 0 calc(-1 * var(--card-pad)); border-bottom: 1px solid var(--hairline); }
+.rp-title {
+  display: flex; align-items: center; gap: 12px; min-height: 74px; padding: 0 var(--card-pad); width: 100%;
+  color: var(--text); cursor: pointer; list-style: none; background: none; border: 0; font: inherit; text-align: left;
+}
+a.rp-section.rp-title, button.rp-section.rp-title { width: auto; }
+.rp-title::-webkit-details-marker { display: none; }
+.rp-title:hover { background: var(--muted); text-decoration: none; }
+.rp-title h1, .rp-title h2 { flex: 1; min-width: 0; font-size: 16px; font-weight: 600; letter-spacing: -0.01em; line-height: 1.3; }
+.rp-note { font-size: 13px; color: var(--text-3); }
+.rp-chev { width: 8px; height: 8px; border-right: 2px solid var(--text-3); border-bottom: 2px solid var(--text-3); transform: rotate(-45deg); margin-right: 4px; transition: transform .2s ease; flex: none; }
+details.rp-section > .rp-title .rp-chev { transform: rotate(45deg); }
+details.rp-section[open] > .rp-title .rp-chev { transform: rotate(-135deg); }
+.rp-icon { width: 14px; height: 14px; flex: none; display: grid; place-items: center; color: var(--c); }
+.rp-icon-dot::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--c); }
+.rp-icon-bolt::before { content: ""; width: 10px; height: 14px; background: var(--c); clip-path: polygon(55% 0, 0 58%, 42% 58%, 30% 100%, 100% 38%, 56% 38%, 75% 0); }
+.rp-icon-moon::before { content: ""; width: 12px; height: 12px; border-radius: 50%; box-shadow: inset -4px -2px 0 0 var(--c); transform: rotate(-20deg); }
+.rp-icon-star::before { content: "★"; font-size: 13px; line-height: 1; color: var(--c); }
+.rp-icon-none { display: none; }
+.rp-body { border-top: 1px solid var(--hairline); }
+.rp-body > :not(.rp-list):not(.list) { margin-left: var(--card-pad); margin-right: var(--card-pad); }
+.rp-body > p:first-child, .rp-body > .rp-info:first-child { margin-top: 16px; }
+.rp-body > :last-child:not(.rp-list):not(.list) { margin-bottom: 20px; }
+
+/* Satırlar: iki sütun, rozet + "Sanatçı - Şarkı" */
+.rp-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); }
+.rp-list.rp-split { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.rp-list li { border-bottom: 1px solid var(--hairline); min-width: 0; }
+.rp-list.rp-split li:nth-child(odd) { border-right: 1px solid var(--hairline); }
+.rp-list li:last-child, .rp-list.rp-split li:nth-last-child(2):nth-child(odd) { border-bottom: 0; }
+.rp-list .row, .page-card .list .row { display: flex; align-items: center; gap: 12px; min-height: 55px; padding: 8px var(--card-pad); border: 0; color: var(--text); font-size: 14px; }
+.rp-list .row:hover, .page-card .list .row:hover { background: var(--muted); text-decoration: none; }
+.rp-list .row:hover .row-title { color: inherit; }
+.rp-badge { width: 22px; height: 22px; flex: none; border-radius: 6px; display: grid; place-items: center; background: #ff3b30; color: #fff; font-size: 12px; font-weight: 700; }
+.rp-badge-artist { background: var(--accent); }
+.rp-text { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rp-text .row-title { display: inline; font-weight: 500; font-size: 14px; }
+.row-artist { color: var(--text); }
+.row-note { color: var(--text-3); font-size: 13px; }
+.page-card .list { border-radius: 0; box-shadow: none; }
+.page-card .list .row { border-bottom: 1px solid var(--hairline); }
+
+/* Sayfa başlığı (Repertuarım "page-title") */
+.rp-head { margin: 0 calc(-1 * var(--card-pad)); padding: 28px var(--card-pad) 22px; border-bottom: 1px solid var(--hairline); }
+.rp-head h1 { font-size: 22px; font-weight: 600; letter-spacing: -0.01em; }
+.rp-head h1 a { color: inherit; }
+.rp-head .crumbs { margin-bottom: 10px; }
+
+/* Bilgiler bölümü */
+.rp-info { margin: 0; display: grid; }
+.rp-info div { display: flex; justify-content: space-between; gap: 16px; padding: 10px 0; border-bottom: 1px solid var(--hairline); font-size: 14px; }
+.rp-info div:last-child { border-bottom: 0; }
+.rp-info dt { color: var(--text-2); }
+.rp-info dd { margin: 0; font-weight: 600; text-align: right; }
+
+@media (max-width: 700px) {
+  .page-card { --card-pad: 16px; border-radius: 16px; }
+  .rp-list.rp-split { grid-template-columns: minmax(0, 1fr); }
+  .rp-list.rp-split li:nth-child(odd) { border-right: 0; }
+  .rp-list.rp-split li:nth-last-child(2):nth-child(odd) { border-bottom: 1px solid var(--hairline); }
+  .rp-title { min-height: 60px; }
+}
+.rp-more { display: block; padding: 14px var(--card-pad); border-top: 1px solid var(--hairline); font-size: 14px; font-weight: 600; }
+.rp-artists { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.rp-artists .row:nth-child(odd) { border-right: 1px solid var(--hairline); }
+@media (max-width: 700px) { .rp-artists { grid-template-columns: minmax(0, 1fr); } .rp-artists .row:nth-child(odd) { border-right: 0; } }
+
+/* Şarkı sayfası (Repertuarım düzeni): sekme menüsü, ton şeridi, -A/+A, sade kâğıt */
+.rp-song { display: block; }
+.rp-menu {
+  list-style: none; margin: 0 calc(-1 * var(--card-pad)); padding: 0 calc(var(--card-pad) - 10px); display: flex; align-items: center; gap: 2px;
+  min-height: 56px; border-bottom: 1px solid var(--hairline); overflow-x: auto; scrollbar-width: thin; white-space: nowrap;
+}
+.rp-menu li { flex: none; display: flex; align-items: center; }
+.rp-menu li:has(> [hidden]) { display: none; }
+.rp-menu button { height: 36px; padding: 0 10px; border: 0; border-radius: 8px; background: none; color: var(--text); font: inherit; font-size: 14px; font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+.rp-menu button:hover { background: var(--muted); }
+.rp-menu button[aria-expanded="true"], .rp-menu #btn-play[aria-pressed="true"], .rp-menu #btn-chords[aria-pressed="false"] { color: var(--accent-text); }
+.rp-menu .rp-menu-accent { color: var(--accent-text); font-weight: 600; }
+.rp-menu .rp-menu-danger { color: var(--red); }
+.rp-caret { width: 6px; height: 6px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(45deg) translateY(-2px); }
+.rp-menu button[aria-expanded="true"] .rp-caret { transform: rotate(-135deg) translate(-1px, -1px); }
+.rp-capo { gap: 4px; padding: 0 10px; font-size: 14px; font-weight: 500; }
+.rp-capo button { width: 28px; height: 28px; padding: 0; justify-content: center; background: var(--muted); border-radius: 999px; }
+.rp-capo b { min-width: 18px; text-align: center; }
+.rp-keys {
+  margin: 0 calc(-1 * var(--card-pad)); padding: 10px var(--card-pad); display: flex; gap: 4px; overflow-x: auto; scrollbar-width: thin;
+  border-bottom: 1px solid var(--hairline);
+}
+.rp-keys[hidden] { display: none; }
+.rp-keys button {
+  flex: 1 0 auto; min-width: 40px; height: 36px; padding: 0 8px; border: 1px solid transparent; border-radius: 8px; background: transparent;
+  color: var(--text); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+}
+.rp-keys button:hover { background: var(--muted); }
+.rp-keys button.original { border-color: var(--strong); }
+.rp-keys button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.rp-diagrams { margin: 0 calc(-1 * var(--card-pad)); padding: 12px var(--card-pad); border-bottom: 1px solid var(--hairline); }
+.rp-diagrams .chord-grid { padding: 0; }
+.rp-diagram-note { margin: 8px 0 0; }
+.rp-font { display: flex; gap: 6px; margin: 16px 0 4px; }
+.rp-font button { height: 28px; min-width: 36px; padding: 0 8px; border: 1px solid var(--hairline); border-radius: 8px; background: var(--surface); color: var(--text); font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
+.rp-font button:hover { background: var(--muted); }
+.page-card .rp-song .sheet { box-shadow: none; padding: 8px 0 16px; border-radius: 0; }
+.rp-warning { margin: 0 0 24px; display: grid; gap: 6px; font-size: 12px; line-height: 1.5; color: var(--text-3); max-width: 720px; }
+.rp-warning p { margin: 0; }
+.rp-by .ugc-report { font-size: 12px; }
+.rp-song + script + .rp-section, .rp-warning + .rp-section { border-top: 1px solid var(--hairline); }
+.rp-body .song-intro { color: var(--text-3); font-size: 13px; }
+@media print { .rp-menu, .rp-keys, .rp-font, .rp-diagrams, .rp-section, .rp-head .crumbs, .ad-top { display: none !important; } .page-card { box-shadow: none; padding: 0; } }
+.rp-head .artist-facts { margin: 8px 0 0; font-size: 14px; }
+.rp-filter { margin-top: 16px; max-width: 420px; height: 40px; background: var(--page); }
+/* Panel içindeki eski sayfa başlıkları ve bölüm başlıkları da Repertuarım başlık satırı gibi */
+.page-card > .page-head, .page-card > .guide > .page-head, .page-card > article > .page-head {
+  margin: 0 calc(-1 * var(--card-pad)) 20px; padding: 28px var(--card-pad) 22px; border-bottom: 1px solid var(--hairline);
+}
+.page-card > .page-head h1, .page-card .guide .page-head h1 { font-size: 22px; }
+.page-card > .crumbs:first-child { margin: var(--card-pad) 0 12px; }
+.page-card .section-head { margin: 0 calc(-1 * var(--card-pad)) 0; padding: 22px var(--card-pad) 18px; border-top: 1px solid var(--hairline); }
+.page-card .section-head h2 { font-size: 16px; }
+.page-card > .section:first-child .section-head { border-top: 0; }
+.page-card .ad-leaderboard { margin: 32px auto 8px; }
+.page-card .legal-layout { margin-top: var(--card-pad); }

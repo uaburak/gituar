@@ -24,6 +24,7 @@ function toggleTheme() {
 }
 themeBtn?.addEventListener("click", toggleTheme);
 document.getElementById("theme-toggle-footer")?.addEventListener("click", toggleTheme);
+document.getElementById("theme-toggle-home")?.addEventListener("click", toggleTheme);
 syncThemeLabel();
 
 // Mobil menü (üst bardaki ☰)

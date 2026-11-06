@@ -24,6 +24,8 @@ interface Props {
   canonicalPath?: string;
   /** true ise " · Gituar" eklenmez (uzun şarkı başlıkları). */
   bareTitle?: boolean;
+  /** İçerik tek bir beyaz panelin içinde (Repertuarım düzeni). Pro, Hesabım, Giriş kendi tasarımında: false. */
+  card?: boolean;
 }
 const {
   title,
@@ -36,6 +38,7 @@ const {
   jsonLd,
   canonicalPath,
   bareTitle = false,
+  card = true,
 } = Astro.props;
 const canonical = new URL(canonicalPath ?? Astro.url.pathname, Astro.site ?? "https://gituar.com").href;
 const appArgument = songId ? `gituar://song/${songId}` : "gituar://";
@@ -96,7 +99,10 @@ const ogImage = new URL("/og.png", Astro.site ?? "https://gituar.com").href;
     <Header />
     <div class:list={["shell", { "shell-plain": !ads }]}>
       {ads && <aside class="side-ad" aria-label="Reklam sütunu"><AdSlot size="side" unit="side-left" /></aside>}
-      <main class="page"><slot /></main>
+      <main class="page">
+        {ads && <AdSlot size="leaderboard" unit="top" class="ad-top" />}
+        {card ? <div class="page-card"><slot /></div> : <slot />}
+      </main>
       {ads && <aside class="side-ad" aria-label="Reklam sütunu"><AdSlot size="side" unit="side-right" /></aside>}
     </div>
     <Footer />

@@ -1,14 +1,10 @@
 ---
 import type { ArtistGroup } from "@shared/catalog";
 import { artistPath } from "@shared/catalog";
-import Icon from "./Icon.astro";
 interface Props { artist: ArtistGroup }
 const { artist } = Astro.props;
 ---
-<a class="row" href={artistPath(artist.slug)}>
-  <span class="row-body">
-    <span class="row-title">{artist.name}</span>
-    <span class="row-sub">{artist.songs.length} şarkı</span>
-  </span>
-  <Icon name="chevron" class="chevron" />
+<a class="row" href={artistPath(artist.slug)} title={`${artist.name} akorları`}>
+  <span class="rp-badge rp-badge-artist" aria-hidden="true">S</span>
+  <span class="rp-text"><span class="row-title">{artist.name}</span><span class="row-note"> · {artist.songs.length} şarkı</span></span>
 </a>

@@ -1,0 +1,38 @@
+---
+// Liste bölümü (Repertuarım düzeni): 74 px başlık satırı + renkli ikon. İçerik varsa açılır/kapanır (<details>),
+// href verilirse başlık doğrudan bağlantıdır, action verilirse düğmedir. İçerik her zaman sayfada (SEO).
+interface Props {
+  title: string;
+  icon?: "bolt" | "dot" | "moon" | "star" | "none";
+  color?: string;
+  open?: boolean;
+  href?: string;
+  action?: string;
+  id?: string;
+  heading?: "h1" | "h2";
+  note?: string;
+}
+const { title, icon = "dot", color = "var(--text-3)", open = false, href, action, id, heading = "h2", note } = Astro.props;
+const H = heading;
+---
+{href ? (
+  <a class="rp-section rp-title" href={href} id={id}>
+    <span class={`rp-icon rp-icon-${icon}`} style={`--c:${color}`} aria-hidden="true"></span>
+    <H>{title}</H>{note && <span class="rp-note">{note}</span>}
+    <span class="rp-chev" aria-hidden="true"></span>
+  </a>
+) : action ? (
+  <button type="button" class="rp-section rp-title" id={action}>
+    <span class={`rp-icon rp-icon-${icon}`} style={`--c:${color}`} aria-hidden="true"></span>
+    <H>{title}</H>{note && <span class="rp-note">{note}</span>}
+  </button>
+) : (
+  <details class="rp-section" open={open} id={id}>
+    <summary class="rp-title">
+      <span class={`rp-icon rp-icon-${icon}`} style={`--c:${color}`} aria-hidden="true"></span>
+      <H>{title}</H>{note && <span class="rp-note">{note}</span>}
+      <span class="rp-chev" aria-hidden="true"></span>
+    </summary>
+    <div class="rp-body"><slot /></div>
+  </details>
+)}

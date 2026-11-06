@@ -34,5 +34,12 @@
         }
       ]
     }
+  ],
+  "redirects": [
+    {
+      "source": "/plus/",
+      "destination": "/pro/",
+      "permanent": true
+    }
   ]
 }

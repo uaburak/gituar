@@ -2,8 +2,8 @@
 import Base from "../../layouts/Base.astro";
 import { APP_STORE_URL, PLUS_PRICE_TL } from "../../lib/site.ts";
 ---
-<Base title="Plus – Reklamsız gitar akorları" description={`Gituar Plus: web ve iPhone'da reklamsız gitar akorları, kesintisiz otomatik kaydırma. Ayda ${PLUS_PRICE_TL} TL, App Store üzerinden.`}>
-  <div class="page-head"><h1>Gituar Plus</h1><p>Reklamsız, kesintisiz çalma. Tek abonelik, hem web hem iPhone.</p></div>
+<Base title="Pro – Reklamsız gitar akorları" description={`Gituar Pro: web ve iPhone'da reklamsız gitar akorları, kesintisiz otomatik kaydırma. Ayda ${PLUS_PRICE_TL} TL, App Store üzerinden.`}>
+  <div class="page-head"><h1>Gituar Pro</h1><p>Reklamsız, kesintisiz çalma. Tek abonelik, hem web hem iPhone.</p></div>
   <div class="card card-pad" style="max-width:560px">
     <div class="price">{PLUS_PRICE_TL} TL <small>/ ay</small></div>
     <ul class="benefits">
@@ -12,11 +12,11 @@ import { APP_STORE_URL, PLUS_PRICE_TL } from "../../lib/site.ts";
       <li>Tek abonelik, aynı hesapla web ve iPhone</li>
       <li>İstediğin zaman iptal, App Store üzerinden</li>
     </ul>
-    <div id="plus-active" class="alert" hidden style="margin-bottom:12px">Plus aktif. Reklamlar bu tarayıcıda kapalı.</div>
+    <div id="plus-active" class="alert" hidden style="margin-bottom:12px">Pro aktif. Reklamlar bu tarayıcıda kapalı.</div>
     <a class="btn btn-primary btn-lg btn-block" href={APP_STORE_URL} rel="noopener">iPhone uygulamasından abone ol</a>
     <p class="muted small" style="margin:12px 0">Abonelik iPhone'da App Store üzerinden alınır; aynı hesapla web'de giriş yaptığında reklamlar kalkar. Web'den ödeme yakında.</p>
     <button class="btn btn-text btn-block" id="plus-refresh" type="button">Giriş yaptım, durumu yenile</button>
   </div>
-  <p class="muted small" style="max-width:560px;margin-top:24px">Reklamlar Gituar'ı ücretsiz tutuyor. Plus ile hem reklamsız çalarsın hem de kataloğun büyümesine destek olursun.</p>
+  <p class="muted small" style="max-width:560px;margin-top:24px">Reklamlar Gituar'ı ücretsiz tutuyor. Pro ile hem reklamsız çalarsın hem de kataloğun büyümesine destek olursun.</p>
   <script src="../../scripts/plus-page.ts"></script>
 </Base>

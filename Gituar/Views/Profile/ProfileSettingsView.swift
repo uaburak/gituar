@@ -72,11 +72,11 @@ struct ProfileSettingsView: View {
                     .padding(.vertical, 8)
                 }
 
-                Section(header: Text("Gituar Plus")) {
+                Section(header: Text("Gituar Pro")) {
                     NavigationLink(destination: PlusView()) {
                         Label {
                             VStack(alignment: .leading, spacing: 2) {
-                                Text(plusManager.isPlus ? "Gituar Plus · Aktif" : "Gituar Plus")
+                                Text(plusManager.isPlus ? "Gituar Pro · Aktif" : "Gituar Pro")
                                     .foregroundColor(.primary)
                                 Text(plusManager.isPlus ? "Reklamsız kullanım açık" : "Reklamsız kullan · aylık 99 TL")
                                     .font(.footnote)

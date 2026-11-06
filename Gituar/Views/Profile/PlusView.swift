@@ -23,7 +23,7 @@ struct PlusView: View {
             .padding(20)
         }
         .background(Color(.systemGroupedBackground))
-        .navigationTitle("Gituar Plus")
+        .navigationTitle("Gituar Pro")
         .navigationBarTitleDisplayMode(.inline)
         .onChange(of: plus.lastError) { _, newValue in
             showError = newValue != nil
@@ -47,7 +47,7 @@ struct PlusView: View {
                     .font(.system(size: 40, weight: .semibold))
                     .foregroundColor(.accentColor)
             }
-            Text("Gituar Plus")
+            Text("Gituar Pro")
                 .font(.system(size: 28, weight: .bold))
             Text("Reklamsız, kesintisiz çal.")
                 .font(.subheadline)
@@ -83,7 +83,7 @@ struct PlusView: View {
     private var priceCard: some View {
         VStack(spacing: 6) {
             if plus.isPlus {
-                Label("Plus aktif", systemImage: "checkmark.seal.fill")
+                Label("Pro aktif", systemImage: "checkmark.seal.fill")
                     .font(.system(size: 17, weight: .semibold))
                     .foregroundColor(.green)
                 if let until = plus.expirationDate {
@@ -118,7 +118,7 @@ struct PlusView: View {
                 } label: {
                     HStack(spacing: 8) {
                         if plus.isPurchasing { ProgressView().tint(.white) }
-                        Text("Plus'a Geç · \(priceText)/ay")
+                        Text("Pro'ya Geç · \(priceText)/ay")
                             .fontWeight(.semibold)
                     }
                     .foregroundColor(.white)

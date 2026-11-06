@@ -6,7 +6,7 @@ import FirebaseFirestore
 
 // MARK: - PlusManager
 //
-// "Gituar Plus" — aylık 99 TL, otomatik yenilenen abonelik (StoreKit 2).
+// "Gituar Pro" — aylık 99 TL, otomatik yenilenen abonelik (StoreKit 2).
 // Abonelik aktifken uygulamada hiçbir reklam yüklenmez (AdMobManager.isAdFree) ve durum
 // `users/{uid}.plus` alanına yazılır; web sitesi aynı alandan okuyup reklamları kaldırır.
 // Ürün App Store Connect'te `com.gituar.plus.monthly` kimliğiyle tanımlanmalıdır.

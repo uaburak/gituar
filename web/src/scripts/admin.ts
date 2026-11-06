@@ -1,11 +1,13 @@
 // Yönetim: onay bekleyen kullanıcı şarkıları ve şikayetler (yalnızca users/{uid}.isAdmin; kurallar sunucuda da zorlar).
-import { firebaseReady, currentUser, isAdminUser, listPendingChords, setChordStatus, listReports, setReportStatus } from "../lib/firebase-client.ts";
-import { esc } from "../lib/search-client.ts";
+import { firebaseReady, currentUser, isAdminUser, listPendingChords, setChordStatus, listReports, setReportStatus, removeReportedSong } from "../lib/firebase-client.ts";
+import { esc, loadIndex } from "../lib/search-client.ts";
 
 const $ = (id: string) => document.getElementById(id)!;
 const status = $("admin-status");
 const fmt = (d?: Date) => (d ? d.toLocaleDateString("tr-TR", { day: "numeric", month: "short", year: "numeric" }) : "");
 let reportFilter: "open" | "closed" = "open";
+// Bu derlemenin katalog seq'i: silme sayacı yerel katalogdan geri gitmesin (iOS floorSeq ile aynı)
+const CATALOG_SEQ = Number(document.getElementById("admin-head")?.dataset.catalogSeq ?? 0);
 
 async function loadPending() {
   const list = $("pending-list");
@@ -45,26 +47,38 @@ async function loadPending() {
 async function loadReports() {
   const list = $("reports-list");
   list.innerHTML = `<div class="row muted small">Yükleniyor…</div>`;
-  const items = await listReports(reportFilter === "open" ? ["pending", "in_progress"] : ["reviewed", "dismissed"]);
-  const label: Record<string, string> = { pending: "Bekliyor", in_progress: "İnceleniyor", reviewed: "Çözüldü", dismissed: "Yoksayıldı" };
+  const [items, index] = await Promise.all([
+    listReports(reportFilter === "open" ? ["pending", "in_progress"] : ["reviewed", "dismissed"]),
+    loadIndex().catch(() => []),
+  ]);
+  const pathById = new Map(index.map((e) => [e.i, e.p]));
+  const label: Record<string, string> = { pending: "Bekliyor", in_progress: "İnceleniyor", reviewed: "Kaldırıldı", dismissed: "Yoksayıldı" };
   list.innerHTML = items.length
     ? items.map((r) => `<div class="row admin-row" data-id="${esc(r.id)}">
         <div class="row-body">
           <span class="row-title">${esc(r.songName)}${r.songArtist ? ` <span class="muted">· ${esc(r.songArtist)}</span>` : ""}</span>
           <span class="row-sub"><strong>${esc(r.reason)}</strong>${r.ownerUsername ? ` · şarkı: @${esc(r.ownerUsername)}` : ""}${r.reportedAt ? ` · ${fmt(r.reportedAt)}` : ""} · ${label[r.status] ?? esc(r.status)}</span>
+          ${pathById.get(r.songId) ? `<a class="small" href="${esc(pathById.get(r.songId)!)}" target="_blank" rel="noopener">Şarkıyı aç ›</a>` : ""}
         </div>
         <div class="admin-actions">
           ${r.status === "pending" ? `<button class="btn btn-mini" data-act="in_progress" type="button">İncelemeye al</button>` : ""}
-          ${reportFilter === "open" ? `<button class="btn btn-primary btn-mini" data-act="reviewed" type="button">Çözüldü</button><button class="btn btn-mini" data-act="dismissed" type="button">Yoksay</button>` : `<button class="btn btn-mini" data-act="in_progress" type="button">Yeniden aç</button>`}
+          ${reportFilter === "open" ? `<button class="btn btn-mini btn-danger" data-act="remove" type="button">İçeriği kaldır</button><button class="btn btn-mini" data-act="dismissed" type="button">Yoksay</button>` : (r.status === "dismissed" ? `<button class="btn btn-mini" data-act="in_progress" type="button">Yeniden aç</button>` : "")}
         </div>
       </div>`).join("")
     : `<div class="row muted small">${reportFilter === "open" ? "Açık şikayet yok." : "Kapatılan şikayet yok."}</div>`;
   list.querySelectorAll<HTMLButtonElement>("[data-act]").forEach((b) =>
     b.addEventListener("click", async () => {
       const row = b.closest<HTMLElement>(".admin-row")!;
+      const report = items.find((r) => r.id === row.dataset.id)!;
+      if (b.dataset.act === "remove" && !confirm(`"${report.songName}" herkes için kaldırılsın mı? Bu işlem geri alınamaz.`)) return;
       row.querySelectorAll("button").forEach((x) => (x.disabled = true));
       try {
-        await setReportStatus(row.dataset.id!, b.dataset.act as "in_progress" | "reviewed" | "dismissed");
+        if (b.dataset.act === "remove") {
+          await removeReportedSong(report.songId, CATALOG_SEQ);
+          await setReportStatus(report.id, "reviewed");
+        } else {
+          await setReportStatus(row.dataset.id!, b.dataset.act as "in_progress" | "reviewed" | "dismissed");
+        }
         await loadReports();
       } catch (e) {
         row.querySelectorAll("button").forEach((x) => (x.disabled = false));

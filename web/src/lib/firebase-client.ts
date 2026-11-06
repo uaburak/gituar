@@ -235,6 +235,31 @@ export async function setReportStatus(id: string, status: "in_progress" | "revie
   await f.fsMod.updateDoc(f.fsMod.doc(f.db, "reports", id), { status });
 }
 
+/**
+ * Şikayet edilen şarkıyı herkes için kaldırır (iOS ChordViewModel.deleteSong ile aynı):
+ * kullanıcı şarkısı ("u" ile başlar) user-chords'dan silinir; katalog şarkısı songs/{id} üzerinde deleted işaretlenir
+ * ve catalog/meta sayacı artırılır; iOS uygulamaları farkı çeker, web sonraki derlemede sayfayı kaldırır.
+ * `floorSeq`: bu derlemenin katalog seq'i (sayaç yerel katalogdan geri gitmesin).
+ */
+export async function removeReportedSong(songId: string, floorSeq: number): Promise<void> {
+  const f = await fb();
+  if (!f) throw new Error("Firebase hazır değil");
+  const fs = f.fsMod;
+  if (songId.startsWith("u")) {
+    await fs.deleteDoc(fs.doc(f.db, "user-chords", songId));
+    return;
+  }
+  const metaRef = fs.doc(f.db, "catalog", "meta");
+  const songRef = fs.doc(f.db, "songs", songId);
+  await fs.runTransaction(f.db, async (tx) => {
+    const meta = await tx.get(metaRef);
+    const current = Math.max(Number(meta.data()?.seq ?? 0), floorSeq);
+    const next = current + 1;
+    tx.set(metaRef, { seq: next, publishedAt: fs.serverTimestamp() }, { merge: true });
+    tx.set(songRef, { deleted: true, seq: next, updatedAt: fs.serverTimestamp() }, { merge: true });
+  });
+}
+
 /** Şarkı şikayeti: iOS SongDetailView.reportContent ile aynı alanlar; admin panelinde listelenir. */
 export async function createReport(uid: string, song: { id: string; name: string; artist: string }, reason: string): Promise<void> {
   const f = await fb();

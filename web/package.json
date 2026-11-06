@@ -8,7 +8,8 @@
     "build": "astro build",
     "preview": "astro preview",
     "check": "astro check",
-    "deploy": "bash scripts/deploy-vercel.sh"
+    "deploy": "bash scripts/deploy-vercel.sh",
+    "prebuild": "node ../shared/scripts/pull-catalog-public.mjs"
   },
   "dependencies": {
     "@astrojs/sitemap": "^3.4.0",

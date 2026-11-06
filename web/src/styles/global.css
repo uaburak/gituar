@@ -392,6 +392,7 @@ dialog::backdrop { background: rgba(0,0,0,.35); }
 .admin-actions { display: flex; gap: 6px; flex: none; flex-wrap: wrap; justify-content: flex-end; }
 .btn-mini { height: 30px; padding: 0 10px; font-size: 12px; }
 .btn-danger { color: var(--red); }
+.btn-mini.btn-danger { background: #ff3b30; color: #fff; }
 .admin-details { margin-top: 8px; font-size: 13px; }
 .admin-details summary { cursor: pointer; color: var(--accent-text); }
 .admin-pre { margin-top: 8px; padding: 12px; border-radius: 10px; background: var(--muted); max-height: 360px; overflow: auto; font-size: 13px; }

@@ -1,9 +1,37 @@
 // Şarkı sayfası: ton şeridi, kapo, akor gizle, yazı boyutu, otomatik kaydırma, ton kaydetme, repertuara ekle.
 import { transpose, semitoneOffset, prefersFlats, chordSpans } from "@shared/chords";
 import { esc } from "../lib/search-client.ts";
+import { FIREBASE_CONFIG } from "../lib/site.ts";
 
 const root = document.getElementById("song");
-if (root) init(root);
+if (root) {
+  init(root);
+  checkRemoved(root.dataset.id ?? "");
+}
+
+/**
+ * Yönetici şarkıyı kaldırdıysa (songs/{id}.deleted) site yeniden derlenene kadar içerik burada gizlenir.
+ * Tek doküman, yalnızca "deleted" alanı okunur; doküman yoksa (hiç değişmemiş şarkı) 404 döner ve bir şey yapılmaz.
+ */
+async function checkRemoved(id: string) {
+  if (!id || id.startsWith("u") || !FIREBASE_CONFIG.apiKey) return;
+  try {
+    const url = `https://firestore.googleapis.com/v1/projects/${FIREBASE_CONFIG.projectId}/databases/(default)/documents/songs/${encodeURIComponent(id)}?key=${FIREBASE_CONFIG.apiKey}&mask.fieldPaths=deleted`;
+    const res = await fetch(url);
+    if (!res.ok) return;
+    const doc = await res.json();
+    if (doc?.fields?.deleted?.booleanValue !== true) return;
+    const meta = document.createElement("meta");
+    meta.name = "robots";
+    meta.content = "noindex";
+    document.head.appendChild(meta);
+    document.querySelectorAll("#song, .song-chords, .song-intro, .title-row .actions").forEach((el) => el.remove());
+    const note = document.createElement("div");
+    note.className = "alert";
+    note.innerHTML = 'Bu içerik kaldırıldı. Sorunun varsa <a href="/iletisim/">bizimle iletişime geç</a>.';
+    document.querySelector(".song-head")?.after(note);
+  } catch {}
+}
 
 function init(root: HTMLElement) {
   const songId = root.dataset.id ?? "";

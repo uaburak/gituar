@@ -1,8 +1,10 @@
 ---
 import Base from "../../layouts/Base.astro";
+import { catalog } from "../../lib/catalog.ts";
+const catalogSeq = catalog().snapshot.seq;
 ---
 <Base title="Yönetim" noindex ads={false}>
-  <div class="page-head">
+  <div class="page-head" id="admin-head" data-catalog-seq={catalogSeq}>
     <div class="title-row">
       <div><h1>Yönetim</h1><p id="admin-meta">Onay bekleyen şarkılar ve şikayetler · iPhone uygulamasındaki yönetim ile aynı veriler</p></div>
       <button class="btn" id="admin-refresh" type="button" hidden>Yenile</button>

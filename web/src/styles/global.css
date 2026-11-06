@@ -32,7 +32,8 @@
   --radius-sm: 10px;
   --radius-md: 14px;
   --radius-lg: 18px;
-  --content: 1280px; /* header, içerik ve alt bilgi aynı sütun (Wecra web-yeni) */
+  --content: 1024px; /* header, içerik ve alt bilgi aynı sütun */
+  --rail: 320px;     /* sağ panel (şarkı, sanatçı, ana sayfa kutuları) */
   --side-ad: 160px;  /* yan reklamlar bu sütunun dışında */
   --gutter: 20px;
   --pad-x: 24px;
@@ -92,13 +93,13 @@ img, svg { display: block; }
 .icon { width: 18px; height: 18px; flex: none; }
 .icon-sm { width: 16px; height: 16px; flex: none; }
 
-/* ---------- Kabuk: 1280'lik sütun ortada; yan reklamlar sütunun dışında, yer varsa (≥1700 px) ---------- */
+/* ---------- Kabuk: 1024'lük sütun ortada; yan reklamlar sütunun dışında, yer varsa (≥1440 px) ---------- */
 .shell {
   display: grid; grid-template-columns: minmax(0, var(--content)); justify-content: center;
   column-gap: var(--gutter); padding: 0 var(--pad-x);
 }
 .side-ad { display: none; position: sticky; top: 16px; align-self: start; margin-top: 24px; }
-@media (min-width: 1700px) {
+@media (min-width: 1440px) {
   .shell:not(.shell-plain) { grid-template-columns: var(--side-ad) minmax(0, var(--content)) var(--side-ad); }
   .shell:not(.shell-plain) .side-ad { display: block; }
 }
@@ -308,7 +309,7 @@ a.card:hover, .editor-hero:hover { text-decoration: none; transform: scale(1.02)
 .promo-card .btn { flex: none; }
 
 /* ---------- Ana sayfa (Wecra · Ana sayfa / Desktop) ---------- */
-.home-top { display: grid; grid-template-columns: minmax(0, 1fr) 384px; gap: 24px; }
+.home-top { display: grid; grid-template-columns: minmax(0, 1fr) var(--rail); gap: 24px; }
 .home-top .editor-hero, .home-top .editor-hero-body { min-height: 320px; }
 .home-tiles { display: grid; grid-template-rows: 1fr 1fr; gap: 16px; }
 .home-tiles .tile { min-height: 0; }
@@ -338,7 +339,7 @@ a.card:hover, .editor-hero:hover { text-decoration: none; transform: scale(1.02)
 }
 
 /* ---------- İki sütunlu sayfa gövdesi: ana sütun + 384'lük sağ panel ---------- */
-.with-rail { display: grid; grid-template-columns: minmax(0, 1fr) 384px; gap: 24px; align-items: start; }
+.with-rail { display: grid; grid-template-columns: minmax(0, 1fr) var(--rail); gap: 24px; align-items: start; }
 .rail { display: grid; gap: 24px; align-content: start; position: sticky; top: 16px; }
 .rail .section-head h2 { font-size: 20px; }
 .artist-tools { display: flex; gap: 8px; margin-bottom: 16px; }
@@ -380,7 +381,7 @@ a.card:hover, .editor-hero:hover { text-decoration: none; transform: scale(1.02)
 .song-meta a { font-weight: 600; }
 .song-meta .dot { color: var(--text-3); }
 /* Şarkı düzeni (Wecra · Şarkı / Desktop): araç çubuğu | eylemler; akor kâğıdı | sağ panel (384) */
-.song-layout { display: grid; grid-template-columns: minmax(0, 1fr) 384px; column-gap: 24px; row-gap: 24px; align-items: start; }
+.song-layout { display: grid; grid-template-columns: minmax(0, 1fr) var(--rail); column-gap: 24px; row-gap: 24px; align-items: start; }
 .tools { grid-column: 1; display: flex; align-items: center; flex-wrap: wrap; gap: 4px 12px; min-height: 40px; padding: 4px; background: var(--surface); border-radius: 999px; }
 .song-actions { grid-column: 2; display: flex; align-items: center; gap: 8px; min-height: 40px; }
 .song-main { grid-column: 1; min-width: 0; }
@@ -603,7 +604,7 @@ html.plus body { padding-bottom: 0; }
 .rep-create .input { flex: 1; min-width: 0; }
 .rep-create[hidden] { display: none; }
 
-/* ---------- Alt bilgi (Wecra web-yeni): 1280'lik sütun, marka + üç sütun, altta telif ve gece modu ---------- */
+/* ---------- Alt bilgi: içerikle aynı sütun, marka + üç sütun, altta telif ve gece modu ---------- */
 .site-footer { padding: 0 var(--pad-x) 40px; color: var(--text-2); font-size: 14px; }
 .footer-inner { max-width: var(--content); margin: 0 auto; border-top: 1px solid var(--hairline); padding-top: 48px; display: grid; gap: 40px; }
 .footer-top { display: flex; justify-content: space-between; gap: 40px; flex-wrap: wrap; }

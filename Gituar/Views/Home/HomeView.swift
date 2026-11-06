@@ -8,6 +8,8 @@ struct HomeView: View {
     @EnvironmentObject var chordsManager: ChordsStorageManager
 
     @State private var navigateToProfile = false
+    @State private var navigateToPlus = false
+    @ObservedObject private var plus = PlusManager.shared
 
     // Arama — AllArtistsView ile aynı kurulum (.searchable + 500 ms debounce)
     @State private var searchText: String = ""
@@ -52,6 +54,9 @@ struct HomeView: View {
         }
         .navigationDestination(isPresented: $navigateToProfile) {
             ProfileSettingsView()
+        }
+        .navigationDestination(isPresented: $navigateToPlus) {
+            PlusView()
         }
         // gituar://song/<id> bağlantısıyla gelen şarkı
         .navigationDestination(item: $viewModel.deepLinkedSong) { song in
@@ -115,6 +120,32 @@ struct HomeView: View {
                         .foregroundColor(.secondary)
                 }
                 .fixedSize(horizontal: true, vertical: false)
+            }
+            .sharedBackgroundVisibility(.hidden)
+
+            // Ücretli sürüme teşvik: abone olmayanlara sağ üstte "Pro" düğmesi
+            ToolbarItem(placement: .topBarTrailing) {
+                if !plus.isPlus {
+                    Button {
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        navigateToPlus = true
+                    } label: {
+                        HStack(spacing: 5) {
+                            Image(systemName: "crown.fill")
+                            Text("Pro")
+                        }
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 8)
+                        .background(
+                            LinearGradient(colors: [.orange, .pink], startPoint: .leading, endPoint: .trailing),
+                            in: Capsule()
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Pro'ya geç")
+                }
             }
             .sharedBackgroundVisibility(.hidden)
         }

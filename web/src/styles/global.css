@@ -410,15 +410,12 @@ a.card:hover, .editor-hero:hover { text-decoration: none; transform: scale(1.02)
 #btn-chords { margin-left: auto; }
 .btn-outline { background: var(--surface); box-shadow: inset 0 0 0 1px var(--hairline); }
 .btn-round { width: 40px; padding: 0; }
-/* Yazdır: "Sayfayı oynat" görünürken yalnızca ikon; oynat gizliyse (akorlar ekrana sığıyor) yazıyla */
-.btn-print-label { display: none; }
-#btn-play[hidden] ~ #btn-print { width: auto; padding: 0 16px; }
-/* Eylem düğmeleri sağ panel genişliğini doldurur: oynat varsa o uzar, yoksa Repertuara ekle ve Yazdır eşit paylaşır */
-.song-actions #btn-play { flex: 1; }
-#btn-play[hidden] ~ #btn-rep, #btn-play[hidden] ~ #btn-print { flex: 1 1 0; padding: 0 12px; }
-#btn-play[hidden] ~ #btn-print .btn-print-label { display: inline; }
+/* Eylemler: ▶ ve Yazdır ikon, Repertuara ekle kalan genişliği doldurur */
+.song-actions #btn-rep { flex: 1; }
+.btn-play .icon-pause { display: none; }
+.btn-play[aria-pressed="true"] .icon-play { display: none; }
+.btn-play[aria-pressed="true"] .icon-pause { display: block; }
 .song-actions .btn { height: 40px; font-size: 14px; font-weight: 600; }
-.song-actions .btn-primary { padding: 0 20px; }
 .rail-card { padding: 24px; display: grid; gap: 12px; justify-items: start; }
 .rail-head { width: 100%; display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
 .rail-head h2 { font-size: 17px; letter-spacing: -0.01em; }

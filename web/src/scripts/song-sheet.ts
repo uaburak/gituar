@@ -173,10 +173,9 @@ function init(root: HTMLElement) {
   function sheetFits(): boolean {
     return sheet.offsetHeight <= window.innerHeight - headerH() - bottomMargin;
   }
+  // Oynat düğmesi her zaman görünür; akorlar ekrana sığıyorsa kaydırma hemen sonda durur.
   function updatePlayVisibility() {
-    const fits = sheetFits();
-    playBtn.hidden = fits;
-    if (fits && playing) stop();
+    if (playing && sheetFits()) stop();
   }
   function sheetBottomReached(): boolean {
     return sheet.getBoundingClientRect().bottom <= window.innerHeight - bottomMargin;

@@ -209,12 +209,28 @@ struct ReportsListView: View {
         }
     }
 
-    /// Şarkıyı sil (user-chords'dan) ve raporu kapat.
+    /// Şarkıyı veritabanından sil ve raporu kapat. Şarkı bu cihazda yüklü olmasa da id ile silinir;
+    /// silme başarısız olursa rapor açık kalır.
     private func removeContentAndClose(_ report: SongReport) {
-        if let song = viewModel.allSongs.first(where: { $0.id == report.songId }) {
+        let songId = report.songId
+        if let song = viewModel.allSongs.first(where: { $0.id == songId }) {
             viewModel.deleteSong(song)
+            resolveReport(report, status: "reviewed")
+            return
         }
-        resolveReport(report, status: "reviewed")
+        Task {
+            do {
+                if songId.hasPrefix("u") {
+                    try await db.collection("user-chords").document(songId).delete()
+                } else {
+                    try await ChordsStorageManager.shared.deleteOfficialSong(songId: songId)
+                }
+                resolveReport(report, status: "reviewed")
+            } catch {
+                print("❌ ReportsListView removeContent: \(error)")
+                await MainActor.run { showUpdateError = true }
+            }
+        }
     }
 }
 

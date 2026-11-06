@@ -84,6 +84,9 @@ export function applyDelta(snapshot: CatalogSnapshot, changes: readonly CatalogS
     byId.set(c.id, c);
     if (c.seq > seq) seq = c.seq;
   }
-  const songs = [...byId.values()].sort((a, b) => a.seq - b.seq);
+  // Silinen şarkının içeriği tutulmaz: yalnızca id + seq + deleted kalır (cihazlar silmeyi öğrensin diye)
+  const songs = [...byId.values()]
+    .map((s) => (s.deleted ? { id: s.id, artist: "", songName: "", originalKey: "", content: "", artistSlug: "", slug: "", seq: s.seq, deleted: true } : s))
+    .sort((a, b) => a.seq - b.seq);
   return { seq, count: songs.filter((s) => !s.deleted).length, publishedAt: new Date().toISOString(), songs };
 }

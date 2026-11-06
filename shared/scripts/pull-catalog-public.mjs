@@ -86,12 +86,12 @@ if (changes.length === 0) {
 const byId = new Map(snapshot.songs.map((s) => [s.id, s]));
 let seq = snapshot.seq;
 for (const c of changes) {
-  // Silinen kayıtta içerik gelmeyebilir; eski alanları koru, yalnızca silindi işaretle
-  const prev = byId.get(c.id);
-  byId.set(c.id, c.deleted && prev ? { ...prev, deleted: true, seq: c.seq } : c);
+  byId.set(c.id, c);
   if (c.seq > seq) seq = c.seq;
 }
-const songs = [...byId.values()].sort((a, b) => a.seq - b.seq);
+// Silinen şarkıların içeriği hiçbir kopyada kalmaz: yalnızca id + seq + deleted
+const tombstone = (s) => ({ id: s.id, artist: "", songName: "", originalKey: "", content: "", artistSlug: "", slug: "", seq: s.seq, deleted: true });
+const songs = [...byId.values()].map((s) => (s.deleted ? tombstone(s) : s)).sort((a, b) => a.seq - b.seq);
 const next = { seq, count: songs.filter((s) => !s.deleted).length, publishedAt: new Date().toISOString(), songs };
 writeFileSync(snapshotPath, deflateRawSync(Buffer.from(JSON.stringify(next)), { level: 9 }));
 const removed = changes.filter((c) => c.deleted).length;

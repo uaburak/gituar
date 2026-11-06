@@ -189,19 +189,31 @@ final class ChordsStorageManager: ObservableObject {
             let current = max((meta.data()?["seq"] as? NSNumber)?.intValue ?? 0, floorSeq)
             let newSeq = current + 1
             transaction.setData(["seq": newSeq, "publishedAt": FieldValue.serverTimestamp()], forDocument: metaRef, merge: true)
-            transaction.setData(["deleted": true, "seq": newSeq, "updatedAt": FieldValue.serverTimestamp()], forDocument: songRef, merge: true)
+            // merge yok: dokümandaki söz/akor/ad alanları da silinir; yalnızca içeriksiz silme kaydı kalır
+            transaction.setData(["deleted": true, "seq": newSeq, "updatedAt": FieldValue.serverTimestamp()], forDocument: songRef)
             return newSeq
         }
         guard let newSeq = result as? Int else {
             throw NSError(domain: "ChordsStorageManager", code: 1, userInfo: [NSLocalizedDescriptionKey: "Katalog sayacı güncellenemedi."])
         }
 
-        // Yerelde uygula
+        // Yerelde uygula: içerik cihazda da tutulmaz
         if var record = records[songId] {
             record.deleted = true
             record.seq = newSeq
+            record.artist = ""
+            record.songName = ""
+            record.originalKey = ""
+            record.content = ""
+            record.artistSlug = ""
+            record.slug = ""
+            record.createdAt = nil
+            record.addedBy = nil
             records[songId] = record
         }
+        // Şarkıya bağlı sayaç dokümanları
+        try? await db.collection("song-metrics").document(songId).delete()
+        try? await db.collection("chords").document(songId).delete()
         lastSeq = max(lastSeq, newSeq)
         publishSongs()
         persistToDisk()

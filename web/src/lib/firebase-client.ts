@@ -237,8 +237,8 @@ export async function setReportStatus(id: string, status: "in_progress" | "revie
 
 /**
  * Şikayet edilen şarkıyı herkes için kaldırır (iOS ChordViewModel.deleteSong ile aynı):
- * kullanıcı şarkısı ("u" ile başlar) user-chords'dan silinir; katalog şarkısı songs/{id} üzerinde deleted işaretlenir
- * ve catalog/meta sayacı artırılır; iOS uygulamaları farkı çeker, web sonraki derlemede sayfayı kaldırır.
+ * kullanıcı şarkısı ("u" ile başlar) user-chords'dan tamamen silinir. Katalog şarkısının söz, akor ve adları silinir;
+ * songs/{id} içinde yalnızca içeriksiz silme kaydı (deleted + seq) kalır ki şarkıyı önceden indirmiş cihazlar da silsin.
  * `floorSeq`: bu derlemenin katalog seq'i (sayaç yerel katalogdan geri gitmesin).
  */
 export async function removeReportedSong(songId: string, floorSeq: number): Promise<void> {
@@ -256,8 +256,11 @@ export async function removeReportedSong(songId: string, floorSeq: number): Prom
     const current = Math.max(Number(meta.data()?.seq ?? 0), floorSeq);
     const next = current + 1;
     tx.set(metaRef, { seq: next, publishedAt: fs.serverTimestamp() }, { merge: true });
-    tx.set(songRef, { deleted: true, seq: next, updatedAt: fs.serverTimestamp() }, { merge: true });
+    // merge yok: dokümanda önceden kalmış söz/akor/ad alanları da silinir; geriye yalnızca silme kaydı kalır
+    tx.set(songRef, { deleted: true, seq: next, updatedAt: fs.serverTimestamp() });
   });
+  // Şarkıya bağlı sayaç dokümanları da silinir (yoksa sessizce geçilir)
+  await Promise.allSettled([fs.deleteDoc(fs.doc(f.db, "song-metrics", songId)), fs.deleteDoc(fs.doc(f.db, "chords", songId))]);
 }
 
 /** Şarkı şikayeti: iOS SongDetailView.reportContent ile aynı alanlar; admin panelinde listelenir. */

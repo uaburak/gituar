@@ -410,8 +410,10 @@ a.card:hover, .editor-hero:hover { text-decoration: none; transform: scale(1.02)
 #btn-chords { margin-left: auto; }
 .btn-outline { background: var(--surface); box-shadow: inset 0 0 0 1px var(--hairline); }
 .btn-round { width: 40px; padding: 0; }
-/* Eylemler: ▶ ve Yazdır ikon, Repertuara ekle kalan genişliği doldurur */
+/* Eylemler: Repertuara ekle kalan genişliği doldurur, Yazdır ikon */
 .song-actions #btn-rep { flex: 1; }
+.btn-play { background: var(--accent); color: var(--on-accent); }
+.btn-play:hover { background: var(--accent-hover); filter: none; }
 .btn-play .icon-pause { display: none; }
 .btn-play[aria-pressed="true"] .icon-play { display: none; }
 .btn-play[aria-pressed="true"] .icon-pause { display: block; }

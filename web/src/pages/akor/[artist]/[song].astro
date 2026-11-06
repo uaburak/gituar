@@ -37,22 +37,17 @@ const diagrams = analysis.chords.slice(0, 12).map((c) => ({ ...c, shape: chordSh
   <div class="page-head song-head">
     <nav class="crumbs" aria-label="Sayfa yolu"><a href="/">Ana sayfa</a><span>/</span><a href="/sanatcilar/">Sanatçılar</a><span>/</span><a href={artistPath(song.artistSlug)}>{song.artist}</a><span>/</span>{song.songName}</nav>
     <h1>{song.songName} - Akor</h1>
-    <div class="song-meta">
-      <a href={artistPath(song.artistSlug)}>{song.artist}</a>
-      {song.originalKey && <><span class="dot">·</span><span>Orijinal ton {song.originalKey}</span></>}
-      {analysis.chords.length > 0 && <><span class="dot">·</span><span class={`row-level level-${analysis.level}`}>{LEVEL_LABEL[analysis.level]}</span></>}
-    </div>
-    <p class="song-intro">
-      {song.songName}, <a href={artistPath(song.artistSlug)}>{song.artist}</a> tarafından seslendirilen şarkının gitar akorları.
-      {song.originalKey && chords.length > 0 && <>Orijinal ton {song.originalKey}; kullanılan akorlar: {chords.join(", ")}.</>}
-      {song.originalKey && chords.length === 0 && <>Orijinal ton {song.originalKey}.</>}
-      {!song.originalKey && chords.length > 0 && <>Kullanılan akorlar: {chords.join(", ")}.</>}
-      {analysis.level === "kolay" && <>Barre gerektirmez, yalnızca açık akorlarla çalınır. </>}
-      Tonu değiştirebilir, kapo ekleyebilir, otomatik kaydırma ile çalabilirsin.
-    </p>
   </div>
   <SongSheet song={song}>
     <Fragment slot="after">
+      <p class="song-intro">
+        {song.songName}, <a href={artistPath(song.artistSlug)}>{song.artist}</a> tarafından seslendirilen şarkının gitar akorları.
+        {song.originalKey && chords.length > 0 && <>Orijinal ton {song.originalKey}; kullanılan akorlar: {chords.join(", ")}.</>}
+        {song.originalKey && chords.length === 0 && <>Orijinal ton {song.originalKey}.</>}
+        {!song.originalKey && chords.length > 0 && <>Kullanılan akorlar: {chords.join(", ")}.</>}
+        {analysis.level === "kolay" && <>Barre gerektirmez, yalnızca açık akorlarla çalınır. </>}
+        Tonu değiştirebilir, kapo ekleyebilir, otomatik kaydırma ile çalabilirsin.
+      </p>
     {(similar.length > 0 || others.length > 0) && (
       <div class="song-more">
         {similar.length > 0 && (
@@ -71,6 +66,13 @@ const diagrams = analysis.chords.slice(0, 12).map((c) => ({ ...c, shape: chordSh
     )}
     </Fragment>
     <Fragment slot="rail">
+      <section class="card rail-card song-info" aria-label="Şarkı bilgileri">
+        <dl class="info-list">
+          <div><dt>Sanatçı</dt><dd><a href={artistPath(song.artistSlug)}>{song.artist}</a></dd></div>
+          {song.originalKey && <div><dt>Orijinal ton</dt><dd>{keyHref ? <a href={keyHref}>{song.originalKey}</a> : song.originalKey}</dd></div>}
+          {analysis.chords.length > 0 && <div><dt>Zorluk</dt><dd><span class={`row-level level-${analysis.level}`}>{LEVEL_LABEL[analysis.level]}</span></dd></div>}
+        </dl>
+      </section>
       {diagrams.length > 0 && (
         <section class="card rail-card song-chords">
           <div class="rail-head"><h2>Bu şarkının akorları</h2><a href="/akorlar/">Akor tablosu</a></div>

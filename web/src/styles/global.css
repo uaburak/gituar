@@ -430,7 +430,13 @@ a.card:hover, .editor-hero:hover { text-decoration: none; transform: scale(1.02)
 .rail-tip { margin: 0; font-size: 15px; font-weight: 600; }
 .rail-tip-sub { margin: -6px 0 0; font-size: 14px; color: var(--text-2); }
 .song-rail .ad-rect { margin: 0 auto; }
-.song-intro { margin: 12px 0 0; max-width: 760px; font-size: 14px; line-height: 1.55; color: var(--text-2); }
+.song-intro { margin: 16px 0 0; font-size: 13px; line-height: 1.55; color: var(--text-3); }
+.info-list { width: 100%; margin: 0; display: grid; }
+.info-list div { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; padding: 10px 0; border-bottom: 1px solid var(--hairline); font-size: 14px; }
+.info-list div:first-child { padding-top: 0; }
+.info-list div:last-child { border-bottom: 0; padding-bottom: 0; }
+.info-list dt { color: var(--text-2); }
+.info-list dd { margin: 0; font-weight: 600; text-align: right; }
 .song-intro a { color: inherit; text-decoration: underline; }
 .song-more { align-items: start; }
 @media (max-width: 1000px) {

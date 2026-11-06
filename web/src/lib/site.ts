@@ -17,3 +17,6 @@ export const ADSENSE_SLOTS: Record<string, string> = {
   sticky: import.meta.env.PUBLIC_ADSENSE_SLOT_STICKY ?? "",
   leaderboard: import.meta.env.PUBLIC_ADSENSE_SLOT_LEADERBOARD ?? "",
 };
+
+/** Şarkı API'si (Cloudflare Worker + D1). Bütün şarkılar buradan okunur. */
+export const API_URL = (import.meta.env.PUBLIC_API_URL ?? "https://gituar-api.burak-kc-sp.workers.dev").replace(/\/$/, "");

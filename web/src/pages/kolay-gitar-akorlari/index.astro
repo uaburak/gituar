@@ -4,7 +4,7 @@ import Base from "../../layouts/Base.astro";
 import SongList from "../../components/SongList.astro";
 import ChordDiagram from "../../components/ChordDiagram.astro";
 import AdSlot from "../../components/AdSlot.astro";
-import { easySongs, songChords, capoEasySongs } from "../../lib/chord-stats.ts";
+import { easySongs, songChords, capoEasySongs, chordHref } from "../../lib/chord-stats.ts";
 import { chordShapes, chordSlug } from "../../lib/chord-theory.ts";
 import { siteUrl, breadcrumbJsonLd } from "../../lib/seo.ts";
 import { songPath } from "@shared/catalog";
@@ -37,7 +37,7 @@ const jsonLd = [
   </div>
 
   <section class="chord-grid card" aria-label="Temel açık akorlar">
-    {basics.map(([r, q]) => <ChordDiagram shape={chordShapes(r, q)[0]} label={r + q} href={`/akorlar/${chordSlug(r, q)}/`} />)}
+    {basics.map(([r, q]) => <ChordDiagram shape={chordShapes(r, q)[0]} label={r + q} href={chordHref(r, q)} />)}
   </section>
 
   <div class="chord-chips" style="margin-top:20px">

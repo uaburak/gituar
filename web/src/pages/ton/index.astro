@@ -2,11 +2,11 @@
 import Base from "../../layouts/Base.astro";
 import { catalog } from "../../lib/catalog.ts";
 import { keySlug, keyTurkish } from "../../lib/keys.ts";
-import { allKeyInfos } from "../../lib/catalog-rules.mjs";
+import { allKeyInfos, minKeySongs } from "../../lib/catalog-rules.mjs";
 import { siteUrl, breadcrumbJsonLd } from "../../lib/seo.ts";
 
 void catalog;
-const keys = allKeyInfos().filter((k) => k.total >= 10).sort((a, b) => b.total - a.total).map((k) => [k.spellings.join(" / "), k.total, k.name] as const);
+const keys = allKeyInfos().filter((k) => k.total >= minKeySongs()).sort((a, b) => b.total - a.total).map((k) => [k.spellings.join(" / "), k.total, k.name] as const);
 const base = siteUrl(Astro.site);
 const description = "Gitar akorlarını tona göre bul: majör ve minör tonlarda şarkı listeleri, her tonun sık kullanılan akorları. Transpoze ve kapo ile istediğin tona taşı.";
 ---

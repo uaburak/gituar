@@ -1,6 +1,6 @@
-import { loadIndex } from "../lib/search-client.ts";
+import { newestSongs } from "../lib/search-client.ts";
 document.getElementById("btn-random")?.addEventListener("click", async () => {
-  const index = await loadIndex();
-  const pick = index[Math.floor(Math.random() * index.length)];
+  const list = await newestSongs(100);
+  const pick = list[Math.floor(Math.random() * list.length)];
   if (pick) location.href = pick.p;
 });

@@ -1,7 +1,7 @@
 // Şarkı sayfası: ton şeridi, kapo, akor gizle, yazı boyutu, otomatik kaydırma, ton kaydetme, repertuara ekle.
 import { transpose, semitoneOffset, prefersFlats, chordSpans } from "@shared/chords";
-import { esc } from "../lib/search-client.ts";
-import { FIREBASE_CONFIG } from "../lib/site.ts";
+import { esc, songExists } from "../lib/search-client.ts";
+import { trackAction } from "../lib/actions.ts";
 
 const root = document.getElementById("song");
 if (root) {
@@ -10,17 +10,13 @@ if (root) {
 }
 
 /**
- * Yönetici şarkıyı kaldırdıysa (songs/{id}.deleted) site yeniden derlenene kadar içerik burada gizlenir.
- * Tek doküman, yalnızca "deleted" alanı okunur; doküman yoksa (hiç değişmemiş şarkı) 404 döner ve bir şey yapılmaz.
+ * Şarkı API'de yoksa (silindi ya da yayından kalktı) site yeniden derlenene kadar içerik burada gizlenir.
+ * Varsa sayfa görüntülenmesi popülerliğe bir kez sayılır (aynı kişi/cihaz için tekrar sayılmaz).
  */
 async function checkRemoved(id: string) {
-  if (!id || id.startsWith("u") || !FIREBASE_CONFIG.apiKey) return;
+  if (!id) return;
   try {
-    const url = `https://firestore.googleapis.com/v1/projects/${FIREBASE_CONFIG.projectId}/databases/(default)/documents/songs/${encodeURIComponent(id)}?key=${FIREBASE_CONFIG.apiKey}&mask.fieldPaths=deleted`;
-    const res = await fetch(url);
-    if (!res.ok) return;
-    const doc = await res.json();
-    if (doc?.fields?.deleted?.booleanValue !== true) return;
+    if (await songExists(id)) { trackAction(id, "view"); return; }
     const meta = document.createElement("meta");
     meta.name = "robots";
     meta.content = "noindex";
@@ -188,6 +184,7 @@ function init(root: HTMLElement) {
       b.addEventListener("click", async () => {
         b.disabled = true;
         await mod.addSongToRepertoire(user.uid, { id: b.dataset.rep!, isPublic: b.dataset.public === "1" }, songId);
+        trackAction(songId, "repertoire", { token: await user.getIdToken() });
         dialog.close();
         alert("Repertuara eklendi.");
       }),
@@ -199,6 +196,7 @@ function init(root: HTMLElement) {
       if (!name) return;
       const id = await mod.createRepertoire(user.uid, name);
       await mod.addSongToRepertoire(user.uid, { id, isPublic: false }, songId);
+      trackAction(songId, "repertoire", { token: await user.getIdToken() });
       dialog.close();
       alert(`"${name}" oluşturuldu ve şarkı eklendi.`);
     };

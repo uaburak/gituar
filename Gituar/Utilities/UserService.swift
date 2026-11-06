@@ -67,6 +67,9 @@ class UserService: ObservableObject {
             throw AccountDeletionError.requiresRecentLogin
         }
 
+        // 0. Kullanıcının şarkıları ve popülerlik kayıtları (Cloudflare D1). Auth silinmeden önce: kimlik kartı gerekiyor.
+        try await GituarAPI.shared.deleteMyData()
+
         // 1. Delete the user's private subcollections (best-effort)
         for subcollection in ["repertoires", "preferences"] {
             guard let snapshot = try? await userRef.collection(subcollection).getDocuments() else { continue }

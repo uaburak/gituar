@@ -1,10 +1,9 @@
 // Katalogdan türeyen SEO kuralları. Hem sayfalar (Astro) hem astro.config.mjs (site haritası) bunu kullanır;
-// config Vite alias'ları olmadan yüklendiği için düz JS ve snapshot'ı kendisi açar.
+// config Vite alias'ları olmadan yüklendiği için düz JS; şarkıları .cache/songs.json'dan (API) kendisi okur.
 //  - Kopya şarkılar: akor içeriği birebir aynı olanlardan en eski (seq) ana sayfa, diğerleri ona canonical verir.
 //  - İnce sanatçı sayfaları: tek şarkılı sanatçılar noindex ve site haritası dışı (şarkı sayfası zaten aynı içerik).
 //  - Ton adları: eşsesli tonlar (G# / Ab) tek sayfada; daha çok şarkısı olan yazım asıl ad olur.
 //  - Düetler: "A & B", "A ft. B" kayıtları, katalogda kendi sayfası olan sanatçıların sayfasında da listelenir.
-import { inflateRawSync } from "node:zlib";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
@@ -37,9 +36,8 @@ export function creditParts(name) {
 
 function load() {
   if (rules) return rules;
-  const path = fileURLToPath(new URL("../../../shared/catalog/catalog.deflate", import.meta.url));
-  const snapshot = JSON.parse(inflateRawSync(readFileSync(path)).toString("utf8"));
-  const songs = snapshot.songs.filter((s) => !s.deleted);
+  const path = fileURLToPath(new URL("../../.cache/songs.json", import.meta.url));
+  const songs = JSON.parse(readFileSync(path, "utf8"));
   const songPath = (s) => `/akor/${s.artistSlug}/${s.slug}/`;
 
   // Kopyalar
@@ -98,7 +96,7 @@ function load() {
     keyName.set(c, { name: spellings[0][0], spellings: spellings.map(([k]) => k), total: spellings.reduce((t, [, n]) => t + n, 0) });
   }
 
-  rules = { canonicalOf, thinArtists, featuredIn, keyName };
+  rules = { canonicalOf, thinArtists, featuredIn, keyName, songCount: songs.length };
   return rules;
 }
 
@@ -132,4 +130,15 @@ export function excludedFromSitemap(pathname) {
   if (r.canonicalOf.has(pathname)) return true;
   const m = /^\/sanatci\/([^/]+)\/$/.exec(pathname);
   return Boolean(m && r.thinArtists.has(m[1]));
+}
+
+/**
+ * Ton ve akor sayfası açma eşikleri katalog büyüklüğüne göre: büyük katalogda ince sayfa açılmasın (10 / 20 şarkı),
+ * küçük katalogda (kullanıcılar yeni yüklerken) sayfalar yine oluşsun (2 şarkı).
+ */
+export function minKeySongs() {
+  return load().songCount >= 2000 ? 10 : 2;
+}
+export function minChordSongs() {
+  return load().songCount >= 2000 ? 20 : 2;
 }

@@ -7,7 +7,6 @@ class AppDelegate: NSObject, UIApplicationDelegate {
     func application(_ application: UIApplication,
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
         FirebaseApp.configure()
-        // NOT: ChordsStorageManager.startIfNeeded() GituarApp içinden @MainActor context'te çağrılıyor.
         return true
     }
 }
@@ -24,13 +23,10 @@ struct GituarApp: App {
             ContentView()
                 .environmentObject(viewModel)
                 .environmentObject(authViewModel)
-                .environmentObject(ChordsStorageManager.shared)
                 .onAppear {
                     AdMobManager.shared.updateConsent()
                     // Gituar Plus (StoreKit 2) — hak durumu AdMobManager.isAdFree'yi besler
                     PlusManager.shared.start()
-                    // Paketteki seed'i aç, ardından Firestore'dan farkları çek
-                    ChordsStorageManager.shared.startIfNeeded()
                     InterstitialAdManager.shared.preload()
                     AppOpenAdManager.shared.preload()
                 }
@@ -43,11 +39,9 @@ struct GituarApp: App {
                 }
                 .onChange(of: scenePhase) { _, newPhase in
                     guard newPhase == .active else { return }
-                    // Ön plana dönüşte: seed yüklenemediyse yeniden dene, profil kontrolü,
-                    // Firestore'dan katalog farklarını çek (en fazla 6 saatte bir), açılış reklamı (günde en fazla 3).
-                    ChordsStorageManager.shared.retryIfFailed()
+                    // Ön plana dönüşte: profil kontrolü, açılış reklamı (günde en fazla 3).
+                    // Şarkılar ekran açıldıkça API'den istenir; arka planda katalog senkronu yok.
                     authViewModel.refreshProfileIfNeeded()
-                    Task { await ChordsStorageManager.shared.checkForUpdates() }
                     AppOpenAdManager.shared.showIfEligible()
                 }
         }

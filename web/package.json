@@ -9,7 +9,8 @@
     "preview": "astro preview",
     "check": "astro check",
     "deploy": "bash scripts/deploy-vercel.sh",
-    "prebuild": "node ../shared/scripts/pull-catalog-public.mjs"
+    "prebuild": "node scripts/fetch-songs.mjs",
+    "predev": "node scripts/fetch-songs.mjs"
   },
   "dependencies": {
     "@astrojs/sitemap": "^3.4.0",

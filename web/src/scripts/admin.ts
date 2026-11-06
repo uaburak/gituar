@@ -1,17 +1,18 @@
 // Yönetim: onay bekleyen kullanıcı şarkıları ve şikayetler (yalnızca users/{uid}.isAdmin; kurallar sunucuda da zorlar).
-import { firebaseReady, currentUser, isAdminUser, listPendingChords, setChordStatus, listReports, setReportStatus, removeReportedSong } from "../lib/firebase-client.ts";
-import { esc, loadIndex } from "../lib/search-client.ts";
+import type { User } from "firebase/auth";
+import { firebaseReady, currentUser, listReports, setReportStatus } from "../lib/firebase-client.ts";
+import { apiIsAdmin, listPending, setSongStatus, deleteSong } from "../lib/api-admin.ts";
+import { esc, songsByIds } from "../lib/search-client.ts";
 
 const $ = (id: string) => document.getElementById(id)!;
 const status = $("admin-status");
 const fmt = (d?: Date) => (d ? d.toLocaleDateString("tr-TR", { day: "numeric", month: "short", year: "numeric" }) : "");
 let reportFilter: "open" | "closed" = "open";
-// Bu derlemenin katalog seq'i: silme sayacı yerel katalogdan geri gitmesin (iOS floorSeq ile aynı)
-const CATALOG_SEQ = Number(document.getElementById("admin-head")?.dataset.catalogSeq ?? 0);
+let me: User;
 
 async function loadPending() {
   const list = $("pending-list");
-  const items = await listPendingChords();
+  const items = (await listPending(me)).map((c) => ({ ...c, songName: c.title, createdAt: new Date(c.createdAt) }));
   $("pending-count").textContent = items.length ? `${items.length} şarkı` : "Bekleyen yok";
   list.innerHTML = items.length
     ? items.map((c) => `<div class="row admin-row" data-id="${esc(c.id)}">
@@ -31,7 +32,7 @@ async function loadPending() {
       const row = b.closest<HTMLElement>(".admin-row")!;
       row.querySelectorAll("button").forEach((x) => (x.disabled = true));
       try {
-        await setChordStatus(row.dataset.id!, b.dataset.act as "approved" | "rejected");
+        await setSongStatus(me, row.dataset.id!, b.dataset.act as "approved" | "rejected");
         row.remove();
         const left = list.querySelectorAll(".admin-row").length;
         $("pending-count").textContent = left ? `${left} şarkı` : "Bekleyen yok";
@@ -47,11 +48,10 @@ async function loadPending() {
 async function loadReports() {
   const list = $("reports-list");
   list.innerHTML = `<div class="row muted small">Yükleniyor…</div>`;
-  const [items, index] = await Promise.all([
-    listReports(reportFilter === "open" ? ["pending", "in_progress"] : ["reviewed", "dismissed"]),
-    loadIndex().catch(() => []),
-  ]);
-  const pathById = new Map(index.map((e) => [e.i, e.p]));
+  const items = await listReports(reportFilter === "open" ? ["pending", "in_progress"] : ["reviewed", "dismissed"]);
+  const ids = [...new Set(items.map((r) => r.songId).filter(Boolean))];
+  const found = await songsByIds(ids).catch(() => []);
+  const pathById = new Map(found.map((e) => [e.i, e.p]));
   const label: Record<string, string> = { pending: "Bekliyor", in_progress: "İnceleniyor", reviewed: "Kaldırıldı", dismissed: "Yoksayıldı" };
   list.innerHTML = items.length
     ? items.map((r) => `<div class="row admin-row" data-id="${esc(r.id)}">
@@ -74,7 +74,7 @@ async function loadReports() {
       row.querySelectorAll("button").forEach((x) => (x.disabled = true));
       try {
         if (b.dataset.act === "remove") {
-          await removeReportedSong(report.songId, CATALOG_SEQ);
+          await deleteSong(me, report.songId).catch((e: Error) => { if (!/bulunamadı/i.test(e.message)) throw e; });
           await setReportStatus(report.id, "reviewed");
         } else {
           await setReportStatus(row.dataset.id!, b.dataset.act as "in_progress" | "reviewed" | "dismissed");
@@ -92,7 +92,8 @@ async function loadReports() {
   if (!firebaseReady) { status.textContent = "Web girişi yapılandırılmamış."; return; }
   const user = await currentUser();
   if (!user) { $("admin-auth").hidden = false; status.textContent = ""; return; }
-  if (!(await isAdminUser(user.uid))) { $("admin-denied").hidden = false; status.textContent = ""; return; }
+  me = user;
+  if (!(await apiIsAdmin(user))) { $("admin-denied").hidden = false; status.textContent = ""; return; }
   $("admin-pending").hidden = false;
   $("admin-reports").hidden = false;
   $("admin-refresh").hidden = false;

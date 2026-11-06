@@ -1,20 +1,32 @@
 import SwiftUI
 
 struct ArtistDetailView: View {
-    let artist: String
+    let slug: String
+    let name: String
     @EnvironmentObject var viewModel: ChordViewModel
-    @EnvironmentObject var chordsManager: ChordsStorageManager
 
-    // Kaynak her zaman viewModel — Storage + user_chords zaten merge edilmiş durumda
-    private var songs: [Song] { viewModel.songsForArtist(artist) }
+    private enum Phase: Equatable { case loading, loaded, failed(String) }
+    @State private var phase: Phase = .loading
+    @State private var songs: [Song] = []
+
+    init(slug: String, name: String) {
+        self.slug = slug
+        self.name = name
+    }
+
+    /// Şarkı kaydından (slug yoksa addan üretilir).
+    init(song: Song) {
+        self.init(slug: song.resolvedArtistSlug, name: song.artist)
+    }
 
     var body: some View {
         Group {
-            switch chordsManager.state {
-            case .idle, .downloading:
+            switch phase {
+            case .loading:
                 CatalogLoadingView()
-
-            default:
+            case .failed(let message):
+                CatalogLoadFailedView(message: message) { Task { await load(force: true) } }
+            case .loaded:
                 if songs.isEmpty {
                     VStack(spacing: 16) {
                         Image(systemName: "music.note.list")
@@ -33,10 +45,26 @@ struct ArtistDetailView: View {
                     }
                     .listStyle(.plain)
                     .scrollEdgeEffectStyle(.soft)
+                    .refreshable { await load(force: true) }
                 }
             }
         }
-        .navigationTitle(artist)
+        .navigationTitle(name)
+        .task { if songs.isEmpty { await load(force: false) } }
+    }
+
+    private func load(force: Bool) async {
+        do {
+            let detail = try await viewModel.artistDetail(slug: slug, forceReload: force)
+            var seen = Set<String>()
+            songs = detail.songs.filter { seen.insert($0.docId).inserted }
+            phase = .loaded
+        } catch let error as GituarAPIError where error.isNotFound {
+            songs = []
+            phase = .loaded
+        } catch is CancellationError {
+        } catch {
+            if songs.isEmpty { phase = .failed(error.localizedDescription) }
+        }
     }
 }
-

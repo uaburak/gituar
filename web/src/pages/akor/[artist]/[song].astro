@@ -1,6 +1,6 @@
 ---
 import { keySlug } from "../../../lib/keys.ts";
-import { canonicalSongPath, keyInfo } from "../../../lib/catalog-rules.mjs";
+import { canonicalSongPath, keyInfo, minKeySongs } from "../../../lib/catalog-rules.mjs";
 import Base from "../../../layouts/Base.astro";
 import SongSheet from "../../../components/SongSheet.astro";
 import SongList from "../../../components/SongList.astro";
@@ -25,7 +25,7 @@ const base = siteUrl(Astro.site);
 const { title, bare } = songTitleParts(song);
 const canonicalPath = canonicalSongPath(`/akor/${song.artistSlug}/${song.slug}/`);
 const keyPage = keyInfo(song.originalKey ?? "");
-const keyHref = keyPage && keyPage.total >= 10 ? `/ton/${keySlug(keyPage.name)}/` : "";
+const keyHref = keyPage && keyPage.total >= minKeySongs() ? `/ton/${keySlug(keyPage.name)}/` : "";
 const description = songDescription(song, chords);
 const artistUrl = base + artistPath(song.artistSlug);
 const analysis = songChords(song);

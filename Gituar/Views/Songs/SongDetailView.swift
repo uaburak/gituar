@@ -32,6 +32,14 @@ struct SongDetailView: View {
     @State private var showBlockAlert = false
     @State private var showBlockSuccess = false
     @State private var uploaderUsername: String? = nil
+
+    // API: şarkı içeriği ve sanatçının diğer şarkıları
+    @State private var contentError: String? = nil
+    @State private var isSongRemoved = false
+    @State private var artistSongs: [Song] = []
+    @State private var artistSongTotal: Int? = nil
+    @State private var actionError: String? = nil
+    @State private var isActing = false
     
     let isApprovalMode: Bool
     @ObservedObject private var adMobManager = AdMobManager.shared
@@ -227,6 +235,37 @@ struct SongDetailView: View {
 
     @ViewBuilder
     private var songContentView: some View {
+        if viewModel.isBlocked(currentSong) {
+            ContentUnavailableView(
+                "İçerik gizlendi",
+                systemImage: "hand.raised.fill",
+                description: Text("Bu şarkı engellediğin bir kullanıcıya ait.")
+            )
+            .frame(minHeight: 240)
+        } else if isSongRemoved {
+            ContentUnavailableView(
+                "Şarkı bulunamadı",
+                systemImage: "music.note",
+                description: Text("Bu şarkı kaldırılmış olabilir.")
+            )
+            .frame(minHeight: 240)
+        } else if !currentSong.hasContent {
+            if let contentError {
+                CatalogLoadFailedView(message: contentError) {
+                    Task { await loadFullContent() }
+                }
+                .frame(minHeight: 240)
+            } else {
+                CatalogLoadingView(text: "Akorlar yükleniyor…")
+                    .frame(minHeight: 240)
+            }
+        } else {
+            sheetView
+        }
+    }
+
+    @ViewBuilder
+    private var sheetView: some View {
         let offset = transposeOffset
         let preferFlats = ChordTransposer.prefersFlats(targetRoot: selectedKeyRoot, originalKey: currentSong.originalKey)
 
@@ -291,7 +330,7 @@ struct SongDetailView: View {
     @ToolbarContentBuilder
     private var songToolbar: some ToolbarContent {
         ToolbarItem(placement: .principal) {
-            NavigationLink(destination: ArtistDetailView(artist: currentSong.artist)) {
+            NavigationLink(destination: ArtistDetailView(song: currentSong)) {
                 VStack(spacing: 1) {
                     Text(currentSong.songName).font(.system(size: 15, weight: .semibold)).lineLimit(1).foregroundColor(.primary)
                     Text(currentSong.artist).font(.system(size: 11)).foregroundColor(.secondary).lineLimit(1)
@@ -306,20 +345,19 @@ struct SongDetailView: View {
             if isApprovalMode {
                 HStack(spacing: 16) {
                     Button {
-                        viewModel.approveSong(currentSong)
-                        dismiss()
+                        decide(approve: true)
                     } label: {
                         Image(systemName: "checkmark.circle.fill").foregroundColor(.green)
                     }
                     .accessibilityLabel("Onayla")
                     Button {
-                        viewModel.rejectSong(currentSong)
-                        dismiss()
+                        decide(approve: false)
                     } label: {
                         Image(systemName: "xmark.circle.fill").foregroundColor(.red)
                     }
                     .accessibilityLabel("Reddet")
                 }
+                .disabled(isActing)
             } else {
                 Button { showRepertoirePicker = true } label: {
                     Image(systemName: viewModel.isInAnyRepertoire(currentSong) ? "bookmark.fill" : "bookmark")
@@ -482,7 +520,84 @@ struct SongDetailView: View {
         } message: {
             Text("Kullanıcı başarıyla engellendi.")
         }
+        .alert("İşlem Başarısız", isPresented: Binding(
+            get: { actionError != nil },
+            set: { if !$0 { actionError = nil } }
+        )) {
+            Button("Tamam", role: .cancel) { }
+        } message: {
+            Text(actionError ?? "")
+        }
         .task(id: currentSong.docId) {
+            await loadFullContent()
+            async let artistLoad: Void = loadArtistSongs()
+            await loadUploader()
+            await artistLoad
+        }
+    }
+
+    // MARK: - API
+
+    /// Listeden gelen (içeriksiz) şarkının sözlerini/akorlarını çeker.
+    private func loadFullContent() async {
+        let songId = currentSong.docId
+        contentError = nil
+        isSongRemoved = false
+        do {
+            let full = try await viewModel.fullSong(for: currentSong)
+            guard currentSong.docId == songId else { return }
+            if !currentSong.hasContent || full.content != currentSong.content || full.ownerId != currentSong.ownerId {
+                let previousKey = currentSong.originalKey
+                currentSong = full
+                sheetLines = ChordTransposer.parse(full.content)
+                // Ton bilgisi olmadan açılan (ör. şikayetten) şarkıda seçili tonu orijinale çek
+                if previousKey != full.originalKey && viewModel.songPreferences[songId] == nil {
+                    selectedKeyRoot = originalRoot
+                }
+            }
+        } catch let error as GituarAPIError where error.isNotFound {
+            guard currentSong.docId == songId else { return }
+            isSongRemoved = true
+        } catch is CancellationError {
+        } catch {
+            guard currentSong.docId == songId else { return }
+            contentError = error.localizedDescription
+        }
+    }
+
+    private func loadArtistSongs() async {
+        let slug = currentSong.resolvedArtistSlug
+        do {
+            let detail = try await viewModel.artistDetail(slug: slug)
+            artistSongTotal = detail.songs.count
+            artistSongs = Array(detail.songs.filter { $0.docId != currentSong.docId }.prefix(5))
+        } catch {
+            artistSongTotal = nil
+            artistSongs = []
+        }
+    }
+
+    private func decide(approve: Bool) {
+        guard !isActing else { return }
+        isActing = true
+        let song = currentSong
+        Task {
+            defer { isActing = false }
+            do {
+                if approve {
+                    try await viewModel.approveSong(song)
+                } else {
+                    try await viewModel.rejectSong(song)
+                }
+                dismiss()
+            } catch {
+                actionError = error.localizedDescription
+            }
+        }
+    }
+
+    private func loadUploader() async {
+        do {
             if let ownerId = currentSong.ownerId, !ownerId.isEmpty {
                 do {
                     let profile = try await UserService.shared.getPublicUserProfile(uid: ownerId)
@@ -499,13 +614,11 @@ struct SongDetailView: View {
                     }
                 }
             } else {
-                await MainActor.run {
-                    self.uploaderUsername = currentSong.addedBy
-                }
+                self.uploaderUsername = currentSong.addedBy
             }
         }
     }
-    
+
     // MARK: - Song State
 
     /// Geçerli şarkı için kayıtlı ton/kapo/not tercihini yükler; yoksa orijinal tona döner.
@@ -524,6 +637,8 @@ struct SongDetailView: View {
 
         if !isApprovalMode {
             viewModel.addToRecentlyPlayed(currentSong)
+            // Popülerlik: şarkı açıldı
+            viewModel.trackView(currentSong)
         }
     }
 
@@ -684,10 +799,8 @@ struct SongDetailView: View {
 
                 Divider()
 
-                let allArtistSongs = viewModel.songsForArtist(currentSong.artist)
-
                 // Artist Section (Styled like AllArtistsView list item)
-                NavigationLink(destination: ArtistDetailView(artist: currentSong.artist)) {
+                NavigationLink(destination: ArtistDetailView(song: currentSong)) {
                     HStack(spacing: 14) {
                         ZStack {
                             RoundedRectangle(cornerRadius: 8)
@@ -703,7 +816,7 @@ struct SongDetailView: View {
                                 .font(.system(size: 15, weight: .medium))
                                 .foregroundColor(.primary)
                                 .lineLimit(1)
-                            Text("\(allArtistSongs.count) Şarkı")
+                            Text(artistSongTotal.map { "\($0) Şarkı" } ?? "Tüm şarkılar")
                                 .font(.system(size: 13))
                                 .foregroundColor(.secondary)
                                 .lineLimit(1)
@@ -721,8 +834,6 @@ struct SongDetailView: View {
                 .buttonStyle(PlainButtonStyle())
 
                 // Other Songs List
-                let artistSongs = Array(allArtistSongs.filter { $0.id != currentSong.id }.prefix(5))
-                
                 if !artistSongs.isEmpty {
                     VStack(alignment: .leading, spacing: 0) {
                         ForEach(artistSongs, id: \.docId) { otherSong in

@@ -46,29 +46,3 @@ export function buildEditorPicks(): Promise<BuildPick[]> {
   return cache;
 }
 
-let popCache: Promise<Map<string, number>> | null = null;
-
-/** Şarkı id → kaç herkese açık repertuarda geçtiği. iOS'taki "En Çok Eklenenler" ile aynı ölçüt. */
-export function buildPopularity(): Promise<Map<string, number>> {
-  if (popCache) return popCache;
-  popCache = (async () => {
-    const counts = new Map<string, number>();
-    const key = FIREBASE_CONFIG.apiKey;
-    if (!key) return counts;
-    const base = `https://firestore.googleapis.com/v1/projects/${FIREBASE_CONFIG.projectId}/databases/(default)/documents/public-repertoires`;
-    try {
-      let token = "";
-      for (let page = 0; page < 50; page++) {
-        const url = `${base}?key=${key}&pageSize=300&mask.fieldPaths=songIds${token ? `&pageToken=${encodeURIComponent(token)}` : ""}`;
-        const res: { documents?: { fields?: Fields }[]; nextPageToken?: string } = await fetch(url).then((r) => r.json());
-        for (const d of res.documents ?? []) for (const id of new Set(arr(d.fields ?? {}, "songIds"))) counts.set(id, (counts.get(id) ?? 0) + 1);
-        if (!res.nextPageToken) break;
-        token = res.nextPageToken;
-      }
-    } catch (e) {
-      console.warn("[popularity] build sırasında okunamadı:", (e as Error).message);
-    }
-    return counts;
-  })();
-  return popCache;
-}

@@ -14,8 +14,8 @@ type Status = "draft" | "pending" | "approved" | "rejected";
 type Action = "view" | "favorite" | "repertoire";
 
 const WEIGHTS: Record<Action, number> = { view: 1, favorite: 4, repertoire: 5 };
-const LIST_FIELDS = "id, artist, artist_slug, title, slug, original_key, status, created_at, updated_at, score";
-const FULL_FIELDS = `${LIST_FIELDS}, content, owner_id, added_by`;
+const LIST_FIELDS = "id, artist, artist_slug, title, slug, original_key, status, created_at, updated_at, score, owner_id";
+const FULL_FIELDS = `${LIST_FIELDS}, content, added_by`;
 const MAX_LIMIT = 100;
 const TRENDING_DAYS = 30;
 
@@ -46,9 +46,11 @@ function toSong(row: Record<string, unknown>, full = false) {
     createdAt: row.created_at as number,
     updatedAt: row.updated_at as number,
     score: row.score as number,
+    // Liste kayıtlarında da var: uygulama engellenen kullanıcıların şarkılarını listelerde gizler
+    ownerId: (row.owner_id as string | null) ?? null,
   };
   if (!full) return base;
-  return { ...base, content: row.content as string, ownerId: (row.owner_id as string | null) ?? null, addedBy: (row.added_by as string | null) ?? null };
+  return { ...base, content: row.content as string, addedBy: (row.added_by as string | null) ?? null };
 }
 
 function intParam(url: URL, name: string, def: number, max = MAX_LIMIT): number {
@@ -358,6 +360,24 @@ async function route(req: Request, env: Env, url: URL): Promise<Response> {
   if (method === "GET" && path === "/v1/me") {
     const user = await requireUser(req, env);
     return json({ uid: user.uid, isAdmin: user.isAdmin });
+  }
+
+  // Hesap silme (App Store 5.1.1(v)): kullanıcının şarkıları ve popülerlik kayıtları silinir
+  if (method === "DELETE" && path === "/v1/me") {
+    const user = await requireUser(req, env);
+    const actor = (await sha256(`gituar:u:${user.uid}`)).slice(0, 32);
+    const own = await env.DB.prepare("SELECT id FROM songs WHERE owner_id = ?").bind(user.uid).all<{ id: string }>();
+    const ids = own.results.map((r) => r.id);
+    // Kullanıcının başka şarkılara verdiği puanlar geri alınır
+    const given = await env.DB.prepare("SELECT song_id, action FROM song_actions WHERE actor = ?").bind(actor).all<{ song_id: string; action: Action }>();
+    const stmts = given.results.map((g) => env.DB.prepare("UPDATE songs SET score = MAX(score - ?, 0) WHERE id = ?").bind(WEIGHTS[g.action], g.song_id));
+    stmts.push(env.DB.prepare("DELETE FROM song_actions WHERE actor = ?").bind(actor));
+    for (const id of ids) {
+      stmts.push(env.DB.prepare("DELETE FROM song_actions WHERE song_id = ?").bind(id));
+      stmts.push(env.DB.prepare("DELETE FROM songs WHERE id = ?").bind(id));
+    }
+    await env.DB.batch(stmts);
+    return json({ deletedSongs: ids.length });
   }
 
   if (method === "GET" && path === "/v1/me/songs") {

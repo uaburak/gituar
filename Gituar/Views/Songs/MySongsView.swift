@@ -23,13 +23,20 @@ struct MySongsView: View {
     @State private var songToEdit: Song?
     @State private var songToDelete: Song?
     @State private var navigateToNewSong = false
+    @State private var deleteError: String?
 
     var body: some View {
         Group {
-            if let userId = authViewModel.currentUser?.uid {
-                let userSongs = viewModel.userSongs(userId: userId)
+            if authViewModel.currentUser != nil {
+                let userSongs = viewModel.mySongs
 
-                if userSongs.isEmpty {
+                if userSongs.isEmpty && viewModel.isLoadingMySongs {
+                    CatalogLoadingView(text: "Şarkıların yükleniyor…")
+                } else if userSongs.isEmpty, let error = viewModel.mySongsError {
+                    CatalogLoadFailedView(message: error) {
+                        Task { await viewModel.loadMySongs() }
+                    }
+                } else if userSongs.isEmpty {
                     VStack(spacing: 16) {
                         Image(systemName: "music.quarternote.3")
                             .font(.system(size: 48))
@@ -84,7 +91,7 @@ struct MySongsView: View {
                     }
                     .listStyle(.plain)
                     .scrollEdgeEffectStyle(.soft)
-                    .refreshable { await viewModel.refresh() }
+                    .refreshable { await viewModel.loadMySongs() }
                 }
             } else {
                 ContentUnavailableView {
@@ -108,12 +115,27 @@ struct MySongsView: View {
             presenting: songToDelete
         ) { song in
             Button("Şarkıyı Sil", role: .destructive) {
-                viewModel.deleteSong(song)
+                Task {
+                    do {
+                        try await viewModel.deleteSong(id: song.docId)
+                    } catch {
+                        deleteError = error.localizedDescription
+                    }
+                }
             }
             Button("Vazgeç", role: .cancel) { }
         } message: { song in
             Text("“\(song.songName)” silinecek. Bu işlem geri alınamaz.")
         }
+        .alert("Şarkı Silinemedi", isPresented: Binding(
+            get: { deleteError != nil },
+            set: { if !$0 { deleteError = nil } }
+        )) {
+            Button("Tamam", role: .cancel) { }
+        } message: {
+            Text(deleteError ?? "")
+        }
+        .task { await viewModel.loadMySongs() }
         .navigationDestination(isPresented: $navigateToNewSong) {
             EditSongView(song: nil)
         }
@@ -218,6 +240,10 @@ struct EditSongView: View {
     @State private var showTermsSheet = false
     @State private var showFilterAlert = false
 
+    // API kaydı
+    @State private var isSaving = false
+    @State private var saveError: String?
+
     private var canSave: Bool {
         !songName.trimmingCharacters(in: .whitespaces).isEmpty &&
         !artist.trimmingCharacters(in: .whitespaces).isEmpty
@@ -320,8 +346,8 @@ struct EditSongView: View {
                             .clipShape(Capsule())
                             .overlay(Capsule().stroke(Color(.separator), lineWidth: 1))
                     }
-                    .disabled(!canSave)
-                    .opacity(canSave ? 1 : 0.5)
+                    .disabled(!canSave || isSaving)
+                    .opacity(canSave && !isSaving ? 1 : 0.5)
 
                     if status != "pending" && status != "approved" {
                         Button {
@@ -335,8 +361,8 @@ struct EditSongView: View {
                                 .background(Color.accentColor)
                                 .clipShape(Capsule())
                         }
-                        .disabled(!canPublish)
-                        .opacity(canPublish ? 1 : 0.5)
+                        .disabled(!canPublish || isSaving)
+                        .opacity(canPublish && !isSaving ? 1 : 0.5)
                     }
                 }
                 .padding(.horizontal, 24)
@@ -344,6 +370,22 @@ struct EditSongView: View {
             }
         }
         .scrollEdgeEffectStyle(.soft)
+        .overlay {
+            if isSaving {
+                ProgressView()
+                    .controlSize(.large)
+                    .padding(24)
+                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
+            }
+        }
+        .alert("Kaydedilemedi", isPresented: Binding(
+            get: { saveError != nil },
+            set: { if !$0 { saveError = nil } }
+        )) {
+            Button("Tamam", role: .cancel) { }
+        } message: {
+            Text(saveError ?? "")
+        }
         .navigationTitle(song == nil ? "Yeni Şarkı" : "Düzenle")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -398,7 +440,10 @@ struct EditSongView: View {
                 rawData: pendingImportData ?? Data()
             )
         }
-        .alert("Geçersiz Dosya", isPresented: .constant(importParseError != nil)) {
+        .alert("Geçersiz Dosya", isPresented: Binding(
+            get: { importParseError != nil },
+            set: { if !$0 { importParseError = nil } }
+        )) {
             Button("Tamam") { importParseError = nil }
         } message: {
             Text(importParseError ?? "")
@@ -445,27 +490,33 @@ struct EditSongView: View {
     }
 
     private func saveSong(asStatus targetStatus: String) {
-        guard let userId = authViewModel.currentUser?.uid else { return }
+        guard authViewModel.currentUser != nil, !isSaving else { return }
         let username = authViewModel.userProfile?.username ?? authViewModel.displayName
-        var finalStatus = targetStatus
-        if targetStatus == "pending" && authViewModel.isAdmin { finalStatus = "approved" }
-
-        let songToSave = Song(
-            docId: song?.docId ?? "",
+        // API yalnızca "draft" ve "pending" kabul eder; yöneticinin "pending"i sunucuda "approved" olur.
+        // Yayındaki şarkı düzenlenince yeniden "pending" gönderilir (yönetici için doğrudan yayında kalır).
+        let apiStatus = targetStatus == "draft" ? "draft" : "pending"
+        if apiStatus == "pending", ContentFilter.firstObjectionableWord(in: songName, artist, content) != nil {
+            showFilterAlert = true
+            return
+        }
+        let input = GituarAPI.SongInput(
             artist: artist.trimmingCharacters(in: .whitespaces),
-            songName: songName.trimmingCharacters(in: .whitespaces),
+            title: songName.trimmingCharacters(in: .whitespaces),
             originalKey: originalKey,
             content: content.trimmingCharacters(in: .whitespacesAndNewlines),
-            createdAt: song?.createdAt ?? Date(),
-            totalViews: song?.totalViews ?? 0,
-            recentViews: song?.recentViews ?? 0,
-            repertoireAdds: song?.repertoireAdds ?? 0,
-            ownerId: userId,
-            addedBy: song?.addedBy ?? username,
-            status: finalStatus
+            status: apiStatus,
+            addedBy: song?.addedBy ?? username
         )
-        viewModel.saveSong(songToSave)
-        dismiss()
+        isSaving = true
+        Task {
+            defer { isSaving = false }
+            do {
+                try await viewModel.saveSong(existingId: song?.docId, input: input)
+                dismiss()
+            } catch {
+                saveError = error.localizedDescription
+            }
+        }
     }
 }
 

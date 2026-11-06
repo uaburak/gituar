@@ -164,41 +164,6 @@ export async function isAdminUser(uid: string): Promise<boolean> {
 
 const toDate = (v: unknown): Date | undefined => (v as { toDate?: () => Date } | undefined)?.toDate?.();
 
-export interface PendingChord {
-  id: string;
-  artist: string;
-  songName: string;
-  originalKey: string;
-  content: string;
-  addedBy?: string;
-  ownerId?: string;
-  createdAt?: Date;
-  status: string;
-}
-
-/** Onay bekleyen kullanıcı şarkıları (user-chords, status == pending), en yeni önce. */
-export async function listPendingChords(): Promise<PendingChord[]> {
-  const f = await fb();
-  if (!f) return [];
-  const snap = await f.fsMod.getDocs(f.fsMod.query(f.fsMod.collection(f.db, "user-chords"), f.fsMod.where("status", "==", "pending")));
-  return snap.docs
-    .map((d) => {
-      const x = d.data();
-      return {
-        id: d.id, artist: String(x.artist ?? ""), songName: String(x.songName ?? ""), originalKey: String(x.originalKey ?? ""),
-        content: String(x.content ?? ""), addedBy: x.addedBy as string | undefined, ownerId: x.ownerId as string | undefined,
-        createdAt: toDate(x.createdAt), status: String(x.status ?? "pending"),
-      };
-    })
-    .sort((a, b) => (b.createdAt?.getTime() ?? 0) - (a.createdAt?.getTime() ?? 0));
-}
-
-export async function setChordStatus(id: string, status: "approved" | "rejected"): Promise<void> {
-  const f = await fb();
-  if (!f) throw new Error("Firebase hazır değil");
-  await f.fsMod.updateDoc(f.fsMod.doc(f.db, "user-chords", id), { status });
-}
-
 export interface ReportDoc {
   id: string;
   songId: string;
@@ -233,34 +198,6 @@ export async function setReportStatus(id: string, status: "in_progress" | "revie
   const f = await fb();
   if (!f) throw new Error("Firebase hazır değil");
   await f.fsMod.updateDoc(f.fsMod.doc(f.db, "reports", id), { status });
-}
-
-/**
- * Şikayet edilen şarkıyı herkes için kaldırır (iOS ChordViewModel.deleteSong ile aynı):
- * kullanıcı şarkısı ("u" ile başlar) user-chords'dan tamamen silinir. Katalog şarkısının söz, akor ve adları silinir;
- * songs/{id} içinde yalnızca içeriksiz silme kaydı (deleted + seq) kalır ki şarkıyı önceden indirmiş cihazlar da silsin.
- * `floorSeq`: bu derlemenin katalog seq'i (sayaç yerel katalogdan geri gitmesin).
- */
-export async function removeReportedSong(songId: string, floorSeq: number): Promise<void> {
-  const f = await fb();
-  if (!f) throw new Error("Firebase hazır değil");
-  const fs = f.fsMod;
-  if (songId.startsWith("u")) {
-    await fs.deleteDoc(fs.doc(f.db, "user-chords", songId));
-    return;
-  }
-  const metaRef = fs.doc(f.db, "catalog", "meta");
-  const songRef = fs.doc(f.db, "songs", songId);
-  await fs.runTransaction(f.db, async (tx) => {
-    const meta = await tx.get(metaRef);
-    const current = Math.max(Number(meta.data()?.seq ?? 0), floorSeq);
-    const next = current + 1;
-    tx.set(metaRef, { seq: next, publishedAt: fs.serverTimestamp() }, { merge: true });
-    // merge yok: dokümanda önceden kalmış söz/akor/ad alanları da silinir; geriye yalnızca silme kaydı kalır
-    tx.set(songRef, { deleted: true, seq: next, updatedAt: fs.serverTimestamp() });
-  });
-  // Şarkıya bağlı sayaç dokümanları da silinir (yoksa sessizce geçilir)
-  await Promise.allSettled([fs.deleteDoc(fs.doc(f.db, "song-metrics", songId)), fs.deleteDoc(fs.doc(f.db, "chords", songId))]);
 }
 
 /** Şarkı şikayeti: iOS SongDetailView.reportContent ile aynı alanlar; admin panelinde listelenir. */

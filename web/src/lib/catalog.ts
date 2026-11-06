@@ -1,13 +1,17 @@
-// Build zamanı katalog erişimi (yalnızca sunucu tarafı / Astro build). Snapshot bir kez açılır ve bellekte tutulur.
+// Build zamanı şarkı erişimi (yalnızca Astro build). Şarkılar Gituar API'sinden (Cloudflare D1) derleme öncesi
+// scripts/fetch-songs.mjs ile .cache/songs.json'a alınır; burada bir kez okunup bellekte tutulur.
+import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { readSnapshot, groupByArtist, buildSearchIndex, songPath, artistPath, type ArtistGroup } from "@shared/catalog";
-import type { CatalogSong, CatalogSnapshot, SearchIndexEntry } from "@shared/types";
+import { groupByArtist, songPath, artistPath, type ArtistGroup } from "@shared/catalog";
+import type { CatalogSong } from "@shared/types";
 
-const SNAPSHOT_PATH = fileURLToPath(new URL("../../../shared/catalog/catalog.deflate", import.meta.url));
+const SONGS_PATH = fileURLToPath(new URL("../../.cache/songs.json", import.meta.url));
+
+/** API'den gelen şarkı: katalog alanlarına ek olarak popülerlik puanı ve güncellenme zamanı. */
+export type ApiSong = CatalogSong & { score?: number; updatedAt?: string };
 
 interface Catalog {
-  snapshot: CatalogSnapshot;
-  songs: CatalogSong[];
+  songs: ApiSong[];
   artists: ArtistGroup[];
   artistBySlug: Map<string, ArtistGroup>;
   byId: Map<string, CatalogSong>;
@@ -17,13 +21,16 @@ let cache: Catalog | null = null;
 
 export function catalog(): Catalog {
   if (cache) return cache;
-  const snapshot = readSnapshot(SNAPSHOT_PATH);
-  let songs = snapshot.songs.filter((s) => !s.deleted);
+  let songs: ApiSong[];
+  try {
+    songs = JSON.parse(readFileSync(SONGS_PATH, "utf8")) as ApiSong[];
+  } catch {
+    throw new Error("Şarkılar yok: önce `node scripts/fetch-songs.mjs` çalıştır (npm run build bunu kendisi yapar).");
+  }
   const limit = Number(process.env.CATALOG_LIMIT ?? 0);
   if (limit > 0) songs = songs.slice(-limit);
   const artists = groupByArtist(songs);
   cache = {
-    snapshot,
     songs,
     artists,
     artistBySlug: new Map(artists.map((a) => [a.slug, a])),
@@ -58,9 +65,6 @@ export function sameKeySongs(song: CatalogSong, n: number): CatalogSong[] {
   return out;
 }
 
-export function searchIndex(): SearchIndexEntry[] {
-  return buildSearchIndex(catalog().songs);
-}
 
 export { songPath, artistPath };
 export type { ArtistGroup, CatalogSong };

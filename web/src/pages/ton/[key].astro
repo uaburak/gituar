@@ -4,7 +4,7 @@ import SongList from "../../components/SongList.astro";
 import AdSlot from "../../components/AdSlot.astro";
 import { catalog } from "../../lib/catalog.ts";
 import { keySlug, keyTurkish, diatonicChords } from "../../lib/keys.ts";
-import { keyInfo } from "../../lib/catalog-rules.mjs";
+import { keyInfo, minKeySongs } from "../../lib/catalog-rules.mjs";
 import { siteUrl, breadcrumbJsonLd, fitTitle } from "../../lib/seo.ts";
 import type { CatalogSong } from "@shared/types";
 
@@ -17,7 +17,7 @@ export function getStaticPaths() {
     groups.get(info.name)!.push(s);
   }
   return [...groups.entries()]
-    .filter(([, songs]) => songs.length >= 10)
+    .filter(([, songs]) => songs.length >= minKeySongs())
     .map(([key, songs]) => ({ params: { key: keySlug(key) }, props: { key, songs, aliases: keyInfo(key)!.spellings.filter((k) => k !== key) } }));
 }
 

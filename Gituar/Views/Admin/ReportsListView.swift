@@ -209,26 +209,17 @@ struct ReportsListView: View {
         }
     }
 
-    /// Şarkıyı veritabanından sil ve raporu kapat. Şarkı bu cihazda yüklü olmasa da id ile silinir;
+    /// Şarkıyı API'den kalıcı olarak sil ve raporu kapat. Şarkı zaten yoksa (404) silinmiş sayılır;
     /// silme başarısız olursa rapor açık kalır.
     private func removeContentAndClose(_ report: SongReport) {
         let songId = report.songId
-        if let song = viewModel.allSongs.first(where: { $0.id == songId }) {
-            viewModel.deleteSong(song)
-            resolveReport(report, status: "reviewed")
-            return
-        }
         Task {
             do {
-                if songId.hasPrefix("u") {
-                    try await db.collection("user-chords").document(songId).delete()
-                } else {
-                    try await ChordsStorageManager.shared.deleteOfficialSong(songId: songId)
-                }
+                try await viewModel.deleteSong(id: songId)
                 resolveReport(report, status: "reviewed")
             } catch {
                 print("❌ ReportsListView removeContent: \(error)")
-                await MainActor.run { showUpdateError = true }
+                showUpdateError = true
             }
         }
     }
@@ -287,8 +278,14 @@ struct ReportRow: View {
             // Aksiyon Butonları
             HStack(spacing: 10) {
                 // Şarkıya git
-                if let song = viewModel.allSongs.first(where: { $0.id == report.songId }) {
-                    NavigationLink(destination: SongDetailView(song: song, isApprovalMode: false)) {
+                if !report.songId.isEmpty {
+                    NavigationLink(destination: SongDetailView(song: Song(
+                        docId: report.songId,
+                        artist: report.songArtist ?? "",
+                        songName: report.songName,
+                        originalKey: "",
+                        hasContent: false
+                    ), isApprovalMode: false)) {
                         Label("Şarkıya Git", systemImage: "music.note")
                             .font(.system(size: 12, weight: .medium))
                             .foregroundColor(.blue)

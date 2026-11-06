@@ -5,7 +5,6 @@ import Combine
 struct HomeView: View {
     @EnvironmentObject var viewModel: ChordViewModel
     @EnvironmentObject var authViewModel: AuthViewModel
-    @EnvironmentObject var chordsManager: ChordsStorageManager
 
     @State private var navigateToProfile = false
     @State private var navigateToPlus = false
@@ -17,11 +16,8 @@ struct HomeView: View {
     private let searchPublisher = PassthroughSubject<String, Never>()
     @State private var searchResults = HomeSearchResults()
 
-    /// Sorgu ya da katalog değiştiğinde aramayı yeniden başlatır (öncekini iptal ederek).
-    private struct SearchTrigger: Equatable {
-        let query: String
-        let songsVersion: Int
-    }
+    @State private var isSearching = false
+    @State private var searchError: String?
 
     private var trimmedQuery: String {
         searchText.trimmingCharacters(in: .whitespaces)
@@ -43,13 +39,13 @@ struct HomeView: View {
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
         .searchable(text: $searchText, prompt: "Şarkı veya sanatçı ara...")
-        .onReceive(searchPublisher.debounce(for: .milliseconds(500), scheduler: RunLoop.main)) { newValue in
+        .onReceive(searchPublisher.debounce(for: .milliseconds(400), scheduler: RunLoop.main)) { newValue in
             debouncedSearchText = newValue
         }
         .onChange(of: searchText) { _, newValue in
             searchPublisher.send(newValue)
         }
-        .task(id: SearchTrigger(query: trimmedDebouncedQuery, songsVersion: viewModel.visibleSongsVersion)) {
+        .task(id: trimmedDebouncedQuery) {
             await updateSearchResults()
         }
         .navigationDestination(isPresented: $navigateToProfile) {
@@ -192,7 +188,7 @@ struct HomeView: View {
                     NavigationLink(destination: MySongsView()) {
                         MinimalCategoryCard(
                             title: "Şarkılarım",
-                            subtitle: authViewModel.currentUser.map { "\(viewModel.userSongs(userId: $0.uid).count) Kayıtlı" } ?? "Giriş Yap",
+                            subtitle: authViewModel.currentUser != nil ? "\(viewModel.mySongs.count) Kayıtlı" : "Giriş Yap",
                             icon: "music.quarternote.3",
                             color: .indigo
                         )
@@ -217,14 +213,17 @@ struct HomeView: View {
                         NavigationLink(destination: AllArtistsView()) {
                             MinimalListCard(title: "Sanatçılar", icon: "person.2.fill")
                         }
-                        NavigationLink(destination: GenericSongListView(title: "Son Çalınanlar", songs: viewModel.recentlyPlayed)) {
+                        NavigationLink(destination: GenericSongListView(title: "Son Çalınanlar", load: { try await viewModel.recentlyPlayedSongs() })) {
                             MinimalListCard(title: "Son Çalınanlar", icon: "clock.fill")
                         }
-                        NavigationLink(destination: GenericSongListView(title: "Yeni Eklenenler", songs: viewModel.newArrivals)) {
+                        NavigationLink(destination: GenericSongListView(title: "Yeni Eklenenler", sort: .new)) {
                             MinimalListCard(title: "Yeni Eklenenler", icon: "arrow.down.circle.fill")
                         }
-                        NavigationLink(destination: GenericSongListView(title: "En Çok Eklenenler", songs: viewModel.mostAdded)) {
+                        NavigationLink(destination: GenericSongListView(title: "En Popüler", sort: .popular)) {
                             MinimalListCard(title: "Çok Eklenenler", icon: "star.fill")
+                        }
+                        NavigationLink(destination: GenericSongListView(title: "Bu Ay Öne Çıkanlar", sort: .trending)) {
+                            MinimalListCard(title: "Öne Çıkanlar", icon: "flame.fill")
                         }
 
                         if authViewModel.isAdmin {
@@ -257,17 +256,21 @@ struct HomeView: View {
 
     @ViewBuilder
     private var searchResultsBody: some View {
-        if chordsManager.state == .idle || chordsManager.state == .downloading {
-            CatalogLoadingView()
+        if let searchError, searchResults.isEmpty, resultsAreCurrent, !isSearching {
+            CatalogLoadFailedView(message: searchError) {
+                Task { await updateSearchResults() }
+            }
+        } else if searchResults.isEmpty && (isSearching || !resultsAreCurrent) {
+            CatalogLoadingView(text: "Aranıyor…")
         } else if resultsAreCurrent && searchResults.isEmpty {
             NoSearchResultsView(query: trimmedQuery)
         } else {
             List {
                 if !searchResults.artists.isEmpty {
                     Section("Sanatçılar") {
-                        ForEach(searchResults.artists, id: \.self) { artist in
-                            NavigationLink(destination: ArtistDetailView(artist: artist)) {
-                                ArtistRowCard(artist: artist, songCount: viewModel.artistSongCount[artist] ?? 0)
+                        ForEach(searchResults.artists, id: \.slug) { artist in
+                            NavigationLink(destination: ArtistDetailView(slug: artist.slug, name: artist.name)) {
+                                ArtistRowCard(artist: artist.name, songCount: artist.songs ?? 0)
                             }
                         }
                     }
@@ -291,28 +294,34 @@ struct HomeView: View {
         let query = trimmedDebouncedQuery
         guard !query.isEmpty else {
             searchResults = HomeSearchResults()
+            searchError = nil
             return
         }
-        let songs = viewModel.visibleSongs
-        let artists = viewModel.artists
-        // 13 bin+ şarkı üzerinde normalize + filtre — ana iş parçacığını bloklamamak için arka planda
-        let results = await Task.detached(priority: .userInitiated) {
-            let normalized = query.turkeyNormalized
-            return HomeSearchResults(
+        isSearching = true
+        defer { isSearching = false }
+        do {
+            let results = try await GituarAPI.shared.search(query, limit: 50)
+            guard !Task.isCancelled else { return }
+            var seen = Set<String>()
+            searchResults = HomeSearchResults(
                 query: query,
-                artists: artists.filter { $0.turkeyNormalized.contains(normalized) },
-                songs: SongSearch.filter(songs, query: query, ranked: true)
+                artists: results.artists,
+                songs: results.songs.filter { seen.insert($0.docId).inserted }
             )
-        }.value
-        guard !Task.isCancelled else { return }
-        searchResults = results
+            searchError = nil
+        } catch is CancellationError {
+        } catch {
+            guard !Task.isCancelled else { return }
+            searchResults = HomeSearchResults(query: query)
+            searchError = error.localizedDescription
+        }
     }
 }
 
 /// Ana sayfa aramasının tek seferde hesaplanan sonuçları.
 private struct HomeSearchResults: Sendable {
     var query: String = ""
-    var artists: [String] = []
+    var artists: [GituarAPI.Artist] = []
     var songs: [Song] = []
 
     var isEmpty: Bool { artists.isEmpty && songs.isEmpty }

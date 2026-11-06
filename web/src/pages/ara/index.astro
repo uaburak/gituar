@@ -4,19 +4,12 @@ import Icon from "../../components/Icon.astro";
 import SongList from "../../components/SongList.astro";
 import ArtistRow from "../../components/ArtistRow.astro";
 import { catalog, topArtists } from "../../lib/catalog.ts";
-import { buildPopularity } from "../../lib/editor-picks-build.ts";
 
-// Boş aramada: en çok repertuara eklenen şarkılar ve bu şarkıların sanatçıları (veri yoksa en çok şarkısı olanlar).
+// Boş aramada: gerçek popülerlik (API puanı: kişi başına görüntülenme 1, favori 4, repertuar 5) — puan yoksa en yeniler.
 const c = catalog();
-const pop = await buildPopularity();
-const popularSongs = [...pop.entries()]
-  .map(([id, n]) => ({ song: c.byId.get(id), n }))
-  .filter((x) => x.song)
-  .sort((a, b) => b.n - a.n || b.song!.seq - a.song!.seq)
-  .slice(0, 20)
-  .map((x) => x.song!);
+const popularSongs = [...c.songs].sort((a, b) => (b.score ?? 0) - (a.score ?? 0) || b.seq - a.seq).slice(0, 20);
 const artistScore = new Map<string, number>();
-for (const [id, n] of pop) { const s = c.byId.get(id); if (s) artistScore.set(s.artistSlug, (artistScore.get(s.artistSlug) ?? 0) + n); }
+for (const s of c.songs) if (s.score) artistScore.set(s.artistSlug, (artistScore.get(s.artistSlug) ?? 0) + s.score);
 const byPop = [...artistScore.entries()].sort((a, b) => b[1] - a[1]).map(([slug]) => c.artistBySlug.get(slug)).filter((a) => a !== undefined);
 const popularArtists = (byPop.length >= 12 ? byPop : [...byPop, ...topArtists(24).filter((a) => !byPop.includes(a))]).slice(0, 12);
 const songsTitle = popularSongs.length ? "Popüler şarkılar" : "";

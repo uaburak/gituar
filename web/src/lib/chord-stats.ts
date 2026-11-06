@@ -2,6 +2,7 @@
 // şarkı başına sadeleştirilmiş akorlar, zorluk, kapo ile kolay çalma; akor başına şarkılar ve asıl yazım.
 import { parse, chordSpans } from "@shared/chords";
 import { catalog, type CatalogSong } from "./catalog.ts";
+import { minChordSongs } from "./catalog-rules.mjs";
 import { simplifyChord, chordClass, chordSlug, isOpenChord, shiftedName, chordShapes, pitchClass } from "./chord-theory.ts";
 
 export interface SongChords {
@@ -43,7 +44,7 @@ function songChordNames(content: string): string[] {
   return out;
 }
 
-export const MIN_CHORD_SONGS = 20;
+
 
 export function chordStats(): Stats {
   if (cache) return cache;
@@ -90,7 +91,7 @@ export function chordStats(): Stats {
     chords.push({ slug: chordSlug(root, quality), root, quality, name: root + quality, aliases: spellings.slice(1).map((r) => r + quality), songIds: [...songs] });
   }
   chords.sort((a, b) => b.songIds.length - a.songIds.length);
-  const pages = chords.filter((c) => c.songIds.length >= MIN_CHORD_SONGS);
+  const pages = chords.filter((c) => c.songIds.length >= minChordSongs());
   cache = {
     bySong,
     chords,

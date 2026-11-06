@@ -1,42 +1,83 @@
-// Tarayıcı araması: /search-index.json bir kez indirilir, Türkçe normalizasyonla anında filtrelenir.
-import type { SearchIndexEntry } from "@shared/types";
-import { searchSongs, turkeyNormalized } from "@shared/turkish";
+// Tarayıcı tarafı şarkı erişimi: arama, toplu şarkı, tek şarkı — hepsi Gituar API'sinden (Cloudflare D1).
+// Bütün şarkıları içeren bir dosya indirilmez; her istek yalnızca gereken kadar veri getirir.
+import { API_URL } from "./site.ts";
 
-let indexPromise: Promise<SearchIndexEntry[]> | null = null;
-
-export function loadIndex(): Promise<SearchIndexEntry[]> {
-  if (!indexPromise) {
-    indexPromise = fetch("/search-index.json").then((r) => r.json() as Promise<SearchIndexEntry[]>);
-  }
-  return indexPromise;
+/** Listelerde kullanılan kısa şarkı kaydı (eski arama dizini alanlarıyla aynı adlar). */
+export interface SongEntry {
+  /** id */ i: string;
+  /** sanatçı */ a: string;
+  /** şarkı adı */ s: string;
+  /** ton */ k: string;
+  /** sayfa yolu */ p: string;
 }
 
-export async function search(query: string, limit = 100): Promise<SearchIndexEntry[]> {
-  const index = await loadIndex();
-  const items = index.map((e) => ({ songName: e.s, artist: e.a, entry: e }));
-  return searchSongs(items, query, true)
-    .slice(0, limit)
-    .map((m) => m.entry);
+interface ApiListSong { id: string; artist: string; title: string; originalKey: string; artistSlug: string; slug: string }
+
+export function toEntry(s: ApiListSong): SongEntry {
+  return { i: s.id, a: s.artist, s: s.title, k: s.originalKey, p: `/akor/${s.artistSlug}/${s.slug}/` };
+}
+
+async function get<T>(path: string): Promise<T> {
+  const res = await fetch(`${API_URL}${path}`);
+  if (!res.ok) throw new Error(`API ${res.status}`);
+  return res.json() as Promise<T>;
 }
 
 export interface ArtistHit { name: string; count: number; path: string }
 
-/** Adı sorguyu içeren sanatçılar, akor sayısına göre. */
-export async function searchArtists(query: string, limit = 5): Promise<ArtistHit[]> {
-  const q = turkeyNormalized(query.trim());
-  if (!q) return [];
-  const index = await loadIndex();
-  const counts = new Map<string, ArtistHit>();
-  for (const e of index) {
-    if (!turkeyNormalized(e.a).includes(q)) continue;
-    const hit = counts.get(e.a) ?? { name: e.a, count: 0, path: e.p.split("/").slice(0, 3).join("/").replace("/akor/", "/sanatci/") + "/" };
-    hit.count++;
-    counts.set(e.a, hit);
+interface SearchResult { songs: SongEntry[]; artists: ArtistHit[] }
+const cache = new Map<string, Promise<SearchResult>>();
+
+/** Şarkı ve sanatçı araması (Türkçe karakter duyarsız, kelime parçasıyla). */
+export function searchAll(query: string, limit = 50): Promise<SearchResult> {
+  const q = query.trim();
+  if (!q) return Promise.resolve({ songs: [], artists: [] });
+  const key = `${q}|${limit}`;
+  if (!cache.has(key)) {
+    cache.set(
+      key,
+      get<{ songs: ApiListSong[]; artists: { slug: string; name: string; songs: number }[] }>(`/v1/search?q=${encodeURIComponent(q)}&limit=${limit}`)
+        .then((r) => ({
+          songs: r.songs.map(toEntry),
+          artists: r.artists.map((a) => ({ name: a.name, count: a.songs, path: `/sanatci/${a.slug}/` })),
+        }))
+        .catch((e) => { cache.delete(key); throw e; }),
+    );
   }
-  return [...counts.values()].sort((a, b) => b.count - a.count).slice(0, limit);
+  return cache.get(key)!;
 }
 
-export function rowHtml(e: SearchIndexEntry): string {
+export async function search(query: string, limit = 100): Promise<SongEntry[]> {
+  return (await searchAll(query, limit)).songs;
+}
+
+export async function searchArtists(query: string, limit = 5): Promise<ArtistHit[]> {
+  return (await searchAll(query)).artists.slice(0, limit);
+}
+
+/** Repertuarlar için: id listesinden şarkılar (yayında olmayanlar dönmez), verilen sırayla. */
+export async function songsByIds(ids: string[]): Promise<SongEntry[]> {
+  const out = new Map<string, SongEntry>();
+  for (let i = 0; i < ids.length; i += 100) {
+    const chunk = ids.slice(i, i + 100);
+    const r = await get<{ songs: ApiListSong[] }>(`/v1/songs/batch?ids=${chunk.map(encodeURIComponent).join(",")}`);
+    for (const s of r.songs) out.set(s.id, toEntry(s));
+  }
+  return ids.map((id) => out.get(id)).filter((e): e is SongEntry => Boolean(e));
+}
+
+/** Şarkı yayında mı? (silinmiş ya da yayından kalkmışsa false) */
+export async function songExists(id: string): Promise<boolean> {
+  const res = await fetch(`${API_URL}/v1/songs/${encodeURIComponent(id)}`);
+  if (res.status === 404) return false;
+  return true;
+}
+
+export async function newestSongs(limit = 100): Promise<SongEntry[]> {
+  return (await get<{ songs: ApiListSong[] }>(`/v1/songs?sort=new&limit=${limit}`)).songs.map(toEntry);
+}
+
+export function rowHtml(e: SongEntry): string {
   return `<a class="row" href="${e.p}"><span class="row-body"><span class="row-title">${esc(e.s)}</span><span class="row-sub">${esc(e.a)}</span></span>${e.k ? `<span class="row-key">${esc(e.k)}</span>` : ""}</a>`;
 }
 

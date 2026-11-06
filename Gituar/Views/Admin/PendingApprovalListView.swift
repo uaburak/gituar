@@ -14,6 +14,10 @@ struct PendingApprovalListView: View {
             if isLoading && viewModel.pendingSongs.isEmpty {
                 ProgressView()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if viewModel.pendingSongs.isEmpty, let error = viewModel.pendingError {
+                CatalogLoadFailedView(message: error) {
+                    Task { await viewModel.fetchPendingSongs() }
+                }
             } else if viewModel.pendingSongs.isEmpty {
                 VStack(spacing: 16) {
                     Image(systemName: "checkmark.seal")

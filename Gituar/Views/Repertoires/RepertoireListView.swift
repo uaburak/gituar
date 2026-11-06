@@ -147,6 +147,9 @@ struct RepertoireDetailView: View {
     @EnvironmentObject var viewModel: ChordViewModel
     @State private var showingSavedAlert = false
     @State private var ownerUsername: String?
+    @State private var songs: [Song] = []
+    @State private var isLoadingSongs = true
+    @State private var loadError: String?
     
     @State private var searchText = ""
     @State private var debouncedSearchText = ""
@@ -156,12 +159,35 @@ struct RepertoireDetailView: View {
         repertoire.ownerId == (viewModel.currentUserId ?? "local")
     }
 
+    /// Repertuarın güncel şarkı kimlikleri (kendi repertuarında Firestore dinleyicisinden gelir).
+    private var currentSongIds: [String] {
+        viewModel.repertoires.first(where: { $0.id != nil && $0.id == repertoire.id })?.songIds ?? repertoire.songIds
+    }
+
+    /// Kimlikleri API'den şarkılara çevirir; silinmiş/eski kimlikler atlanır.
+    private func loadSongs() async {
+        if songs.isEmpty { isLoadingSongs = true }
+        defer { isLoadingSongs = false }
+        do {
+            songs = try await viewModel.songs(ids: currentSongIds)
+            loadError = nil
+        } catch is CancellationError {
+        } catch {
+            if songs.isEmpty { loadError = error.localizedDescription }
+        }
+    }
+
     var body: some View {
-        let songs = viewModel.songs(for: repertoire)
         let filteredSongs = SongSearch.filter(songs, query: debouncedSearchText)
-        
+
         Group {
-            if songs.isEmpty {
+            if songs.isEmpty && isLoadingSongs {
+                CatalogLoadingView()
+            } else if songs.isEmpty, let loadError {
+                CatalogLoadFailedView(message: loadError) {
+                    Task { await loadSongs() }
+                }
+            } else if songs.isEmpty {
                 Text("Bu repertuarda henüz şarkı yok.")
                     .font(.system(size: 15))
                     .foregroundColor(.secondary)
@@ -182,6 +208,7 @@ struct RepertoireDetailView: View {
                         if isOwner {
                             Button(role: .destructive) {
                                 viewModel.removeSong(song, from: repertoire)
+                                songs.removeAll { $0.docId == song.docId }
                             } label: {
                                 Label("Sil", systemImage: "trash")
                             }
@@ -281,6 +308,7 @@ struct RepertoireDetailView: View {
         } message: {
             Text("Repertuar listenize başarıyla eklendi.")
         }
+        .task(id: currentSongIds) { await loadSongs() }
         .task {
             guard !isOwner && repertoire.ownerId != "local" else { return }
             do {

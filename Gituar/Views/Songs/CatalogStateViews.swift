@@ -4,7 +4,7 @@ import SwiftUI
 //
 // Şarkı listelerinin ortak "yükleniyor", "yüklenemedi" ve "sonuç yok" halleri.
 
-/// Resmi şarkı kataloğu Storage'dan inerken gösterilen spinner.
+/// Şarkılar API'den yüklenirken gösterilen spinner.
 struct CatalogLoadingView: View {
     var text: String = "Şarkılar yükleniyor…"
 
@@ -21,20 +21,19 @@ struct CatalogLoadingView: View {
     }
 }
 
-/// Katalog indirilemediğinde (ör. ilk açılışta internet yokken) gösterilir.
+/// Şarkılar API'den alınamadığında (ör. internet yokken) gösterilir.
 struct CatalogLoadFailedView: View {
-    @EnvironmentObject var chordsManager: ChordsStorageManager
+    var message: String? = nil
+    let retry: () -> Void
 
     var body: some View {
         ContentUnavailableView {
             Label("Şarkılar yüklenemedi", systemImage: "wifi.exclamationmark")
         } description: {
-            Text("İnternet bağlantını kontrol edip tekrar dene.")
+            Text(message ?? "İnternet bağlantını kontrol edip tekrar dene.")
         } actions: {
-            Button("Tekrar Dene") {
-                chordsManager.retryIfFailed()
-            }
-            .buttonStyle(.borderedProminent)
+            Button("Tekrar Dene") { retry() }
+                .buttonStyle(.borderedProminent)
         }
     }
 }

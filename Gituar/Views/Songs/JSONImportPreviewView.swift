@@ -1,14 +1,10 @@
 import SwiftUI
-import FirebaseFirestore
-import FirebaseAuth
 
 // MARK: - JSONImportPreviewView
 //
-// JSON dosyasından parse edilen şarkıları listeler.
-// "Onayla" butonuna basınca şarkıları Firestore `songs` koleksiyonuna yazar (resmi katalog):
-//   1) `catalog/meta.seq` üzerinde N'lik bir seq aralığı ayrılır (transaction),
-//   2) 450'lik batch'lerle `songs/{id}` dokümanları yazılır (merge).
-// Yazma bitince ChordsStorageManager fark senkronu ile yeni şarkıları alır; web yayını `npm run publish` ile üretilir.
+// JSON dosyasından parse edilen şarkıları listeler (yalnızca yönetici).
+// "Onayla" ile her şarkı Gituar API'sine (`POST /v1/songs`) gönderilir; yöneticinin gönderdiği şarkı
+// doğrudan yayına girer. Kimlik ve slug'ları sunucu verir.
 
 struct JSONImportPreviewView: View {
     let songs: [ImportableSong]
@@ -21,6 +17,8 @@ struct JSONImportPreviewView: View {
     @State private var showSuccess = false
     @State private var uploadError: String? = nil
     @State private var importedCount = 0
+    @State private var failedCount = 0
+    @State private var progress = 0
 
     private func isValid(_ song: ImportableSong) -> Bool {
         !(song.songName ?? "").isEmpty &&
@@ -33,13 +31,6 @@ struct JSONImportPreviewView: View {
     var invalidSongs: [ImportableSong] { songs.filter { !isValid($0) } }
 
     var invalidCount: Int { songs.count - validSongs.count }
-
-    /// Dosyadaki her şarkının kendine ait, tekrarsız bir docId'si varsa o ID'ler korunur.
-    /// Aksi halde ID'ler sıra numarasından üretilir (dosyadaki sıra değişirse ID'ler de değişir).
-    private var keepsFileDocIds: Bool {
-        let ids = validSongs.compactMap { $0.docId?.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
-        return !ids.isEmpty && ids.count == validSongs.count && Set(ids).count == ids.count
-    }
 
     var body: some View {
         NavigationStack {
@@ -65,17 +56,14 @@ struct JSONImportPreviewView: View {
                     HStack {
                         Image(systemName: "icloud.and.arrow.up")
                             .foregroundColor(.secondary)
-                        Text("Hedef: Firestore · songs (resmi katalog)")
+                        Text("Hedef: Gituar API · yayında")
                             .font(.system(size: 12, design: .monospaced))
                             .foregroundColor(.secondary)
                     }
                 } header: {
                     Text("Yükleme Özeti")
                 } footer: {
-                    Text("Bu işlem dosyadaki şarkıları resmi kataloğa ekler; aynı ID'li kayıtların üzerine yazar, dosyada olmayan şarkılara dokunmaz. "
-                         + (keepsFileDocIds
-                            ? "Şarkı ID'leri dosyadaki docId alanından alınacak."
-                            : "Şarkı ID'leri katalog sayacından yeni verilecek; mevcut şarkılar ve repertuarlar etkilenmez."))
+                    Text("Bu işlem dosyadaki her şarkıyı yeni bir şarkı olarak ekler ve yayına alır. Mevcut şarkılara dokunulmaz; şarkı kimliklerini sunucu verir.")
                 }
 
                 // Şarkı listesi
@@ -136,7 +124,7 @@ struct JSONImportPreviewView: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button {
-                        importToFirestore()
+                        importToAPI()
                     } label: {
                         if isUploading {
                             ProgressView()
@@ -155,7 +143,7 @@ struct JSONImportPreviewView: View {
                         VStack(spacing: 16) {
                             ProgressView()
                                 .scaleEffect(1.4)
-                            Text("Firestore'a yazılıyor…")
+                            Text("Gönderiliyor… \(progress)/\(validSongs.count)")
                                 .font(.system(size: 14, weight: .medium))
                                 .foregroundColor(.secondary)
                         }
@@ -168,7 +156,9 @@ struct JSONImportPreviewView: View {
             .alert("Yükleme Tamamlandı ✅", isPresented: $showSuccess) {
                 Button("Tamam") { dismiss() }
             } message: {
-                Text("\(importedCount) şarkı resmi kataloğa yazıldı.\nUygulama yeni şarkıları şimdi alıyor; web için `npm run publish` çalıştırın.")
+                Text(failedCount > 0
+                     ? "\(importedCount) şarkı eklendi, \(failedCount) şarkı eklenemedi."
+                     : "\(importedCount) şarkı eklendi ve yayına alındı.")
             }
             .alert("Yükleme Hatası", isPresented: Binding(
                 get: { uploadError != nil },
@@ -181,98 +171,48 @@ struct JSONImportPreviewView: View {
         }
     }
 
-    // MARK: - Import (Firestore)
+    // MARK: - Import (API)
 
-    private func importToFirestore() {
+    private func importToAPI() {
         isUploading = true
+        progress = 0
         let importerName = authViewModel.userProfile?.username ?? authViewModel.displayName
-        let keepFileDocIds = keepsFileDocIds
         let songsToImport = validSongs
 
-        Task { @MainActor in
-            do {
-                let written = try await Self.writeSongs(songsToImport, keepFileDocIds: keepFileDocIds, importerName: importerName)
-                await ChordsStorageManager.shared.checkForUpdates(force: true)
-                importedCount = written
-                isUploading = false
+        Task {
+            var ok = 0
+            var failed = 0
+            var lastError: String?
+            for song in songsToImport {
+                let input = GituarAPI.SongInput(
+                    artist: (song.artist ?? "").trimmingCharacters(in: .whitespaces),
+                    title: (song.songName ?? "").trimmingCharacters(in: .whitespaces),
+                    originalKey: (song.originalKey ?? "").trimmingCharacters(in: .whitespaces),
+                    content: song.content ?? "",
+                    status: "pending",
+                    addedBy: importerName
+                )
+                do {
+                    _ = try await GituarAPI.shared.createSong(input)
+                    ok += 1
+                } catch GituarAPIError.offline {
+                    lastError = GituarAPIError.offline.localizedDescription
+                    failed += songsToImport.count - ok - failed
+                    break
+                } catch {
+                    failed += 1
+                    lastError = error.localizedDescription
+                }
+                progress = ok + failed
+            }
+            isUploading = false
+            importedCount = ok
+            failedCount = failed
+            if ok == 0, let lastError {
+                uploadError = lastError
+            } else {
                 showSuccess = true
-            } catch {
-                isUploading = false
-                uploadError = error.localizedDescription
             }
         }
-    }
-
-    /// 1) `catalog/meta.seq` üzerinde `songs.count` kadar aralık ayırır (transaction),
-    /// 2) her şarkıya bu aralıktan bir `seq`, gerekiyorsa yeni bir id ve slug verir,
-    /// 3) 450'lik batch'lerle `songs/{id}` dokümanlarını `merge: true` ile yazar.
-    @MainActor
-    private static func writeSongs(_ songs: [ImportableSong], keepFileDocIds: Bool, importerName: String) async throws -> Int {
-        guard !songs.isEmpty else { return 0 }
-        let db = Firestore.firestore()
-        let metaRef = db.collection("catalog").document("meta")
-        let count = songs.count
-        // Sayaç cihazdaki katalogun gerisine düşmesin (catalog/meta henüz yoksa 0 okunur).
-        let floorSeq = ChordsStorageManager.shared.lastSeq
-
-        let reserved = try await db.runTransaction { transaction, errorPointer -> Any? in
-            let meta: DocumentSnapshot
-            do {
-                meta = try transaction.getDocument(metaRef)
-            } catch let error as NSError {
-                errorPointer?.pointee = error
-                return nil
-            }
-            let current = max((meta.data()?["seq"] as? NSNumber)?.intValue ?? 0, floorSeq)
-            transaction.setData(
-                ["seq": current + count, "publishedAt": FieldValue.serverTimestamp()],
-                forDocument: metaRef,
-                merge: true
-            )
-            return current
-        }
-        guard let startSeq = reserved as? Int else {
-            throw NSError(domain: "JSONImport", code: 1, userInfo: [NSLocalizedDescriptionKey: "Katalog sayacı ayrılamadı."])
-        }
-
-        var allocator = SlugAllocator(existing: ChordsStorageManager.shared.slugMap)
-        var batch = db.batch()
-        var inBatch = 0
-
-        for (index, song) in songs.enumerated() {
-            let seq = startSeq + index + 1
-            let id = keepFileDocIds
-                ? (song.docId ?? "").trimmingCharacters(in: .whitespaces)
-                : String(seq)
-            let artist = (song.artist ?? "").trimmingCharacters(in: .whitespaces)
-            let name = (song.songName ?? "").trimmingCharacters(in: .whitespaces)
-            let slugs = allocator.allocate(id: id, artist: artist, songName: name)
-
-            var data: [String: Any] = [
-                "artist": artist,
-                "songName": name,
-                "originalKey": (song.originalKey ?? "").trimmingCharacters(in: .whitespaces),
-                "content": song.content ?? "",
-                "artistSlug": slugs.artistSlug,
-                "slug": slugs.slug,
-                "status": "approved",
-                "deleted": false,
-                "seq": seq,
-                "addedBy": importerName,
-                "updatedAt": FieldValue.serverTimestamp(),
-            ]
-            // Yeni id verilen kayıtlar kesinlikle yenidir; dosyadan gelen id'lerde createdAt'e dokunulmaz.
-            if !keepFileDocIds { data["createdAt"] = FieldValue.serverTimestamp() }
-
-            batch.setData(data, forDocument: db.collection("songs").document(id), merge: true)
-            inBatch += 1
-            if inBatch == 450 {
-                try await batch.commit()
-                batch = db.batch()
-                inBatch = 0
-            }
-        }
-        if inBatch > 0 { try await batch.commit() }
-        return count
     }
 }

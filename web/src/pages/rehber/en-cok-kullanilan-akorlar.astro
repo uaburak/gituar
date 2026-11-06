@@ -4,7 +4,7 @@ import Base from "../../layouts/Base.astro";
 import { catalog } from "../../lib/catalog.ts";
 import { chordStats, chordHref, easySongs, capoEasySongs } from "../../lib/chord-stats.ts";
 import { siteUrl, breadcrumbJsonLd } from "../../lib/seo.ts";
-import { keyInfo, allKeyInfos } from "../../lib/catalog-rules.mjs";
+import { keyInfo, allKeyInfos, minKeySongs } from "../../lib/catalog-rules.mjs";
 import { keySlug } from "../../lib/keys.ts";
 
 const c = catalog();
@@ -63,7 +63,7 @@ void keyInfo;
       <p>Minör tonlar Türkçe şarkılarda çok yaygın. Eşsesli yazımlar (G# ve Ab gibi) tek ton olarak sayıldı.</p>
       <table class="stat-table">
         <thead><tr><th>Ton</th><th>Şarkıların oranı</th></tr></thead>
-        <tbody>{keys.map((k) => <tr><td class="mono">{k.total >= 10 ? <a href={`/ton/${keySlug(k.name)}/`}>{k.spellings.join(" / ")}</a> : k.spellings.join(" / ")}</td><td>{pct(k.total)}</td></tr>)}</tbody>
+        <tbody>{keys.map((k) => <tr><td class="mono">{k.total >= minKeySongs() ? <a href={`/ton/${keySlug(k.name)}/`}>{k.spellings.join(" / ")}</a> : k.spellings.join(" / ")}</td><td>{pct(k.total)}</td></tr>)}</tbody>
       </table>
 
       <h2>Barre gerekmeyen şarkılar</h2>

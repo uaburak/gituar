@@ -45,7 +45,7 @@
 :root[data-theme="dark"] {
   /* Koyu: zemin siyah; kartlar koyu (zeminden az ayrışır), çizgiler sönük, metin hafif kırık beyaz */
   --page: #000000; --surface: #0a0a0b; --muted: #1a1a1d; --ad: #0c0c0e;
-  --hairline: #1f1f23; --strong: #34343a;
+  --hairline: #19191c; --strong: #242428;
   --text: #ececf1; --text-2: #a0a0ab; --text-3: #6f6f7a;
   --accent: #0a84ff; --accent-hover: #3394ff; --accent-text: #5aa8ff; --accent-soft: rgba(10, 132, 255, .16);
   --inverse: #ececf1; --on-inverse: #111113; --chord: #5aa8ff;
@@ -565,9 +565,9 @@ html.plus .ad-slot, html.plus .side-ad { display: none !important; }
   border-radius: 12px; background: linear-gradient(120deg, #fff7e6, #ffe3d3); color: #3a2a1a; border: 1px solid rgba(0,0,0,.06);
 }
 :root[data-theme="dark"] .card, :root[data-theme="dark"] .list, :root[data-theme="dark"] .sheet, :root[data-theme="dark"] .tools,
-:root[data-theme="dark"] .guide-body, :root[data-theme="dark"] .artist-cols, :root[data-theme="dark"] .feature { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .04); }
+:root[data-theme="dark"] .guide-body, :root[data-theme="dark"] .artist-cols, :root[data-theme="dark"] .feature { box-shadow: inset 0 0 0 1px var(--hairline); }
 :root[data-theme="dark"] .promo-card { background: var(--surface); box-shadow: inset 0 0 0 1px var(--hairline); }
-:root[data-theme="dark"] .editor-hero { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .06); }
+:root[data-theme="dark"] .editor-hero { box-shadow: inset 0 0 0 1px var(--hairline); }
 :root[data-theme="dark"] .chord-pop { box-shadow: 0 16px 40px -8px rgba(0, 0, 0, .7), 0 0 0 1px var(--strong); }
 :root[data-theme="dark"] .search-mini, :root[data-theme="dark"] .search-big { background: var(--surface); border-color: var(--strong); }
 :root[data-theme="dark"] .btn-appstore-light { background: var(--inverse); color: var(--on-inverse); }

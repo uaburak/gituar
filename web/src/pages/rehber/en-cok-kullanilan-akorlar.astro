@@ -1,0 +1,76 @@
+---
+// Katalogdan hesaplanan, başka yerde bulunmayan istatistikler: en sık akorlar, akor sayısı dağılımı, tonlar.
+import Base from "../../layouts/Base.astro";
+import { catalog } from "../../lib/catalog.ts";
+import { chordStats, chordHref, easySongs, capoEasySongs } from "../../lib/chord-stats.ts";
+import { siteUrl, breadcrumbJsonLd } from "../../lib/seo.ts";
+import { keyInfo, allKeyInfos } from "../../lib/catalog-rules.mjs";
+import { keySlug } from "../../lib/keys.ts";
+
+const c = catalog();
+const total = c.songs.length;
+const st = chordStats();
+const pct = (n: number) => `%${Math.round((n / total) * 100)}`;
+const fmt = (n: number) => n.toLocaleString("tr-TR");
+const top = st.chords.slice(0, 15);
+const dist = new Map<number, number>();
+for (const s of c.songs) { const n = st.bySong.get(s.id)?.chords.length ?? 0; if (n) dist.set(Math.min(n, 9), (dist.get(Math.min(n, 9)) ?? 0) + 1); }
+const distRows = [...dist.entries()].sort((a, b) => a[0] - b[0]);
+const modal = distRows.reduce((m, r) => (r[1] > m[1] ? r : m), [0, 0]);
+const keys = allKeyInfos().sort((a, b) => b.total - a.total).slice(0, 10);
+const easy = easySongs().length;
+const capo = capoEasySongs().length;
+const updated = "6 Kasım 2026";
+const h1 = "Türkçe şarkılarda en çok kullanılan gitar akorları";
+const description = `Türkçe şarkıların akor analizi: ${top[0].name} şarkıların ${pct(top[0].songIds.length)}'inde geçiyor. En sık akorlar, akor sayısı dağılımı ve en yaygın tonlar.`;
+const base = siteUrl(Astro.site);
+const path = "/rehber/en-cok-kullanilan-akorlar/";
+const jsonLd = [
+  { "@type": "Article", headline: h1, description, url: base + path, inLanguage: "tr", dateModified: "2026-11-06", author: { "@type": "Organization", name: "Gituar" }, publisher: { "@id": `${base}/#organization` } },
+  { "@type": "Dataset", name: "Gituar akor istatistikleri", description, url: base + path, creator: { "@type": "Organization", name: "Gituar" }, isAccessibleForFree: true },
+  breadcrumbJsonLd(base, [{ name: "Ana sayfa", path: "/" }, { name: "Rehber", path: "/rehber/" }, { name: h1 }]),
+];
+void keyInfo;
+---
+<Base title="En Çok Kullanılan Gitar Akorları – Türkçe Şarkı Analizi" description={description} jsonLd={jsonLd}>
+  <article class="guide">
+    <div class="page-head">
+      <div class="crumbs"><a href="/">Ana sayfa</a><span>/</span><a href="/rehber/">Rehber</a><span>/</span>En çok kullanılan akorlar</div>
+      <h1>{h1}</h1>
+      <p class="muted small">Gituar kataloğundaki şarkılardan hesaplandı · Güncelleme: {updated}</p>
+    </div>
+    <div class="guide-body">
+      <p class="answer">Türkçe şarkılarda en çok kullanılan gitar akoru <strong>{top[0].name}</strong>: şarkıların {pct(top[0].songIds.length)}'inde geçiyor. Onu {top[1].name} ({pct(top[1].songIds.length)}), {top[2].name} ({pct(top[2].songIds.length)}) ve {top[3].name} ({pct(top[3].songIds.length)}) izliyor. Bir şarkıda en sık {modal[0]} farklı akor kullanılıyor; şarkıların {pct(easy)}'i yalnızca açık akorlarla çalınabiliyor.</p>
+
+      <h2>En sık 15 akor</h2>
+      <table class="stat-table">
+        <thead><tr><th>#</th><th>Akor</th><th>Geçtiği şarkıların oranı</th></tr></thead>
+        <tbody>
+          {top.map((ch, i) => { const href = chordHref(ch.root, ch.quality); return (
+            <tr><td>{i + 1}</td><td class="mono">{href ? <a href={href}>{ch.name}</a> : ch.name}{ch.aliases.length > 0 && <span class="muted"> / {ch.aliases.join(", ")}</span>}</td><td>{pct(ch.songIds.length)}</td></tr>
+          ); })}
+        </tbody>
+      </table>
+
+      <h2>Bir şarkıda kaç akor var?</h2>
+      <p>Şarkıların çoğu 4–5 farklı akorla çalınıyor. 2–3 akorlu şarkılar yeni başlayanlar için en iyi başlangıç; <a href="/kolay-gitar-akorlari/">kolay gitar akorları</a> sayfasında listeliyoruz.</p>
+      <table class="stat-table">
+        <thead><tr><th>Akor sayısı</th><th>Şarkıların oranı</th></tr></thead>
+        <tbody>{distRows.map(([n, k]) => <tr><td>{n === 9 ? "9 ve üzeri" : n}</td><td>{pct(k)}</td></tr>)}</tbody>
+      </table>
+
+      <h2>En yaygın tonlar</h2>
+      <p>Minör tonlar Türkçe şarkılarda çok yaygın. Eşsesli yazımlar (G# ve Ab gibi) tek ton olarak sayıldı.</p>
+      <table class="stat-table">
+        <thead><tr><th>Ton</th><th>Şarkıların oranı</th></tr></thead>
+        <tbody>{keys.map((k) => <tr><td class="mono">{k.total >= 10 ? <a href={`/ton/${keySlug(k.name)}/`}>{k.spellings.join(" / ")}</a> : k.spellings.join(" / ")}</td><td>{pct(k.total)}</td></tr>)}</tbody>
+      </table>
+
+      <h2>Barre gerekmeyen şarkılar</h2>
+      <p>Şarkıların {pct(easy)}'i hiç barre akor içermiyor. Şarkıların {pct(capo)}'i ise barre içerse de kapo takınca açık akorlara iniyor; liste <a href="/kapo-ile-kolay-sarkilar/">kapo ile kolay şarkılar</a> sayfasında.</p>
+
+      <h2>Yöntem</h2>
+      <p>Her şarkının akor satırları ayrıştırıldı. Bas notası (D/F# gibi) atıldı, aynı akorun eşsesli yazımları (A# ve Bb gibi) birleştirildi, bir şarkıda tekrar eden akor bir kez sayıldı. Açık akorlar: C, D, E, G, A, Am, Em, Dm ve bunların 7, sus ve maj7 biçimleri.</p>
+    </div>
+  </article>
+</Base>

@@ -1,6 +1,25 @@
 ---
 import Base from "../../layouts/Base.astro";
 import Icon from "../../components/Icon.astro";
+import SongList from "../../components/SongList.astro";
+import ArtistRow from "../../components/ArtistRow.astro";
+import { catalog, topArtists } from "../../lib/catalog.ts";
+import { buildPopularity } from "../../lib/editor-picks-build.ts";
+
+// Boş aramada: en çok repertuara eklenen şarkılar ve bu şarkıların sanatçıları (veri yoksa en çok şarkısı olanlar).
+const c = catalog();
+const pop = await buildPopularity();
+const popularSongs = [...pop.entries()]
+  .map(([id, n]) => ({ song: c.byId.get(id), n }))
+  .filter((x) => x.song)
+  .sort((a, b) => b.n - a.n || b.song!.seq - a.song!.seq)
+  .slice(0, 20)
+  .map((x) => x.song!);
+const artistScore = new Map<string, number>();
+for (const [id, n] of pop) { const s = c.byId.get(id); if (s) artistScore.set(s.artistSlug, (artistScore.get(s.artistSlug) ?? 0) + n); }
+const byPop = [...artistScore.entries()].sort((a, b) => b[1] - a[1]).map(([slug]) => c.artistBySlug.get(slug)).filter((a) => a !== undefined);
+const popularArtists = (byPop.length >= 12 ? byPop : [...byPop, ...topArtists(24).filter((a) => !byPop.includes(a))]).slice(0, 12);
+const songsTitle = popularSongs.length ? "Popüler şarkılar" : "";
 ---
 <Base title="Ara" description="Şarkı ya da sanatçı ara." noindex>
   <form class="search-big" role="search" style="max-width:none;margin-top:8px" action="/ara/" method="get">
@@ -8,7 +27,25 @@ import Icon from "../../components/Icon.astro";
     <input type="search" name="q" id="q" placeholder="Şarkı ya da sanatçı" autocomplete="off" aria-label="Ara" autofocus />
     <button class="icon-btn" type="button" id="q-clear" aria-label="Temizle" hidden><Icon name="close" /></button>
   </form>
-  <p class="muted small" id="search-status" style="margin:16px 0 0">Yazmaya başla…</p>
+  <p class="muted small" id="search-status" style="margin:16px 0 0">Şarkı adı, sanatçı ya da ikisi birden: "sezen gülümse" gibi.</p>
+
+  <div id="popular">
+    <div class="grid-2 popular-grid">
+      {popularSongs.length > 0 && (
+        <section>
+          <p class="caption" style="margin:24px 0 8px">{songsTitle}</p>
+          <SongList songs={popularSongs} numbered />
+        </section>
+      )}
+      <section>
+        <p class="caption" style="margin:24px 0 8px">Popüler sanatçılar</p>
+        <div class="list">
+          {popularArtists.map((a) => <ArtistRow artist={a} />)}
+        </div>
+      </section>
+    </div>
+  </div>
+
   <section id="artist-results" hidden>
     <p class="caption" style="margin:24px 0 8px">Sanatçılar</p>
     <div class="list" id="artist-list"></div>

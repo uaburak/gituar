@@ -213,6 +213,11 @@ struct EditSongView: View {
     @State private var showImportPreview = false
     @State private var importParseError: String? = nil
 
+    // App Store Guideline 1.2: içerik göndermeden önce kullanım şartlarının kabulü ve uygunsuz ifade filtresi
+    @AppStorage("ugcTermsAccepted") private var ugcTermsAccepted = false
+    @State private var showTermsSheet = false
+    @State private var showFilterAlert = false
+
     private var canSave: Bool {
         !songName.trimmingCharacters(in: .whitespaces).isEmpty &&
         !artist.trimmingCharacters(in: .whitespaces).isEmpty
@@ -320,7 +325,7 @@ struct EditSongView: View {
 
                     if status != "pending" && status != "approved" {
                         Button {
-                            saveSong(asStatus: "pending")
+                            attemptPublish()
                         } label: {
                             Text("Yayınla")
                                 .font(.system(size: 15, weight: .bold))
@@ -374,6 +379,19 @@ struct EditSongView: View {
                 parseJSON(from: url)
             }
         }
+        .sheet(isPresented: $showTermsSheet) {
+            UGCTermsSheet {
+                ugcTermsAccepted = true
+                showTermsSheet = false
+                attemptPublish()
+            }
+            .presentationDetents([.large])
+        }
+        .alert("İçerik Gönderilemedi", isPresented: $showFilterAlert) {
+            Button("Tamam", role: .cancel) {}
+        } message: {
+            Text("Şarkı adı, sanatçı ya da sözlerde uygunsuz bir ifade var. Küfür, hakaret ve nefret söylemi içeren içerikler yayımlanmaz.")
+        }
         .sheet(isPresented: $showImportPreview) {
             JSONImportPreviewView(
                 songs: parsedImportSongs,
@@ -416,6 +434,16 @@ struct EditSongView: View {
             .overlay(Capsule().stroke(Color(.separator), lineWidth: 1))
     }
 
+    /// Yayına göndermeden önce: şartlar kabul edilmiş olmalı, içerik filtreden geçmeli.
+    private func attemptPublish() {
+        guard ugcTermsAccepted else { showTermsSheet = true; return }
+        if ContentFilter.firstObjectionableWord(in: songName, artist, content) != nil {
+            showFilterAlert = true
+            return
+        }
+        saveSong(asStatus: "pending")
+    }
+
     private func saveSong(asStatus targetStatus: String) {
         guard let userId = authViewModel.currentUser?.uid else { return }
         let username = authViewModel.userProfile?.username ?? authViewModel.displayName
@@ -438,5 +466,64 @@ struct EditSongView: View {
         )
         viewModel.saveSong(songToSave)
         dismiss()
+    }
+}
+
+
+/// İlk gönderimden önce gösterilen kullanım şartları özeti. Kabul edilmeden içerik yayına gönderilemez.
+struct UGCTermsSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    let onAccept: () -> Void
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    Text("Paylaşmadan önce")
+                        .font(.title2.weight(.bold))
+                    Text("Gituar'da akorları kullanıcılar ekler. Paylaştığın içerikten sen sorumlusun. Göndermeden önce şu kuralları kabul etmelisin:")
+                        .foregroundStyle(.secondary)
+                    VStack(alignment: .leading, spacing: 12) {
+                        termRow("hand.raised.fill", "Uygunsuz içeriğe ve kötüye kullanan kullanıcılara sıfır tolerans: küfür, hakaret, nefret söylemi, taciz ve müstehcen içerik yasaktır.")
+                        termRow("music.note", "Yalnızca müzik eğitimi amacıyla akor ve söz paylaş. Eserlerin hakları sahiplerine aittir.")
+                        termRow("checkmark.shield.fill", "Gönderilen her şarkı editör onayından sonra yayımlanır. Kurallara uymayan içerik kaldırılır.")
+                        termRow("flag.fill", "Şikayet edilen içerikler 24 saat içinde incelenir. Kuralları ihlal eden hesaplar kapatılır.")
+                    }
+                    NavigationLink("Kullanım Şartlarının tamamı") { TermsOfUseView() }
+                        .font(.footnote)
+                }
+                .padding(24)
+            }
+            .safeAreaInset(edge: .bottom) {
+                VStack(spacing: 8) {
+                    Button {
+                        onAccept()
+                    } label: {
+                        Text("Kabul Ediyorum")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundStyle(.white)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 52)
+                            .background(Color.accentColor)
+                            .clipShape(Capsule())
+                    }
+                    Button("Vazgeç") { dismiss() }
+                        .font(.system(size: 15, weight: .medium))
+                }
+                .padding(.horizontal, 24)
+                .padding(.bottom, 12)
+                .background(.bar)
+            }
+        }
+    }
+
+    private func termRow(_ icon: String, _ text: String) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: icon)
+                .foregroundStyle(Color.accentColor)
+                .frame(width: 22)
+            Text(text)
+                .font(.subheadline)
+        }
     }
 }

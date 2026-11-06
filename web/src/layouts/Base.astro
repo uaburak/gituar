@@ -4,7 +4,6 @@ import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import Header from "../components/Header.astro";
 import Footer from "../components/Footer.astro";
-import SearchPalette from "../components/SearchPalette.astro";
 import AdSlot from "../components/AdSlot.astro";
 import { SITE_NAME, APP_STORE_ID, ADSENSE_CLIENT } from "../lib/site.ts";
 import { jsonLdText } from "../lib/seo.ts";
@@ -23,6 +22,10 @@ interface Props {
   ogType?: "website" | "music.song" | "profile";
   /** Sayfanın yapısal verisi (schema.org); tek script olarak basılır. */
   jsonLd?: unknown;
+  /** Kopya sayfalarda asıl sayfanın yolu. */
+  canonicalPath?: string;
+  /** true ise " · Gituar" eklenmez (uzun şarkı başlıkları). */
+  bareTitle?: boolean;
 }
 const {
   title,
@@ -33,10 +36,12 @@ const {
   ads = true,
   ogType = "website",
   jsonLd,
+  canonicalPath,
+  bareTitle = false,
 } = Astro.props;
-const canonical = new URL(Astro.url.pathname, Astro.site ?? "https://gituar.com").href;
+const canonical = new URL(canonicalPath ?? Astro.url.pathname, Astro.site ?? "https://gituar.com").href;
 const appArgument = songId ? `gituar://song/${songId}` : "gituar://";
-const fullTitle = `${title} · ${SITE_NAME}`;
+const fullTitle = bareTitle ? title : `${title} · ${SITE_NAME}`;
 // Search Console doğrulaması: web/.env içine PUBLIC_GSC_VERIFICATION=... yazılınca meta basılır.
 const gscVerification = import.meta.env.PUBLIC_GSC_VERIFICATION ?? "";
 // Paylaşım görseli: web/public/og.png (1200×630) eklenirse otomatik kullanılır; SVG favicon OG için uygun değil.
@@ -108,9 +113,8 @@ const ogImage = existsSync(fileURLToPath(new URL("../../public/og.png", import.m
         });
       })();
     </script>
-    <SearchPalette />
     {ads && <AdSlot size="sticky" unit="mobile-sticky" />}
     <script src="../scripts/app.ts"></script>
-    <script src="../scripts/palette.ts"></script>
+    <script src="../scripts/shortcuts.ts"></script>
   </body>
 </html>

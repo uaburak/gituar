@@ -1,0 +1,24 @@
+---
+import Base from "../../layouts/Base.astro";
+import SongList from "../../components/SongList.astro";
+import { newestSongs } from "../../lib/catalog.ts";
+import { siteUrl, breadcrumbJsonLd } from "../../lib/seo.ts";
+import { songPath } from "@shared/catalog";
+
+const songs = newestSongs(200);
+const base = siteUrl(Astro.site);
+const description = "Gituar'a en son eklenen 200 şarkının gitar akorları. Yeni çıkan ve yeni eklenen Türkçe şarkı akorları her yayında güncellenir.";
+const jsonLd = [
+  { "@type": "CollectionPage", name: "Yeni eklenen akorlar", url: `${base}/yeni-eklenenler/`, description, inLanguage: "tr" },
+  { "@type": "ItemList", name: "Yeni eklenen akorlar", numberOfItems: songs.length, itemListElement: songs.slice(0, 20).map((s, i) => ({ "@type": "ListItem", position: i + 1, name: `${s.artist} – ${s.songName}`, url: base + songPath(s) })) },
+  breadcrumbJsonLd(base, [{ name: "Ana sayfa", path: "/" }, { name: "Yeni eklenenler" }]),
+];
+---
+<Base title="Yeni Eklenen Gitar Akorları – Son 200 Şarkı" description={description} jsonLd={jsonLd}>
+  <div class="page-head">
+    <nav class="crumbs" aria-label="Sayfa yolu"><a href="/">Ana sayfa</a><span>/</span>Yeni eklenenler</nav>
+    <h1>Yeni eklenen akorlar</h1>
+    <p>Kataloğa en son eklenen şarkılar, en yeniden eskiye.</p>
+  </div>
+  <SongList songs={songs} adEvery={25} unit="new" />
+</Base>

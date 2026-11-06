@@ -1,12 +1,16 @@
 ---
 import { keySlug } from "../../../lib/keys.ts";
+import { canonicalSongPath, keyInfo } from "../../../lib/catalog-rules.mjs";
 import Base from "../../../layouts/Base.astro";
 import SongSheet from "../../../components/SongSheet.astro";
 import SongList from "../../../components/SongList.astro";
 import AdSlot from "../../../components/AdSlot.astro";
 import Icon from "../../../components/Icon.astro";
+import ChordDiagram from "../../../components/ChordDiagram.astro";
+import { songChords, chordHref, LEVEL_LABEL } from "../../../lib/chord-stats.ts";
+import { chordShapes } from "../../../lib/chord-theory.ts";
 import { catalog, sameKeySongs, artistPath, type CatalogSong } from "../../../lib/catalog.ts";
-import { siteUrl, songTitle, songDescription, songJsonLd, usedChords } from "../../../lib/seo.ts";
+import { siteUrl, songTitleParts, songDescription, songJsonLd, usedChords } from "../../../lib/seo.ts";
 
 export async function getStaticPaths() {
   return catalog().songs.map((song) => ({ params: { artist: song.artistSlug, song: song.slug }, props: { song } }));
@@ -18,11 +22,16 @@ const others = (artist?.songs ?? []).filter((s) => s.id !== song.id).slice(0, 8)
 const similar = sameKeySongs(song, 5);
 const chords = usedChords(song.content);
 const base = siteUrl(Astro.site);
-const title = songTitle(song);
+const { title, bare } = songTitleParts(song);
+const canonicalPath = canonicalSongPath(`/akor/${song.artistSlug}/${song.slug}/`);
+const keyPage = keyInfo(song.originalKey ?? "");
+const keyHref = keyPage && keyPage.total >= 10 ? `/ton/${keySlug(keyPage.name)}/` : "";
 const description = songDescription(song, chords);
 const artistUrl = base + artistPath(song.artistSlug);
+const analysis = songChords(song);
+const diagrams = analysis.chords.slice(0, 12).map((c) => ({ ...c, shape: chordShapes(c.root, c.quality)[0], href: chordHref(c.root, c.quality) })).filter((c) => c.shape);
 ---
-<Base title={title} description={description} songId={song.id} ogType="music.song" jsonLd={songJsonLd(song, base)}>
+<Base title={title} bareTitle={bare} canonicalPath={canonicalPath} description={description} songId={song.id} ogType="music.song" jsonLd={songJsonLd(song, base)}>
   <Fragment slot="head">
     <meta property="music:musician" content={artistUrl} />
   </Fragment>
@@ -34,6 +43,7 @@ const artistUrl = base + artistPath(song.artistSlug);
         <div class="song-meta">
           <a href={artistPath(song.artistSlug)}>{song.artist}</a>
           {song.originalKey && <><span class="dot">·</span><span>Orijinal ton {song.originalKey}</span></>}
+          {analysis.chords.length > 0 && <><span class="dot">·</span><span class={`level level-${analysis.level}`}>{LEVEL_LABEL[analysis.level]}</span></>}
         </div>
       </div>
       <div class="actions">
@@ -46,14 +56,25 @@ const artistUrl = base + artistPath(song.artistSlug);
       {song.originalKey && chords.length > 0 && <>Orijinal ton {song.originalKey}; kullanılan akorlar: <span class="mono">{chords.join(", ")}</span>.</>}
       {song.originalKey && chords.length === 0 && <>Orijinal ton {song.originalKey}.</>}
       {!song.originalKey && chords.length > 0 && <>Kullanılan akorlar: <span class="mono">{chords.join(", ")}</span>.</>}
+      {analysis.level === "kolay" && <>Barre gerektirmez, yalnızca açık akorlarla çalınır. </>}
+      {analysis.capo && <>Barre zor gelirse <strong>kapoyu {analysis.capo.fret}. perdeye</strong> takıp <span class="mono">{analysis.capo.shapes.join(", ")}</span> tutarak aynı tonda çalabilirsin. </>}
       Tonu değiştirebilir, kapo ekleyebilir, otomatik kaydırma ile çalabilirsin.
     </p>
   </div>
   <SongSheet song={song} />
+  {diagrams.length > 0 && (
+    <section class="section song-chords">
+      <div class="section-head"><h2>{song.songName} akorları nasıl basılır</h2><a href="/akorlar/">Akor tablosu ›</a></div>
+      <div class="chord-grid card">
+        {diagrams.map((d) => <ChordDiagram shape={d.shape} label={d.name} href={d.href} />)}
+      </div>
+      <p class="muted small" style="margin-top:8px">Diyagramlar orijinal tondaki akorları gösterir.</p>
+    </section>
+  )}
   <AdSlot size="rect" unit="song-after" />
   {similar.length > 0 && (
     <section class="section">
-      <div class="section-head"><h2>{song.originalKey ? `${song.originalKey} tonunda benzer şarkı akorları` : "Benzer şarkı akorları"}</h2>{keySlug(song.originalKey ?? "") && <a href={`/ton/${keySlug(song.originalKey ?? "")}/`}>{song.originalKey} tonundaki tüm şarkılar ›</a>}</div>
+      <div class="section-head"><h2>{song.originalKey ? `${song.originalKey} tonunda benzer şarkı akorları` : "Benzer şarkı akorları"}</h2>{keyHref && <a href={keyHref}>{song.originalKey} tonundaki tüm şarkılar ›</a>}</div>
       <SongList songs={similar} />
     </section>
   )}

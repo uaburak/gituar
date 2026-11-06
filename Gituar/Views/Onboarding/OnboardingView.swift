@@ -15,7 +15,7 @@ struct OnboardingView: View {
     @Environment(\.dismiss) var dismiss
     
     let steps = [
-        OnboardingStep(title: "Gituar'a Hoş Geldin!", description: "Binlerce şarkının akor ve sözlerine anında ulaş, müziğin keyfini çıkar.", iconName: "music.note.house.fill", color: .blue),
+        OnboardingStep(title: "Gituar'a Hoş Geldin!", description: "Topluluğun paylaştığı akorlara anında ulaş, sevdiğin şarkıları çal.", iconName: "music.note.house.fill", color: .blue),
         OnboardingStep(title: "Geniş Arşiv", description: "Sürekli güncellenen popüler ve güncel şarkı havuzumuzda dilediğini ara.", iconName: "magnifyingglass", color: .orange),
         OnboardingStep(title: "Kendi Repertuvarın", description: "Beğendiğin şarkıları kendi listene ekle, sahnede veya arkadaş ortamında hemen çal.", iconName: "star.fill", color: .yellow),
         OnboardingStep(title: "Tonu Sana Uysun", description: "Şarkıyı tek dokunuşla kendi sesine göre transpoze et; otomatik kaydırmayla ellerin gitarda kalsın.", iconName: "slider.horizontal.3", color: .green),

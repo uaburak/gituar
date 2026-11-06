@@ -9,13 +9,14 @@ import { APP_STORE_URL } from "../lib/site.ts";
     <nav class="nav" aria-label="Ana menü">
       <a href="/sanatcilar/">Sanatçılar</a>
       <a href="/repertuarlarim/">Repertuarlarım</a>
+      <a href="/akorlar/">Akorlar</a>
       <a href="/pro/">Pro</a>
       <a href="/admin/" id="admin-link" hidden>Yönetim</a>
     </nav>
     <div class="header-actions">
-      <button class="search-mini" id="search-open" type="button" aria-label="Ara (⌘K)">
+      <a class="search-mini" id="search-open" href="/ara/" aria-label="Ara (⌘K)">
         <Icon name="search" /><span class="search-mini-label">Ara</span><kbd class="key" id="search-kbd" aria-hidden="true">⌘K</kbd>
-      </button>
+      </a>
       <a href="/giris/" class="btn btn-text" id="auth-btn">Giriş yap</a>
       <a class="btn btn-appstore" href={APP_STORE_URL} rel="noopener" title="Gituar'ı App Store'dan indir">
         <Icon name="download" class="icon-sm" /><span>App Store</span>
@@ -24,7 +25,7 @@ import { APP_STORE_URL } from "../lib/site.ts";
         <Icon name="moon" class="icon icon-moon" /><Icon name="sun" class="icon icon-sun" />
       </button>
       <div class="header-mobile">
-        <button class="icon-btn" id="search-open-mobile" type="button" aria-label="Ara"><Icon name="search" /></button>
+        <a class="icon-btn" id="search-open-mobile" href="/ara/" aria-label="Ara"><Icon name="search" /></a>
         <button class="icon-btn" id="menu-toggle" type="button" aria-label="Menü" aria-expanded="false" aria-controls="header-menu"><Icon name="menu" /></button>
       </div>
     </div>

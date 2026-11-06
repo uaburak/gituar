@@ -1,12 +1,12 @@
 ---
 import Base from "../../layouts/Base.astro";
 import { catalog } from "../../lib/catalog.ts";
-import { keySlug, keyTurkish, parseKey } from "../../lib/keys.ts";
+import { keySlug, keyTurkish } from "../../lib/keys.ts";
+import { allKeyInfos } from "../../lib/catalog-rules.mjs";
 import { siteUrl, breadcrumbJsonLd } from "../../lib/seo.ts";
 
-const counts = new Map<string, number>();
-for (const s of catalog().songs) { const k = (s.originalKey ?? "").trim(); if (parseKey(k)) counts.set(k, (counts.get(k) ?? 0) + 1); }
-const keys = [...counts.entries()].filter(([, n]) => n >= 10).sort((a, b) => b[1] - a[1]);
+void catalog;
+const keys = allKeyInfos().filter((k) => k.total >= 10).sort((a, b) => b.total - a.total).map((k) => [k.spellings.join(" / "), k.total, k.name] as const);
 const base = siteUrl(Astro.site);
 const description = "Gitar akorlarını tona göre bul: majör ve minör tonlarda şarkı listeleri, her tonun sık kullanılan akorları. Transpoze ve kapo ile istediğin tona taşı.";
 ---
@@ -17,8 +17,8 @@ const description = "Gitar akorlarını tona göre bul: majör ve minör tonlard
     <p>Hangi tonda çalmak istiyorsan o tondaki şarkıları listele. Sayfa başında tonun sık kullanılan akorları yazar.</p>
   </div>
   <div class="grid-3 pick-grid">
-    {keys.map(([k, n]) => (
-      <a class="card pick" href={`/ton/${keySlug(k)}/`}><span class="pick-tile mono" aria-hidden="true">{k}</span><span class="pick-body"><span class="pick-title">{k} tonu</span><span class="muted small">{keyTurkish(k)} · {n} şarkı</span></span><span class="pick-arrow" aria-hidden="true">›</span></a>
+    {keys.map(([label, n, k]) => (
+      <a class="card pick" href={`/ton/${keySlug(k)}/`}><span class="pick-tile mono" aria-hidden="true">{k}</span><span class="pick-body"><span class="pick-title">{label} tonu</span><span class="muted small">{keyTurkish(k)}</span></span><span class="pick-arrow" aria-hidden="true">›</span></a>
     ))}
   </div>
 </Base>

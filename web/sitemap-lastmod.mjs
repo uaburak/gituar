@@ -23,17 +23,13 @@ function load() {
     const artistLatest = new Map();
     for (const s of snapshot.songs) {
       if (s.deleted) continue;
-      const date = isoDate(s.createdAt) ?? published;
+      const date = isoDate(s.createdAt);
       if (!date) continue;
       map.set(`/akor/${s.artistSlug}/${s.slug}/`, date);
       const prev = artistLatest.get(s.artistSlug);
       if (!prev || date > prev) artistLatest.set(s.artistSlug, date);
     }
     for (const [slug, date] of artistLatest) map.set(`/sanatci/${slug}/`, date);
-    if (published) {
-      map.set("/", published);
-      map.set("/sanatcilar/", published);
-    }
   } catch (err) {
     console.warn("[sitemap] lastmod için katalog okunamadı:", err?.message ?? err);
   }

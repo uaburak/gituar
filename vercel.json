@@ -31,6 +31,18 @@
         {
           "key": "X-Content-Type-Options",
           "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "SAMEORIGIN"
+        },
+        {
+          "key": "Permissions-Policy",
+          "value": "camera=(), microphone=(), geolocation=()"
         }
       ]
     }
@@ -39,6 +51,66 @@
     {
       "source": "/plus/",
       "destination": "/pro/",
+      "permanent": true
+    },
+    {
+      "source": "/akor/",
+      "destination": "/akorlar/",
+      "permanent": true
+    },
+    {
+      "source": "/akor/:artist/",
+      "destination": "/sanatci/:artist/",
+      "permanent": true
+    },
+    {
+      "source": "/sanatci/",
+      "destination": "/sanatcilar/",
+      "permanent": true
+    },
+    {
+      "source": "/ton/d-bemol/",
+      "destination": "/ton/c-diyez/",
+      "permanent": true
+    },
+    {
+      "source": "/ton/d-diyez/",
+      "destination": "/ton/e-bemol/",
+      "permanent": true
+    },
+    {
+      "source": "/ton/a-bemol/",
+      "destination": "/ton/g-diyez/",
+      "permanent": true
+    },
+    {
+      "source": "/ton/a-diyez-minor/",
+      "destination": "/ton/b-bemol-minor/",
+      "permanent": true
+    },
+    {
+      "source": "/ton/a-bemol-minor/",
+      "destination": "/ton/g-diyez-minor/",
+      "permanent": true
+    },
+    {
+      "source": "/ton/e-bemol-minor/",
+      "destination": "/ton/d-diyez-minor/",
+      "permanent": true
+    },
+    {
+      "source": "/ton/g-bemol/",
+      "destination": "/ton/f-diyez/",
+      "permanent": true
+    },
+    {
+      "source": "/ton/d-bemol-minor/",
+      "destination": "/ton/c-diyez-minor/",
+      "permanent": true
+    },
+    {
+      "source": "/ton/a-diyez/",
+      "destination": "/ton/b-bemol/",
       "permanent": true
     }
   ]

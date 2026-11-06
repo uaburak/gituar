@@ -1,0 +1,60 @@
+---
+// "Kolay gitar akorları": yalnızca açık (barresiz) akorlarla çalınan şarkılar ve temel akor diyagramları.
+import Base from "../../layouts/Base.astro";
+import SongList from "../../components/SongList.astro";
+import ChordDiagram from "../../components/ChordDiagram.astro";
+import AdSlot from "../../components/AdSlot.astro";
+import { easySongs, songChords, capoEasySongs } from "../../lib/chord-stats.ts";
+import { chordShapes, chordSlug } from "../../lib/chord-theory.ts";
+import { siteUrl, breadcrumbJsonLd } from "../../lib/seo.ts";
+import { songPath } from "@shared/catalog";
+
+const songs = easySongs();
+const notes = Object.fromEntries(songs.map((s) => [s.id, songChords(s).chords.map((c) => c.name).join(" ")]));
+const byCount = [2, 3, 4].map((n) => ({ n, count: songs.filter((s) => songChords(s).chords.length === n).length })).filter((g) => g.count >= 10);
+const basics = [["A", "m"], ["C", ""], ["D", ""], ["E", "m"], ["G", ""], ["A", ""], ["D", "m"], ["E", ""]] as const;
+const capoCount = capoEasySongs().length;
+const LIMIT = 120;
+const base = siteUrl(Astro.site);
+const description = `Kolay gitar akorları ve barresiz şarkılar: yalnızca Am, C, D, Em, G gibi açık akorlarla çalınan Türkçe şarkılar. Yeni başlayanlar için 2, 3 ve 4 akorlu şarkılar.`;
+const faq: [string, string][] = [
+  ["Yeni başlayan biri hangi akorları öğrenmeli?", "Önce Am, C, D, Em, G, A, Dm ve E açık akorlarını öğren. Bu sekiz akor barre gerektirmez ve Türkçe şarkıların çoğunun temelini oluşturur."],
+  ["Barresiz şarkı ne demek?", "Hiç barre akor (F, Bm gibi işaret parmağıyla bütün telleri bastırdığın akorlar) içermeyen, yalnızca açık akorlarla çalınan şarkı demektir."],
+  ["Şarkıda barre varsa ne yapabilirim?", "Kapo ile çoğu şarkıyı açık akorlara indirebilirsin. Kapo ile kolay şarkılar sayfasında hangi perdeye kapo takacağın yazıyor."],
+];
+const jsonLd = [
+  { "@type": "CollectionPage", name: "Kolay gitar akorları ve barresiz şarkılar", url: `${base}/kolay-gitar-akorlari/`, description, inLanguage: "tr", isPartOf: { "@id": `${base}/#website` } },
+  { "@type": "ItemList", name: "Kolay gitar şarkıları", itemListElement: songs.slice(0, 20).map((s, i) => ({ "@type": "ListItem", position: i + 1, name: `${s.artist} – ${s.songName}`, url: base + songPath(s) })) },
+  { "@type": "FAQPage", mainEntity: faq.map(([q, a]) => ({ "@type": "Question", name: q, acceptedAnswer: { "@type": "Answer", text: a } })) },
+  breadcrumbJsonLd(base, [{ name: "Ana sayfa", path: "/" }, { name: "Kolay gitar akorları" }]),
+];
+---
+<Base title="Kolay Gitar Akorları – Barresiz Şarkılar ve Temel Akorlar" description={description} jsonLd={jsonLd}>
+  <div class="page-head">
+    <nav class="crumbs" aria-label="Sayfa yolu"><a href="/">Ana sayfa</a><span>/</span>Kolay gitar akorları</nav>
+    <h1>Kolay gitar akorları <span class="h1-kw">· barresiz şarkılar</span></h1>
+    <p class="answer">Kolay gitar akorları, barre gerektirmeyen açık akorlardır: Am, C, D, Em, G, A, Dm ve E. Aşağıda akorların diyagramları ve en az akorlu şarkılardan başlayan liste var.</p>
+  </div>
+
+  <section class="chord-grid card" aria-label="Temel açık akorlar">
+    {basics.map(([r, q]) => <ChordDiagram shape={chordShapes(r, q)[0]} label={r + q} href={`/akorlar/${chordSlug(r, q)}/`} />)}
+  </section>
+
+  <div class="chord-chips" style="margin-top:20px">
+    {byCount.map((g) => <a class="btn chip" href={`/kolay-gitar-akorlari/${g.n}-akorlu-sarkilar/`}>{g.n} akorlu şarkılar</a>)}
+    <a class="btn chip" href="/kapo-ile-kolay-sarkilar/">Kapo ile kolay</a>
+    <a class="btn chip" href="/akorlar/">Tüm akorlar</a>
+  </div>
+
+  <AdSlot size="inline" unit="easy-top" />
+
+  <section class="section">
+    <div class="section-head"><h2>Açık akorlarla çalınan şarkılar</h2></div>
+    <SongList songs={songs.slice(0, LIMIT)} notes={notes} adEvery={20} unit="easy" />
+  </section>
+
+  <section class="section guide-body">
+    <h2>Sık sorulanlar</h2>
+    {faq.map(([q, a]) => (<details class="faq"><summary>{q}</summary><p>{a}</p></details>))}
+  </section>
+</Base>

@@ -4,6 +4,8 @@ import SongList from "../../components/SongList.astro";
 import Icon from "../../components/Icon.astro";
 import { catalog, type ArtistGroup } from "../../lib/catalog.ts";
 import { siteUrl, artistTitle, artistDescription, artistJsonLd } from "../../lib/seo.ts";
+import { isThinArtist, featuredSongIds } from "../../lib/catalog-rules.mjs";
+import { songChords, chordHref } from "../../lib/chord-stats.ts";
 
 export async function getStaticPaths() {
   return catalog().artists.map((artist) => ({ params: { artist: artist.slug }, props: { artist } }));
@@ -11,8 +13,31 @@ export async function getStaticPaths() {
 const { artist } = Astro.props as { artist: ArtistGroup };
 const initial = (artist.name[0] ?? "?").toLocaleUpperCase("tr-TR");
 const base = siteUrl(Astro.site);
+const featured = featuredSongIds(artist.slug).map((id) => catalog().byId.get(id)).filter((s) => s !== undefined);
+const thin = isThinArtist(artist.slug);
+// Sanatçı özeti: en sık ton, en sık akorlar, en kolay şarkılar (en az 3 şarkılı sanatçılarda)
+const n = artist.songs.length;
+const keyCount = new Map<string, number>();
+const chordCount = new Map<string, { n: number; root: string; quality: string }>();
+for (const s of artist.songs) {
+  if (s.originalKey) keyCount.set(s.originalKey, (keyCount.get(s.originalKey) ?? 0) + 1);
+  for (const c of songChords(s).chords) {
+    const e = chordCount.get(c.name) ?? { n: 0, root: c.root, quality: c.quality };
+    e.n++;
+    chordCount.set(c.name, e);
+  }
+}
+const topKey = [...keyCount.entries()].sort((a, b) => b[1] - a[1])[0];
+const topChords = [...chordCount.entries()].sort((a, b) => b[1].n - a[1].n).slice(0, 6);
+const rank = { kolay: 0, orta: 1, ileri: 2 } as const;
+const easiest = [...artist.songs]
+  .filter((s) => songChords(s).chords.length >= 2)
+  .sort((a, b) => rank[songChords(a).level] - rank[songChords(b).level] || songChords(a).chords.length - songChords(b).chords.length)
+  .slice(0, 5);
+const easyCount = artist.songs.filter((s) => songChords(s).level === "kolay").length;
+const easyNotes = Object.fromEntries(easiest.map((s) => [s.id, songChords(s).chords.map((c) => c.name).join(" ")]));
 ---
-<Base title={artistTitle(artist)} description={artistDescription(artist)} ogType="profile" jsonLd={artistJsonLd(artist, base)}>
+<Base noindex={thin} title={artistTitle(artist)} description={artistDescription(artist)} ogType="profile" jsonLd={artistJsonLd(artist, base)}>
   <div class="page-head">
     <nav class="crumbs" aria-label="Sayfa yolu"><a href="/">Ana sayfa</a><span>/</span><a href="/sanatcilar/">Sanatçılar</a><span>/</span>{artist.name}</nav>
     <div class="artist-head">
@@ -27,8 +52,28 @@ const base = siteUrl(Astro.site);
       <input type="search" id="song-filter" placeholder={`${artist.name} şarkılarında ara`} autocomplete="off" aria-label="Şarkılarda ara" />
     </form>
   </div>
+  {n >= 3 && (
+    <p class="answer artist-facts">
+      Gituar'da {artist.name} için {n} şarkının akoru var.
+      {topKey && <> En çok kullanılan ton <strong>{topKey[0]}</strong> ({topKey[1]} şarkı).</>}
+      {topChords.length > 0 && <> En sık geçen akorlar: {topChords.map(([name, c], i) => { const href = chordHref(c.root, c.quality); return <>{i > 0 && ", "}{href ? <a class="mono" href={href}>{name}</a> : <span class="mono">{name}</span>}</>; })}.</>}
+      {easyCount > 0 && <> {easyCount} şarkı yalnızca açık akorlarla, barre olmadan çalınıyor.</>}
+    </p>
+  )}
   <SongList songs={artist.songs} showArtist={false} numbered adEvery={10} unit="artist" id="artist-songs" />
+  {n >= 5 && easiest.length >= 3 && (
+    <section class="section" style="margin-top:40px">
+      <div class="section-head"><h2>En kolay {artist.name} şarkıları</h2><a href="/kolay-gitar-akorlari/">Kolay gitar akorları ›</a></div>
+      <SongList songs={easiest} showArtist={false} notes={easyNotes} />
+    </section>
+  )}
   <p class="muted small" id="filter-empty" hidden>Bu aramayla eşleşen şarkı yok.</p>
+  {featured.length > 0 && (
+    <section class="section" style="margin-top:40px">
+      <div class="section-head"><h2>{artist.name} düetleri ve birlikte söyledikleri</h2></div>
+      <SongList songs={featured} />
+    </section>
+  )}
   <p class="muted small" style="margin-top:24px">Aradığın şarkı yok mu? <a href="/sanatcilar/">Tüm sanatçıların akorları</a> dizinine bak ya da <a href="/iletisim/">şarkı öner</a>.</p>
   <script src="../../scripts/song-filter.ts"></script>
 </Base>

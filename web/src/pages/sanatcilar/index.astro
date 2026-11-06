@@ -19,13 +19,13 @@ const anchor = (l: string) => `h-${l === "#" ? "diger" : l}`;
 ---
 <Base
   title="Sanatçılar – Gitar Akorları A'dan Z'ye"
-  description={`${count} sanatçının gitar akorları alfabetik dizinde. Sanatçıyı seç, şarkı akorlarını orijinal tonuyla gör; transpoze ve kapo ile çal.`}
+  description={`Sanatçıların gitar akorları alfabetik dizinde. Sanatçıyı seç, şarkı akorlarını orijinal tonuyla gör; transpoze ve kapo ile çal.`}
   jsonLd={artistsIndexJsonLd(siteUrl(Astro.site), artistTotal)}
 >
   <div class="page-head">
     <nav class="crumbs" aria-label="Sayfa yolu"><a href="/">Ana sayfa</a><span>/</span>Sanatçılar</nav>
     <div class="title-row">
-      <div><h1>Sanatçı akorları</h1><p>{count} sanatçının gitar akorları, A'dan Z'ye</p></div>
+      <div><h1>Sanatçı akorları</h1><p>Sanatçıların gitar akorları, A'dan Z'ye</p></div>
       <form class="search-inline" role="search" onsubmit="return false">
         <Icon name="search" />
         <input type="search" id="artist-filter" placeholder="Sanatçı ara" autocomplete="off" aria-label="Sanatçı ara" />

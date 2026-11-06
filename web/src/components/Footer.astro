@@ -1,21 +1,22 @@
 ---
 import Logo from "./Logo.astro";
 import { APP_STORE_URL } from "../lib/site.ts";
-interface Props { songCount?: string; artistCount?: string }
-const { songCount = "13.713", artistCount = "3.235" } = Astro.props;
 const year = new Date().getFullYear();
 ---
 <footer class="site-footer">
   <div class="container footer-inner">
     <div class="footer-left">
       <Logo />
-      <span>{songCount} gitar akoru · {artistCount} sanatçı</span>
+      <span>Topluluğun paylaştığı gitar akorları</span>
     </div>
     <div class="footer-right">
       <nav aria-label="Alt menü">
         <a href="/sanatcilar/">Sanatçılar</a>
         <a href="/repertuarlarim/">Repertuarlarım</a>
+        <a href="/akorlar/">Akorlar</a>
+        <a href="/kolay-gitar-akorlari/">Kolay akorlar</a>
         <a href="/ton/">Tonlar</a>
+        <a href="/yeni-eklenenler/">Yeni eklenenler</a>
         <a href="/rehber/">Rehber</a>
         <a href={APP_STORE_URL} rel="noopener">iOS uygulaması</a>
         <a href="/hakkinda/">Hakkında</a>

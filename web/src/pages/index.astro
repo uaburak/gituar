@@ -8,13 +8,10 @@ import { catalog, newestSongs, topArtists } from "../lib/catalog.ts";
 import { siteUrl, homeJsonLd } from "../lib/seo.ts";
 import { APP_STORE_URL } from "../lib/site.ts";
 
-const c = catalog();
 const newest = newestSongs(8);
 const artists = topArtists(8);
-const songCount = c.songs.length.toLocaleString("tr-TR");
-const artistCount = c.artists.length.toLocaleString("tr-TR");
-const title = `Gitar Akorları – ${songCount} Türkçe Şarkı Akoru`;
-const description = `Gitar akorları: ${songCount} Türkçe şarkı akoru, ${artistCount} sanatçı. Akor transpoze, kapo ve otomatik kaydırma ile çal, repertuar oluştur. iOS uygulamasıyla aynı katalog.`;
+const title = "Gitar Akorları – Türkçe Şarkı Akorları, Transpoze ve Kapo";
+const description = "Türkçe şarkıların gitar akorları: topluluğun paylaştığı akorları transpoze, kapo ve otomatik kaydırma ile çal, repertuar oluştur. iPhone uygulamasıyla aynı akorlar.";
 ---
 <Base title={title} description={description} jsonLd={homeJsonLd(siteUrl(Astro.site))}>
   <h1 class="visually-hidden">Türkçe gitar akorları</h1>
@@ -31,7 +28,7 @@ const description = `Gitar akorları: ${songCount} Türkçe şarkı akoru, ${art
       <a class="card tile" href="/sanatcilar/">
         <Icon name="people" class="icon tile-icon tile-icon-people" />
         <span class="tile-title">Sanatçılar</span>
-        <span class="tile-sub">{artistCount} sanatçı, A'dan Z'ye</span>
+        <span class="tile-sub">A'dan Z'ye tüm sanatçılar</span>
       </a>
       <a class="card tile" href="/repertuarlarim/">
         <Icon name="mic" class="icon tile-icon tile-icon-mic" />
@@ -103,7 +100,7 @@ const description = `Gitar akorları: ${songCount} Türkçe şarkı akoru, ${art
   <section class="section about">
     <div class="section-head"><h2>Şarkı akorları, transpoze ve kapo</h2></div>
     <div class="about-cols">
-      <p>Gituar'da {artistCount} sanatçının {songCount} şarkısının gitar akorları söz üstünde, orijinal tonuyla durur. <a href="/sanatcilar/">Sanatçı akorları dizininden</a> ya da aramadan şarkıyı bul, akorları sözlerle birlikte çal.</p>
+      <p>Gituar'da akorları kullanıcılar ekler; her şarkının gitar akorları söz üstünde, orijinal tonuyla durur. <a href="/sanatcilar/">Sanatçı akorları dizininden</a> ya da aramadan şarkıyı bul, akorları sözlerle birlikte çal.</p>
       <p>Akor transpoze için ton şeridinden yeni tonu seç; akorlar anında kayar, söz hizası bozulmaz. Kapo takıyorsan perdeyi gir, sayfa çaldığın akor adlarını gösterir. Otomatik kaydırma ile elini gitardan çekmeden çalarsın. Akor adları ukulele için de aynıdır.</p>
       <p>Repertuar oluşturup şarkılarını topla; <a href={APP_STORE_URL} rel="noopener">iPhone uygulaması</a> aynı kataloğu ve repertuarları kullanır. Akorlar topluluk tarafından eklenir, hatalı akoru <a href="/iletisim/">bildirebilirsin</a>.</p>
     </div>

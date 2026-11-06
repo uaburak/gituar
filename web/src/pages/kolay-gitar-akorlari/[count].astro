@@ -1,0 +1,34 @@
+---
+import Base from "../../layouts/Base.astro";
+import SongList from "../../components/SongList.astro";
+import { easySongs, songChords } from "../../lib/chord-stats.ts";
+import { siteUrl, breadcrumbJsonLd } from "../../lib/seo.ts";
+import { songPath } from "@shared/catalog";
+
+export function getStaticPaths() {
+  const all = easySongs();
+  return [2, 3, 4]
+    .map((n) => ({ n, songs: all.filter((s) => songChords(s).chords.length === n).sort((a, b) => b.seq - a.seq) }))
+    .filter((g) => g.songs.length >= 10)
+    .map((g) => ({ params: { count: `${g.n}-akorlu-sarkilar` }, props: g }));
+}
+const { n, songs } = Astro.props as { n: number; songs: import("@shared/types").CatalogSong[] };
+const notes = Object.fromEntries(songs.map((s) => [s.id, songChords(s).chords.map((c) => c.name).join(" ")]));
+const base = siteUrl(Astro.site);
+const path = `/kolay-gitar-akorlari/${n}-akorlu-sarkilar/`;
+const LIMIT = 300;
+const description = `${n} akorla çalınan kolay Türkçe şarkılar: yalnızca açık akorlar, barre yok. Gitara yeni başlayanlar için akorlarıyla liste.`;
+const jsonLd = [
+  { "@type": "CollectionPage", name: `${n} akorlu kolay şarkılar`, url: base + path, description, inLanguage: "tr" },
+  { "@type": "ItemList", name: `${n} akorlu şarkılar`, itemListElement: songs.slice(0, 20).map((s, i) => ({ "@type": "ListItem", position: i + 1, name: `${s.artist} – ${s.songName}`, url: base + songPath(s) })) },
+  breadcrumbJsonLd(base, [{ name: "Ana sayfa", path: "/" }, { name: "Kolay gitar akorları", path: "/kolay-gitar-akorlari/" }, { name: `${n} akorlu şarkılar` }]),
+];
+---
+<Base title={`${n} Akorlu Kolay Şarkılar – Barresiz Gitar Şarkıları`} description={description} jsonLd={jsonLd}>
+  <div class="page-head">
+    <nav class="crumbs" aria-label="Sayfa yolu"><a href="/">Ana sayfa</a><span>/</span><a href="/kolay-gitar-akorlari/">Kolay gitar akorları</a><span>/</span>{n} akorlu şarkılar</nav>
+    <h1>{n} akorlu kolay şarkılar</h1>
+    <p class="answer">Bu listedeki şarkılar yalnızca {n} açık akorla çalınıyor ve hiç barre gerektirmiyor. Satırın altında şarkının akorları yazar; akorları bilmiyorsan <a href="/akorlar/">akor tablosuna</a> bak.</p>
+  </div>
+  <SongList songs={songs.slice(0, LIMIT)} notes={notes} adEvery={25} unit="easy-n" />
+</Base>

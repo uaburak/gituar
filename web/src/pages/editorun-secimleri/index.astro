@@ -1,14 +1,55 @@
 ---
 import Base from "../../layouts/Base.astro";
+import SongList from "../../components/SongList.astro";
+import { catalog } from "../../lib/catalog.ts";
+import { buildEditorPicks } from "../../lib/editor-picks-build.ts";
+import { siteUrl, breadcrumbJsonLd } from "../../lib/seo.ts";
+import { songPath } from "@shared/catalog";
+
+const byId = catalog().byId;
+const picks = (await buildEditorPicks())
+  .map((p) => ({ ...p, songs: p.songIds.map((id) => byId.get(id)).filter((s) => s !== undefined) }))
+  .filter((p) => p.songs.length > 0);
+const base = siteUrl(Astro.site);
+const SHOW = 12;
+const description = `Gituar ekibinin hazırladığı ${picks.length || ""} popüler gitar şarkısı listesi: başlangıç için, hareketli, slow, rock, türküler ve daha fazlası. Her şarkı akorlarıyla.`.replace("  ", " ");
+const jsonLd = [
+  { "@type": "CollectionPage", name: "Popüler gitar şarkıları – Editörün Seçimleri", url: `${base}/editorun-secimleri/`, description, inLanguage: "tr", isPartOf: { "@id": `${base}/#website` } },
+  ...picks.map((p) => ({
+    "@type": "ItemList",
+    name: p.name,
+    numberOfItems: p.songs.length,
+    itemListElement: p.songs.slice(0, SHOW).map((s, i) => ({ "@type": "ListItem", position: i + 1, name: `${s.artist} – ${s.songName} akorları`, url: base + songPath(s) })),
+  })),
+  breadcrumbJsonLd(base, [{ name: "Ana sayfa", path: "/" }, { name: "Editörün Seçimleri" }]),
+];
 ---
-<Base title="Editörün Seçimleri – Gituar ekibinin repertuarları" description="Gituar ekibinin hazırladığı özel repertuarlar: başlangıç için, hareketli şarkılar, slow, rock, türküler ve daha fazlası. Her liste akorlarıyla.">
+<Base title="Popüler Gitar Şarkıları – Editörün Seçimleri" description={description} noindex={picks.length === 0} jsonLd={jsonLd}>
   <div class="page-head">
     <div class="crumbs"><a href="/">Ana sayfa</a><span>/</span>Editörün Seçimleri</div>
-    <h1>Editörün Seçimleri</h1>
-    <p id="editor-meta">Gituar ekibinin hazırladığı repertuarlar</p>
+    <h1>Editörün Seçimleri <span class="h1-kw">· popüler gitar şarkıları</span></h1>
+    <p id="editor-meta">{picks.length ? `${picks.length} özel liste · Gituar ekibinin hazırladığı repertuarlar` : "Gituar ekibinin hazırladığı repertuarlar"}</p>
   </div>
   <div class="editor-hero editor-hero-static" aria-hidden="true"></div>
-  <div class="grid-3 pick-grid" id="editor-picks" style="margin-top:24px"></div>
-  <p class="muted small" id="editor-status" style="margin-top:16px">Yükleniyor…</p>
-  <script src="../../scripts/editor-picks.ts"></script>
+  {picks.length > 0 ? (
+    <>
+      <div class="grid-3 pick-grid" style="margin-top:24px">
+        {picks.map((p) => (
+          <a class="card pick" href={`#liste-${p.id}`}><span class="pick-tile" aria-hidden="true">{p.name.trim().charAt(0).toLocaleUpperCase("tr-TR")}</span><span class="pick-body"><span class="pick-title">{p.name}</span><span class="muted small">{p.songs.length} şarkı · Editör repertuarı</span></span><span class="pick-arrow" aria-hidden="true">›</span></a>
+        ))}
+      </div>
+      {picks.map((p) => (
+        <section class="section" id={`liste-${p.id}`}>
+          <div class="section-head"><h2>{p.name}</h2><a href={`/repertuar/?id=${p.id}`}>Tüm liste ({p.songs.length}) ›</a></div>
+          <SongList songs={p.songs.slice(0, SHOW)} />
+        </section>
+      ))}
+    </>
+  ) : (
+    <>
+      <div class="grid-3 pick-grid" id="editor-picks" style="margin-top:24px"></div>
+      <p class="muted small" id="editor-status" style="margin-top:16px">Yükleniyor…</p>
+      <script src="../../scripts/editor-picks.ts"></script>
+    </>
+  )}
 </Base>

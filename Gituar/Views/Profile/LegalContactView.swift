@@ -38,29 +38,47 @@ struct LegalContactView: View {
     }
 }
 
+/// Yasal metin bölümü: başlık + paragraflar.
+private struct LegalSection: View {
+    let title: String
+    let paragraphs: [String]
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title).font(.headline)
+            ForEach(paragraphs, id: \.self) { Text($0).font(.subheadline) }
+        }
+    }
+}
+
+// Web'deki /kullanim-sartlari/ ve /gizlilik/ sayfalarıyla aynı içerik.
 struct TermsOfUseView: View {
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                Text("Kullanım Şartları")
-                    .font(.title2)
-                    .bold()
-                
-                Text("Gituar uygulamasını kullanarak aşağıdaki şartları kabul etmiş sayılırsınız.")
-                
-                Text("1. İçerik ve Telif Hakkı")
-                    .font(.headline)
-                Text("Uygulama içerisindeki akor, söz ve tablar müzik eğitimi amacıyla paylaşılmaktadır. Tüm eserlerin telif hakları kendi sahiplerine aittir. Telif hakkı ihlali olduğunu düşündüğünüz içerikler için iletişim adresimizden bize ulaşabilirsiniz; ilgili içerik en kısa sürede incelenip kaldırılacaktır.")
-                
-                Text("2. Kullanıcı Sorumluluğu")
-                    .font(.headline)
-                Text("Kullanıcılar uygulamayı yasalara uygun bir şekilde kullanmakla yükümlüdür. Uygulama altyapısına zarar verecek veya tersine mühendislik oluşturacak girişimler yasaktır.")
-                
-                Text("3. Değişiklikler")
-                    .font(.headline)
-                Text("Gituar, kullanım şartlarında önceden haber vermeksizin değişiklik yapma hakkını saklı tutar.")
-                
-                Spacer()
+            VStack(alignment: .leading, spacing: 20) {
+                Text("Gituar'ı (uygulama ve gituar.com) kullanarak aşağıdaki şartları kabul etmiş sayılırsın. Son güncelleme: 6 Kasım 2026.")
+                    .foregroundStyle(.secondary)
+                LegalSection(title: "1. İçerik ve telif hakları", paragraphs: [
+                    "Gituar'daki akorları ve sözleri kullanıcılar ekler; içerikler müzik eğitimi amacıyla yayımlanır. Eserlerin tüm hakları sahiplerine aittir.",
+                    "Bir içeriğin telif hakkını ihlal ettiğini düşünüyorsan şarkı sayfasındaki \"Şikayet Et\" ile ya da iletisim@gituar.com adresinden bildir. Geçerli bildirimler en geç 48 saat içinde yayından kaldırılır.",
+                    "İçeriklerin doğruluğu garanti edilmez; akorlar hata içerebilir.",
+                ])
+                LegalSection(title: "2. Kullanıcı içerikleri ve sıfır tolerans", paragraphs: [
+                    "Paylaştığın akor, söz, repertuar ve bildirimlerden sen sorumlusun. Uygunsuz içeriğe ve kötüye kullanan kullanıcılara sıfır tolerans uygulanır: küfür, hakaret, nefret söylemi, taciz, müstehcenlik ve suç teşkil eden içerik yasaktır.",
+                    "Gönderilen içerikler otomatik filtreden ve editör onayından geçtikten sonra yayımlanır. Şikayet edilen içerikler 24 saat içinde incelenir; kuralları ihlal eden içerik kaldırılır ve hesap kapatılabilir.",
+                    "Rahatsız olduğun kullanıcıyı şarkı sayfasındaki \"Engelle\" ile engelleyebilirsin; engellediğin kişinin içerikleri sana gösterilmez.",
+                ])
+                LegalSection(title: "3. Hesap", paragraphs: [
+                    "Apple, Google ya da e-posta ile giriş yapabilirsin. Hesabını ve verilerini Profil > Ayarlar'dan istediğin zaman silebilirsin.",
+                ])
+                LegalSection(title: "4. Gituar Pro", paragraphs: [
+                    "Gituar Pro, reklamsız kullanım sunan aylık otomatik yenilenen bir aboneliktir ve App Store üzerinden satın alınır. Ödeme, satın alma onayında Apple hesabından alınır. Abonelik, dönem bitiminden en az 24 saat önce iptal edilmezse aynı ücretle yenilenir. Aboneliği App Store hesap ayarlarından yönetebilir ve iptal edebilirsin.",
+                ])
+                LegalSection(title: "5. Kullanım kuralları", paragraphs: [
+                    "İçeriklerin izinsiz ticari amaçla ya da otomatik araçlarla toplu kopyalanması, altyapıya zarar verecek girişimler ve tersine mühendislik yasaktır.",
+                ])
+                LegalSection(title: "6. Değişiklikler ve uygulanacak hukuk", paragraphs: [
+                    "Bu şartları gerektiğinde güncelleyebiliriz. Şartlara Türk hukuku uygulanır; uyuşmazlıklarda İstanbul mahkemeleri yetkilidir. Sorular için: iletisim@gituar.com",
+                ])
             }
             .padding()
         }
@@ -73,31 +91,32 @@ struct TermsOfUseView: View {
 struct PrivacyPolicyView: View {
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                Text("Gizlilik ve Çerez Politikası")
-                    .font(.title2)
-                    .bold()
-                
-                Text("Kullanıcılarımızın gizliliğine önem veriyoruz. Bu politika, Gituar uygulamasını kullanırken toplanan verileri açıklar.")
-                
-                Text("1. Toplanan Veriler")
-                    .font(.headline)
-                Text("Uygulama deneyiminizi iyileştirmek amacıyla temel kullanım verileri (görüntülenen şarkılar vb.) cihazınızda veya bulut sistemimizde güvenli bir şekilde saklanabilir.")
-                
-                Text("2. Çerezler ve Yerel Depolama")
-                    .font(.headline)
-                Text("Uygulamamız, kişiselleştirilmiş ayarlarınızı (yazı boyutu, tema, ton tercihleri vb.) hatırlamak için cihazınızın yerel depolama özelliklerini (UserDefaults, AppStorage vb.) kullanır.")
-                
-                Text("3. Veri Güvenliği ve Paylaşım")
-                    .font(.headline)
-                Text("Kişisel verileriniz güvenli sunucularda saklanmakta olup, yasal zorunluluklar haricinde üçüncü şahıslarla reklam amacıyla izinsiz paylaşılmaz.")
-                
-                Spacer()
+            VStack(alignment: .leading, spacing: 20) {
+                Text("Bu politika, Gituar uygulamasını ve gituar.com'u kullanırken hangi verilerin işlendiğini açıklar (6698 sayılı KVKK). Son güncelleme: 6 Kasım 2026.")
+                    .foregroundStyle(.secondary)
+                LegalSection(title: "Hangi verileri işliyoruz?", paragraphs: [
+                    "Hesap bilgileri: Apple, Google ya da e-posta ile giriş yaptığında adın, e-posta adresin ve varsa profil fotoğrafın (Google Firebase Authentication).",
+                    "Kullanım verileri: favorilerin, repertuarların, şarkı başına ton ve kapo ayarların, gönderdiğin akorlar, şikayetlerin ve engellediğin kullanıcılar (Google Cloud Firestore).",
+                    "Abonelik durumu: Gituar Pro'nun aktif olup olmadığı. Ödeme bilgilerin Apple'da kalır.",
+                    "Giriş yapmadan da kullanabilirsin; bu durumda hesap verisi oluşmaz.",
+                ])
+                LegalSection(title: "Reklamlar", paragraphs: [
+                    "Pro kullanmayanlara Google AdMob reklamları gösterilir. Uygulama, reklam kimliğini (IDFA) kullanmak için iOS'un izin penceresiyle onayını ister; izin vermezsen kişiselleştirilmemiş reklam gösterilir.",
+                ])
+                LegalSection(title: "Cihazda saklananlar", paragraphs: [
+                    "Tema, yazı boyutu, son çalınanlar ve ton tercihlerin cihazında saklanır.",
+                ])
+                LegalSection(title: "Paylaşım ve saklama", paragraphs: [
+                    "Hizmet sağlayıcılarımız Google (Firebase, AdMob) ve Apple'dır; veriler yalnızca hizmetin sunulması için aktarılır, satılmaz. Hesabını sildiğinde verilerin silinir.",
+                ])
+                LegalSection(title: "Hakların", paragraphs: [
+                    "Verilerine erişme, düzeltme, silme ve itiraz hakların var. Taleplerin için iletisim@gituar.com adresine yaz; en geç 30 gün içinde yanıt veririz. Gituar 13 yaşın altındaki çocuklara yönelik değildir.",
+                ])
             }
             .padding()
         }
         .scrollEdgeEffectStyle(.soft)
-        .navigationTitle("Gizlilik Politikası")
+        .navigationTitle("Gizlilik ve Çerez Politikası")
         .navigationBarTitleDisplayMode(.inline)
     }
 }

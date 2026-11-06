@@ -1,0 +1,43 @@
+---
+import Base from "../../layouts/Base.astro";
+import ChordDiagram from "../../components/ChordDiagram.astro";
+import { chordPages } from "../../lib/chord-stats.ts";
+import { chordShapes, SHARPS, pitchClass, isOpenChord } from "../../lib/chord-theory.ts";
+import { siteUrl, breadcrumbJsonLd } from "../../lib/seo.ts";
+
+const pages = chordPages();
+const groups = SHARPS.map((note, pc) => ({
+  note,
+  chords: pages.filter((c) => pitchClass(c.root) === pc).sort((a, b) => b.songIds.length - a.songIds.length),
+})).filter((g) => g.chords.length);
+const basics = pages.filter((c) => isOpenChord(c.root, c.quality)).slice(0, 12);
+const base = siteUrl(Astro.site);
+const description = `Gitar akorları sözlüğü: akorların diyagramı, nasıl basıldığı ve o akorla çalınan şarkılar. Am, G, C, Em, F, Bm ve daha fazlası.`;
+const jsonLd = [
+  { "@type": "CollectionPage", name: "Gitar akorları sözlüğü", url: `${base}/akorlar/`, description, inLanguage: "tr", isPartOf: { "@id": `${base}/#website` } },
+  breadcrumbJsonLd(base, [{ name: "Ana sayfa", path: "/" }, { name: "Akorlar" }]),
+];
+---
+<Base title="Gitar Akorları Tablosu – Akor Nasıl Basılır?" description={description} jsonLd={jsonLd}>
+  <div class="page-head">
+    <nav class="crumbs" aria-label="Sayfa yolu"><a href="/">Ana sayfa</a><span>/</span>Akorlar</nav>
+    <h1>Gitar akorları tablosu</h1>
+    <p class="answer">Gitarda en çok kullanılan akorlar Am, G, C, Em, Dm ve F'dir; Türkçe şarkıların üçte birinden fazlasında geçerler. Aşağıda her akorun diyagramı, nasıl basıldığı ve o akorla çalınan şarkılar var. Yeni başlıyorsan önce açık akorları öğren, sonra <a href="/kolay-gitar-akorlari/">kolay şarkılarla</a> pratik yap.</p>
+  </div>
+
+  <section class="section" style="margin-top:24px">
+    <div class="section-head"><h2>Temel açık akorlar</h2><a href="/kolay-gitar-akorlari/">Bu akorlarla çalınan şarkılar ›</a></div>
+    <div class="chord-grid card">
+      {basics.map((c) => <ChordDiagram shape={chordShapes(c.root, c.quality)[0]} label={c.name} href={`/akorlar/${c.slug}/`} />)}
+    </div>
+  </section>
+
+  {groups.map((g) => (
+    <section class="section">
+      <div class="section-head"><h2>{g.note} akorları</h2></div>
+      <div class="chord-grid card">
+        {g.chords.map((c) => <ChordDiagram shape={chordShapes(c.root, c.quality)[0]} label={c.name} href={`/akorlar/${c.slug}/`} />)}
+      </div>
+    </section>
+  ))}
+</Base>

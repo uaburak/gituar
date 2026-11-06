@@ -1,0 +1,36 @@
+---
+// Barre içeren ama kapo takınca açık akorlara inen şarkılar: "Kapo 2 · Em G D C".
+import Base from "../../layouts/Base.astro";
+import SongList from "../../components/SongList.astro";
+import AdSlot from "../../components/AdSlot.astro";
+import { capoEasySongs, songChords } from "../../lib/chord-stats.ts";
+import { siteUrl, breadcrumbJsonLd } from "../../lib/seo.ts";
+
+const songs = capoEasySongs();
+const notes = Object.fromEntries(songs.map((s) => { const c = songChords(s).capo!; return [s.id, `Kapo ${c.fret} · ${c.shapes.join(" ")}`]; }));
+const groups = [1, 2, 3, 4, 5, 6, 7].map((f) => ({ f, songs: songs.filter((s) => songChords(s).capo!.fret === f).sort((a, b) => b.seq - a.seq) })).filter((g) => g.songs.length);
+const PER = 40;
+const base = siteUrl(Astro.site);
+const description = `Barre akorlu şarkıları kapo ile açık akorlarla çal. Hangi perdeye kapo takacağın ve tutacağın kolay akorlar her şarkıda yazıyor.`;
+const jsonLd = [
+  { "@type": "CollectionPage", name: "Kapo ile kolay çalınan şarkılar", url: `${base}/kapo-ile-kolay-sarkilar/`, description, inLanguage: "tr" },
+  breadcrumbJsonLd(base, [{ name: "Ana sayfa", path: "/" }, { name: "Kolay gitar akorları", path: "/kolay-gitar-akorlari/" }, { name: "Kapo ile kolay şarkılar" }]),
+];
+---
+<Base title="Kapo ile Kolay Şarkılar – Barre Olmadan Çal" description={description} jsonLd={jsonLd}>
+  <div class="page-head">
+    <nav class="crumbs" aria-label="Sayfa yolu"><a href="/">Ana sayfa</a><span>/</span><a href="/kolay-gitar-akorlari/">Kolay gitar akorları</a><span>/</span>Kapo ile kolay</nav>
+    <h1>Kapo ile kolay çalınan şarkılar</h1>
+    <p class="answer">Bu şarkılar orijinal tonda barre akor içeriyor ama kapo takınca yalnızca açık akorlarla çalınıyor. Her satırda kapoyu takacağın perde ve tutacağın akorlar yazıyor; ses orijinaliyle aynı kalır. Kapo nasıl kullanılır, <a href="/rehber/kapo/">kapo rehberinde</a> anlatıyoruz.</p>
+  </div>
+  <div class="chord-chips">
+    {groups.map((g) => <a class="btn chip" href={`#kapo-${g.f}`}>Kapo {g.f}</a>)}
+  </div>
+  <AdSlot size="inline" unit="capo-top" />
+  {groups.map((g) => (
+    <section class="section" id={`kapo-${g.f}`}>
+      <div class="section-head"><h2>Kapo {g.f}. perdede kolaylaşan şarkılar</h2></div>
+      <SongList songs={g.songs.slice(0, PER)} notes={notes} />
+    </section>
+  ))}
+</Base>

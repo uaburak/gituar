@@ -46,10 +46,25 @@ export function looksTurkish(text: string): boolean {
 
 // ---------- Şarkı sayfası ----------
 
+/** Başlık ve son ekin sığıp sığmadığı: `bare` true ise Base " · Gituar" eklemez. */
+export function songTitleParts(song: CatalogSong): { title: string; bare: boolean } {
+  const name = song.songName.replace(/\s*\((?:ft\.?|feat\.?)[^)]*\)\s*/i, " ").trim();
+  const artist = song.artist.split(/\s*(?:&|\bft\.?\s|\bfeat\.?\s)\s*/i)[0].trim() || song.artist;
+  const full = `${song.songName} Akorları – ${song.artist}`;
+  const short = `${name} Akorları – ${artist}`;
+  const key = song.originalKey;
+  const withSuffix = [
+    ...(key ? [`${full} | Gitar Akoru, Ton ${key}`, `${full} | Ton ${key}`] : []),
+    full,
+    ...(short !== full ? [short] : []),
+  ];
+  for (const c of withSuffix) if (c.length + TITLE_SUFFIX.length <= TITLE_MAX) return { title: c, bare: false };
+  for (const c of [full, short, `${name} Akorları`]) if (c.length <= TITLE_MAX) return { title: c, bare: true };
+  return { title: `${name} Akorları`, bare: true };
+}
+
 export function songTitle(song: CatalogSong): string {
-  const base = `${song.songName} Akorları – ${song.artist}`;
-  if (!song.originalKey) return base;
-  return fitTitle([`${base} | Gitar Akoru, Ton ${song.originalKey}`, `${base} | Ton ${song.originalKey}`, base]);
+  return songTitleParts(song).title;
 }
 
 export function songDescription(song: CatalogSong, chords: string[]): string {
@@ -124,12 +139,12 @@ export function songJsonLd(song: CatalogSong, base: string) {
 
 export function artistTitle(artist: ArtistGroup): string {
   const n = artist.songs.length;
-  return fitTitle([`${artist.name} Akorları – ${n} Şarkı`, `${artist.name} Akorları`]);
+  return fitTitle([`${artist.name} Akorları – Gitar Akorları ve Tonları`, `${artist.name} Akorları`]);
 }
 
 export function artistDescription(artist: ArtistGroup): string {
   const n = artist.songs.length;
-  const lead = `${artist.name} gitar akorları: ${n} şarkı, orijinal ton bilgisiyle.`;
+  const lead = `${artist.name} gitar akorları, orijinal ton bilgisiyle.`;
   const tail = "Transpoze ve kapo ile çal.";
   const names = artist.songs.slice(0, 4).map((s) => s.songName);
   const list = [...names];
@@ -195,8 +210,13 @@ export function homeJsonLd(base: string) {
         "@id": org,
         name: SITE_NAME,
         url: `${base}/`,
-        logo: `${base}/favicon.svg`,
+        logo: { "@type": "ImageObject", url: `${base}/apple-touch-icon.png`, width: 180, height: 180 },
+        image: `${base}/og.png`,
         email: "iletisim@gituar.com",
+        description: "Türkçe şarkıların gitar akorları: transpoze, kapo, otomatik kaydırma ve repertuarlar. Web ve iPhone.",
+        knowsLanguage: "tr",
+        areaServed: { "@type": "Country", name: "Türkiye" },
+        sameAs: [APP_STORE_URL],
       },
       {
         "@type": "SoftwareApplication",
@@ -225,7 +245,7 @@ export function artistsIndexJsonLd(base: string, artistCount: number) {
         url: `${base}/sanatcilar/`,
         inLanguage: "tr",
         isPartOf: { "@id": `${base}/#website` },
-        description: `${artistCount} sanatçının gitar akorları, alfabetik dizin.`,
+        description: "Sanatçıların gitar akorları, alfabetik dizin.",
       },
       breadcrumbJsonLd(base, [{ name: "Ana sayfa", path: "/" }, { name: "Sanatçılar" }]),
     ],
@@ -234,5 +254,13 @@ export function artistsIndexJsonLd(base: string, artistCount: number) {
 
 /** `</script>` kaçışı: JSON içindeki `<` HTML'e sızmasın. */
 export function jsonLdText(data: unknown): string {
+  // Dizi verilirse her öğenin ayrı @context'e ihtiyacı olur; tek @graph altında topla.
+  if (Array.isArray(data)) {
+    const graph = data.flatMap((d) => {
+      const { "@context": _c, "@graph": g, ...rest } = (d ?? {}) as Record<string, unknown>;
+      return Array.isArray(g) ? g : [rest];
+    });
+    data = { "@context": "https://schema.org", "@graph": graph };
+  }
   return JSON.stringify(data).replace(/</g, "\\u003c");
 }

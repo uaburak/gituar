@@ -1,15 +1,15 @@
 ---
 import type { CatalogSong } from "@shared/types";
 import { songPath } from "@shared/catalog";
-interface Props { song: CatalogSong; showArtist?: boolean; index?: number }
-const { song, showArtist = true, index } = Astro.props;
+interface Props { song: CatalogSong; showArtist?: boolean; index?: number; note?: string }
+const { song, showArtist = true, index, note } = Astro.props;
 // Bağlantı metni "{Şarkı} akorları [Sanatçı] [Ton]" olur; `.row-title` yalnızca şarkı adını taşır (song-filter.ts onu okur).
 ---
 <a class="row" href={songPath(song)}>
   {index !== undefined && <span class="row-num" aria-hidden="true">{String(index).padStart(2, "0")}</span>}
   <span class="row-body">
     <span class="row-line"><span class="row-title">{song.songName}</span><span class="row-kw">akorları</span></span>
-    {showArtist && <span class="row-sub">{song.artist}</span>}
+    {(showArtist || note) && <span class="row-sub">{[showArtist ? song.artist : "", note ?? ""].filter(Boolean).join(" · ")}</span>}
   </span>
   {song.originalKey && <span class="row-key">{song.originalKey}</span>}
 </a>

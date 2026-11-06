@@ -8,6 +8,7 @@ const songSection = document.getElementById("song-results")!;
 const artistSection = document.getElementById("artist-results")!;
 const status = document.getElementById("search-status")!;
 const moreBtn = document.getElementById("show-more") as HTMLButtonElement;
+const popular = document.getElementById("popular");
 const PAGE = 20;
 let seq = 0;
 let hits: Awaited<ReturnType<typeof search>> = [];
@@ -29,6 +30,8 @@ async function run() {
   const url = new URL(location.href);
   if (q) url.searchParams.set("q", q); else url.searchParams.delete("q");
   history.replaceState(null, "", url);
+  if (popular) popular.hidden = q.length >= 2;
+  if (!q) { songSection.hidden = true; artistSection.hidden = true; status.textContent = 'Şarkı adı, sanatçı ya da ikisi birden: "sezen gülümse" gibi.'; return; }
   if (q.length < 2) { songSection.hidden = true; artistSection.hidden = true; status.textContent = "En az iki harf yaz…"; return; }
   status.textContent = "Aranıyor…";
   const [songs, artists] = await Promise.all([search(q, 500), searchArtists(q, 5)]);

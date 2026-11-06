@@ -36,7 +36,7 @@ yapay zekâ tarayıcıları engellenmemiş, içerik sunucuda üretiliyor.
 | 12 | Site haritasındaki tüm `lastmod` tarihleri aynı | (4) | yapıldı: sahte tarih kaldırıldı |
 | 13 | `/editorun-secimleri/` içeriği tarayıcıda yükleniyor, sunucu HTML'i boş | (1) | yapıldı: build sırasında üretiliyor |
 | 14 | Güvenlik başlıkları eksik (Referrer-Policy, X-Frame-Options) | (2) | yapıldı |
-| 15 | Ana sayfa H1'i gizli, içerik ince | (2) | yapıldı |
+| 15 | Ana sayfa H1'i gizli, içerik ince | (2) | bilinçli olarak yapılmadı: karşılama bölümü kullanıcı isteğiyle kaldırıldı; alttaki "hakkında" metni duruyor |
 | 16 | `www.gituar.com` yönlendirmiyor | (3) | Vercel → Domains ayarı, kullanıcıda |
 | 17 | Aynı şarkının `-2` kopyaları, bölünmüş sanatçılar (`coldplay` / `cold-play`) | (2) | katalog temizliği gerekiyor |
 | 18 | Düet sanatçıları ayrı sayfa (`… & …`, `ft.`) | (2) | kısmen: ana sanatçı sayfasında "birlikte söyledikleri" |
@@ -53,13 +53,20 @@ akorlarla çalınıyor, 2.100'den fazlası kapo ile açık akorlara iniyor. 1.74
 | `/akorlar/` ve `/akorlar/{akor}/`: diyagram, nasıl basılır, bu akorla çalınan şarkılar | "am akoru", "f akoru nasıl basılır" | (4) | yapıldı |
 | Şarkı sayfasında akor diyagramları, zorluk etiketi, "Kapo X ile kolay" | "{şarkı} akor" | (3) | yapıldı |
 | `/kolay-gitar-akorlari/` ve 2/3/4 akorlu alt sayfalar | "kolay gitar akorları" | (4) | yapıldı |
-| `/barresiz-sarkilar/` | "barresiz şarkılar" | (2) | yapıldı |
+| Barresiz şarkılar | "barresiz şarkılar" | (2) | `/kolay-gitar-akorlari/` ile aynı küme; ayrı sayfa kopya olurdu, başlığa eklendi |
 | `/kapo-ile-kolay-sarkilar/` | "kapo ile kolay şarkılar" | (2) | yapıldı |
 | Sanatçı sayfasında özet: en çok kullanılan ton ve akorlar, en kolay şarkılar | "{sanatçı} akorları" | (3) | yapıldı |
 | `/yeni-eklenenler/` | tazelik | (1) | yapıldı |
 | `/rehber/en-cok-kullanilan-akorlar/`: katalog istatistikleri | alıntılanabilir veri | (1) | yapıldı |
 | Akor dizisi sayfaları (`am-g-f-e`), en az 20 şarkılı olanlar | "… akorlarıyla çalınan şarkılar" | (2) | sırada |
 | Tür / dönem sayfaları | — | (2) | katalogda tür alanı yok |
+
+## Ürün kuralları (6 Kasım 2026)
+
+- Toplam şarkı ve sanatçı sayısı sitede ve uygulamada hiçbir yerde gösterilmez; akorları kullanıcılar ekler.
+  Liste sayfalarının başlık ve açıklamalarında da toplam yazılmaz. Sanatçı ve repertuar başına sayı kalabilir.
+- `⌘K` ve `/` arama sayfasına (`/ara/`) gider. Arama sayfası boşken popüler şarkı ve sanatçıları listeler;
+  popülerlik iOS'taki "En Çok Eklenenler" ile aynı: şarkının kaç herkese açık repertuarda geçtiği (build zamanı).
 
 ## Kullanıcının yapacakları
 

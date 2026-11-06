@@ -7,7 +7,7 @@ const { artist } = Astro.props;
 ---
 <a class="row" href={artistPath(artist.slug)}>
   <span class="row-body">
-    <span class="row-line"><span class="row-title">{artist.name}</span><span class="row-kw">akorları</span></span>
+    <span class="row-title">{artist.name}</span>
     <span class="row-sub">{artist.songs.length} şarkı</span>
   </span>
   <Icon name="chevron" class="chevron" />

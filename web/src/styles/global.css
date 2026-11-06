@@ -219,10 +219,6 @@ html.is-admin .header-menu .admin-only { display: flex !important; }
 .row-body { min-width: 0; flex: 1; }
 .row-title { display: block; font-weight: 600; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .row-sub { display: block; font-size: 13px; color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-/* Bağlantı metnine "akorları" anahtar kelimesini sessizce ekler; .row-title ad olarak kalır (filtre scriptleri onu okur). */
-.row-line { display: flex; align-items: baseline; gap: 5px; min-width: 0; }
-.row-line .row-title { min-width: 0; }
-.row-kw { flex: none; font-size: 13px; font-weight: 400; color: var(--text-3); }
 .row-num { font-family: var(--mono); font-size: 12px; color: var(--text-3); width: 20px; flex: none; }
 .row-key { font-family: var(--mono); font-size: 11px; font-weight: 600; color: var(--accent-text); background: var(--accent-soft); padding: 3px 8px; border-radius: 6px; flex: none; }
 .row-level { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 500; flex: none; }

@@ -404,6 +404,9 @@ a.card:hover, .editor-hero:hover { text-decoration: none; transform: scale(1.02)
 /* Yazdır: "Sayfayı oynat" görünürken yalnızca ikon; oynat gizliyse (akorlar ekrana sığıyor) yazıyla */
 .btn-print-label { display: none; }
 #btn-play[hidden] ~ #btn-print { width: auto; padding: 0 16px; }
+/* Eylem düğmeleri sağ panel genişliğini doldurur: oynat varsa o uzar, yoksa Repertuara ekle ve Yazdır eşit paylaşır */
+.song-actions #btn-play { flex: 1; }
+#btn-play[hidden] ~ #btn-rep, #btn-play[hidden] ~ #btn-print { flex: 1 1 0; padding: 0 12px; }
 #btn-play[hidden] ~ #btn-print .btn-print-label { display: inline; }
 .song-actions .btn { height: 40px; font-size: 14px; font-weight: 600; }
 .song-actions .btn-primary { padding: 0 20px; }

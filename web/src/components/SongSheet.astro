@@ -13,7 +13,7 @@ const keySuffix = (song.originalKey ?? "").trim().slice(originalRoot.length);
   <div class="tools" role="toolbar" aria-label="Akor araçları">
     <div class="ctl" aria-label="Ton">
       <button type="button" class="ctl-btn" id="key-dec" aria-label="Tonu yarım ses indir"><Icon name="minus" class="icon-sm" /></button>
-      <label class="key-pick">
+      <label class="key-pick is-original" id="key-pick" title="Orijinal ton">
         <select id="key-select" aria-label="Ton seç">
           {selectableKeys.map((k) => <option value={k} selected={k === originalRoot}>{k + keySuffix}</option>)}
         </select>
@@ -21,7 +21,6 @@ const keySuffix = (song.originalKey ?? "").trim().slice(originalRoot.length);
         <Icon name="down" class="icon-sm" />
       </label>
       <button type="button" class="ctl-btn" id="key-inc" aria-label="Tonu yarım ses yükselt"><Icon name="plus" class="icon-sm" /></button>
-      <span class="ctl-note" id="key-note">Orijinal</span>
     </div>
     <span class="tool-sep" aria-hidden="true"></span>
     <div class="ctl" aria-label="Kapo">

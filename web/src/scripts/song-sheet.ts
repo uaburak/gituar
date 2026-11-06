@@ -75,7 +75,9 @@ function init(root: HTMLElement) {
     }
     keySelect.value = selected;
     $("key-label").textContent = selected + keySuffix;
-    $("key-note").hidden = selected !== originalRoot;
+    const isOriginal = selected === originalRoot;
+    $("key-pick").classList.toggle("is-original", isOriginal);
+    $("key-pick").title = isOriginal ? "Orijinal ton" : `Orijinal ton ${originalRoot + keySuffix}`;
     $("capo-val").textContent = String(capo);
     $("font-val").textContent = String(fontSize);
     sheet.style.setProperty("--sheet-font", `${fontSize}px`);

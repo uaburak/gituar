@@ -17,23 +17,9 @@ const title = `Gitar Akorları – ${songCount} Türkçe Şarkı Akoru`;
 const description = `Gitar akorları: ${songCount} Türkçe şarkı akoru, ${artistCount} sanatçı. Akor transpoze, kapo ve otomatik kaydırma ile çal, repertuar oluştur. iOS uygulamasıyla aynı katalog.`;
 ---
 <Base title={title} description={description} jsonLd={homeJsonLd(siteUrl(Astro.site))}>
-  <section class="hero">
-    <p class="eyebrow">{songCount} akor · {artistCount} sanatçı</p>
-    <h1>Türkçe gitar akorları</h1>
-    <p>Şarkıyı bul, tonu değiştir, kapo tak, sayfayı oynat. Akorlar sözlerin üstünde, orijinal tonuyla.</p>
-    <form class="search-big" action="/ara/" method="get" role="search">
-      <Icon name="search" />
-      <input type="search" name="q" placeholder="Şarkı ya da sanatçı ara" autocomplete="off" aria-label="Ara" autofocus />
-      <button class="btn btn-primary" type="submit">Ara</button>
-    </form>
-    <div class="chip-row">
-      <a class="btn chip" href="/sanatcilar/">Sanatçı akorları</a>
-      <a class="btn chip" href="#yeni">Yeni eklenen akorlar</a>
-      <button class="btn chip" id="btn-random" type="button">Rastgele akor</button>
-    </div>
-  </section>
+  <h1 class="visually-hidden">Türkçe gitar akorları</h1>
 
-  <section class="section home-tiles">
+  <section class="home-tiles">
     <a class="card editor-hero" href="/editorun-secimleri/" id="editor">
       <span class="editor-hero-body">
         <Icon name="star" class="icon editor-star" />
@@ -52,6 +38,19 @@ const description = `Gitar akorları: ${songCount} Türkçe şarkı akoru, ${art
         <span class="tile-title">Repertuarlarım</span>
         <span class="tile-sub">Listeler</span>
       </a>
+    </div>
+  </section>
+
+  <section class="home-search">
+    <form class="search-big" action="/ara/" method="get" role="search">
+      <Icon name="search" />
+      <input type="search" name="q" placeholder="Şarkı ya da sanatçı ara" autocomplete="off" aria-label="Şarkı ya da sanatçı ara" />
+      <button class="btn btn-primary" type="submit">Ara</button>
+    </form>
+    <div class="chip-row">
+      <a class="btn chip" href="/sanatcilar/">Sanatçı akorları</a>
+      <a class="btn chip" href="#yeni">Yeni eklenen akorlar</a>
+      <button class="btn chip" id="btn-random" type="button">Rastgele akor</button>
     </div>
   </section>
 

@@ -214,8 +214,30 @@ kbd.key {
 .two-col { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 48px; row-gap: 40px; }
 .two-col h2 { font-size: 22px; }
 .pick-grid { row-gap: 16px; }
-.pick { display: flex; align-items: center; gap: 14px; padding: 16px 18px; color: var(--text); transition: transform .2s ease, box-shadow .2s ease; }
-.pick:hover { text-decoration: none; transform: translateY(-2px); box-shadow: 0 14px 28px -18px rgba(0,0,0,.3); }
+.pick { display: flex; align-items: center; gap: 14px; padding: 18px 20px; color: var(--text); }
+/* Kart etkileşimi: gölge yok, hafif büyüme */
+a.card, .card.tile, .editor-hero { transition: transform .25s ease; will-change: transform; }
+a.card:hover, .editor-hero:hover { text-decoration: none; transform: scale(1.02); }
+/* Ana sayfa: resimli editör kartı + iki kutu (iOS ana sayfası gibi) */
+.home-tiles { margin-top: 40px; display: grid; gap: 16px; }
+.editor-hero {
+  display: block; position: relative; min-height: 240px; border-radius: 24px; overflow: hidden; color: #fff;
+  background: #1d1d1f url("/img/editor-choice.jpg") right center / cover no-repeat;
+}
+.editor-hero::before { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, rgba(20,20,22,.96) 0%, rgba(20,20,22,.9) 38%, rgba(20,20,22,.35) 62%, rgba(20,20,22,0) 85%); }
+.editor-hero-body { position: relative; display: grid; gap: 4px; padding: 28px 32px; height: 100%; min-height: 240px; align-content: end; }
+.editor-star { width: 30px; height: 30px; color: #ffd60a; margin-bottom: 14px; }
+.editor-hero-title { font-size: 26px; font-weight: 700; letter-spacing: -0.02em; }
+.editor-hero-sub { font-size: 15px; opacity: .8; }
+.editor-hero-static { min-height: 200px; }
+.editor-hero-static::before { background: linear-gradient(90deg, rgba(20,20,22,.6), rgba(20,20,22,0)); }
+.tile-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.tile { display: grid; gap: 2px; align-content: end; min-height: 150px; padding: 24px 24px 22px; color: var(--text); }
+.tile-icon { width: 34px; height: 34px; margin-bottom: 18px; }
+.tile-icon-people { color: #5e5ce6; }
+.tile-icon-mic { color: #ff9f0a; }
+.tile-title { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; }
+.tile-sub { font-size: 15px; color: var(--text-2); }
 .pick-tile { width: 44px; height: 44px; flex: none; border-radius: 12px; display: grid; place-items: center; font-size: 18px; font-weight: 700; color: #fff; background: linear-gradient(135deg, #0a84ff, #5ac8fa); }
 .pick-body { min-width: 0; flex: 1; display: grid; gap: 2px; }
 .pick-title { font-weight: 600; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -418,6 +440,12 @@ html.plus body { padding-bottom: 0; }
   .sheet { padding: 20px 16px; }
   .list, .grid-2, .artist-cols { padding: 2px 14px; }
   .two-col { grid-template-columns: minmax(0, 1fr); }
+  .editor-hero, .editor-hero-body { min-height: 190px; }
+  .editor-hero-body { padding: 20px 22px; }
+  .editor-hero-title { font-size: 22px; }
+  .tile { min-height: 120px; padding: 18px; }
+  .tile-title { font-size: 18px; }
+  a.card:hover, .editor-hero:hover { transform: none; }
   .promo-card { flex-direction: column; align-items: flex-start; padding: 28px 24px; border-radius: 18px; }
   .promo-card h2 { font-size: 28px; }
   .section { margin-top: 56px; }

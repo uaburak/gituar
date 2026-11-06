@@ -1,0 +1,14 @@
+---
+import Base from "../../layouts/Base.astro";
+---
+<Base title="Editörün Seçimleri – Gituar ekibinin repertuarları" description="Gituar ekibinin hazırladığı özel repertuarlar: başlangıç için, hareketli şarkılar, slow, rock, türküler ve daha fazlası. Her liste akorlarıyla.">
+  <div class="page-head">
+    <div class="crumbs"><a href="/">Ana sayfa</a><span>/</span>Editörün Seçimleri</div>
+    <h1>Editörün Seçimleri</h1>
+    <p id="editor-meta">Gituar ekibinin hazırladığı repertuarlar</p>
+  </div>
+  <div class="editor-hero editor-hero-static" aria-hidden="true"></div>
+  <div class="grid-3 pick-grid" id="editor-picks" style="margin-top:24px"></div>
+  <p class="muted small" id="editor-status" style="margin-top:16px">Yükleniyor…</p>
+  <script src="../../scripts/editor-picks.ts"></script>
+</Base>

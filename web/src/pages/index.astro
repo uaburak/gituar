@@ -33,9 +33,26 @@ const description = `Gitar akorları: ${songCount} Türkçe şarkı akoru, ${art
     </div>
   </section>
 
-  <section class="section" id="editor" hidden>
-    <div class="section-head"><div><h2>Editörün seçimleri</h2><p class="section-sub">Gituar ekibinin hazırladığı repertuarlar</p></div></div>
-    <div class="grid-3 pick-grid" id="editor-picks"></div>
+  <section class="section home-tiles">
+    <a class="card editor-hero" href="/editorun-secimleri/" id="editor">
+      <span class="editor-hero-body">
+        <Icon name="star" class="icon editor-star" />
+        <span class="editor-hero-title">Editörün Seçimleri</span>
+        <span class="editor-hero-sub" id="editor-count">Gituar ekibinin özel listeleri</span>
+      </span>
+    </a>
+    <div class="tile-grid">
+      <a class="card tile" href="/sanatcilar/">
+        <Icon name="people" class="icon tile-icon tile-icon-people" />
+        <span class="tile-title">Sanatçılar</span>
+        <span class="tile-sub">{artistCount} sanatçı, A'dan Z'ye</span>
+      </a>
+      <a class="card tile" href="/repertuarlarim/">
+        <Icon name="mic" class="icon tile-icon tile-icon-mic" />
+        <span class="tile-title">Repertuarlarım</span>
+        <span class="tile-sub">Listeler</span>
+      </a>
+    </div>
   </section>
 
   <section class="section" id="yeni">
@@ -93,5 +110,5 @@ const description = `Gitar akorları: ${songCount} Türkçe şarkı akoru, ${art
     </div>
   </section>
   <script src="../scripts/random.ts"></script>
-  <script src="../scripts/editor-picks.ts"></script>
+  <script src="../scripts/editor-count.ts"></script>
 </Base>

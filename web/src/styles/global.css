@@ -35,7 +35,7 @@
   --content: 960px;
   --side-ad: 160px;
   --gutter: 40px;
-  --header-h: 48px;
+  --header-h: 0px; /* üst bar artık kaymıyor; yapışkan ofsetler sıfır */
   color-scheme: light;
 }
 :root[data-theme="dark"] {
@@ -51,7 +51,7 @@
 /* ---------- Temel ---------- */
 *, *::before, *::after { box-sizing: border-box; }
 [hidden] { display: none !important; }
-html { -webkit-text-size-adjust: 100%; scroll-padding-top: calc(var(--header-h) + 8px); scroll-behavior: smooth; }
+html { -webkit-text-size-adjust: 100%; scroll-padding-top: 12px; scroll-behavior: smooth; }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
 body {
   margin: 0; font-family: var(--font); font-size: 15px; line-height: 1.47;
@@ -86,30 +86,26 @@ img, svg { display: block; }
   .shell:not(.shell-plain) { grid-template-columns: var(--side-ad) minmax(0, var(--content)) var(--side-ad); padding: 0 var(--gutter); }
   .shell:not(.shell-plain) .side-ad { display: block; }
 }
-.page { min-width: 0; padding: 40px 0 120px; }
+.page { min-width: 0; padding: 16px 0 120px; }
 
 /* ---------- Üst bar: tam genişlik, 48 px, cam (Apple nav) ---------- */
-.site-header {
-  position: sticky; top: 0; z-index: 50; height: var(--header-h);
-  background: var(--nav-bg); -webkit-backdrop-filter: saturate(180%) blur(20px); backdrop-filter: saturate(180%) blur(20px);
-  border-bottom: 1px solid var(--hairline);
-}
+/* Üst bar zeminle bir: arka plan yok, kaymaz (statik) */
+.site-header { position: relative; z-index: 50; height: 64px; background: transparent; }
 .nav-inner { position: relative; max-width: 1024px; height: 100%; margin: 0 auto; padding: 0 22px; display: flex; align-items: center; gap: 28px; }
-.brand { display: inline-flex; align-items: center; gap: 7px; font-size: 17px; font-weight: 600; letter-spacing: -0.02em; color: var(--text); }
+.brand { display: inline-flex; align-items: center; color: var(--text); }
 .brand:hover { text-decoration: none; }
-.brand-mark { width: 20px; height: 20px; }
+.brand-mark { width: 32px; height: 32px; border-radius: 8px; display: block; }
 .nav { display: flex; gap: 28px; }
 .nav a { font-size: 14px; font-weight: 400; color: var(--text); opacity: .8; letter-spacing: -0.01em; }
 .nav a:hover { opacity: 1; text-decoration: none; }
 .header-actions { margin-left: auto; display: flex; align-items: center; gap: 6px; }
 .search-mini {
-  width: 160px; height: 32px; display: flex; align-items: center; gap: 8px; padding: 0 6px 0 10px;
-  border-radius: 8px; background: var(--muted); color: var(--text-2); transition: width .2s ease;
+  width: 180px; height: 34px; display: flex; align-items: center; gap: 8px; padding: 0 6px 0 10px; border: 0; cursor: text;
+  border-radius: 9px; background: var(--surface); color: var(--text-2); font: inherit; text-align: left;
 }
-.search-mini:focus-within { width: 220px; }
+.search-mini:hover { background: var(--surface); filter: brightness(.98); }
 .search-mini .icon { width: 15px; height: 15px; color: var(--text-2); }
-.search-mini input { flex: 1; min-width: 0; border: 0; background: transparent; font: inherit; font-size: 13px; color: var(--text); outline: none; }
-.search-mini input::placeholder { color: var(--text-2); }
+.search-mini-label { flex: 1; font-size: 13px; color: var(--text-2); }
 kbd.key {
   font-family: var(--mono); font-size: 11px; line-height: 14px; padding: 2px 6px; border-radius: 5px;
   background: var(--surface); border: 1px solid var(--strong); color: var(--text-2);
@@ -129,13 +125,34 @@ kbd.key {
 .header-actions .btn-appstore .icon-sm { width: 13px; height: 13px; }
 .header-mobile { display: none; }
 .header-menu {
-  display: none; position: absolute; left: 0; right: 0; top: 100%; padding: 8px 16px 16px;
-  background: var(--page); border-bottom: 1px solid var(--hairline); box-shadow: 0 16px 32px -16px rgba(0,0,0,.2);
+  display: none; position: absolute; left: 12px; right: 12px; top: calc(100% - 6px); z-index: 60; padding: 6px 16px 10px;
+  background: var(--surface); border-radius: 16px; box-shadow: 0 16px 40px -16px rgba(0,0,0,.25);
 }
 .header-menu.open { display: grid; }
 .header-menu a, .header-menu button { display: flex; align-items: center; height: 44px; padding: 0 6px; border: 0; border-bottom: 1px solid var(--hairline); background: none; font-size: 17px; font-weight: 500; color: var(--text); text-align: left; cursor: pointer; }
 .header-menu a:last-child { border-bottom: 0; }
 .header-menu a:hover { text-decoration: none; color: var(--accent-text); }
+
+/* ---------- Arama paneli (⌘K) ---------- */
+.palette { border: 0; padding: 0; margin: 0; background: transparent; max-width: none; max-height: none; width: 100%; height: 100%; }
+.palette::backdrop { background: rgba(0,0,0,.35); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+.palette-box { width: min(92vw, 640px); margin: 12vh auto 0; background: var(--surface); border-radius: 20px; overflow: hidden; box-shadow: 0 30px 80px -20px rgba(0,0,0,.45); }
+.palette-input { display: flex; align-items: center; gap: 12px; height: 60px; padding: 0 16px 0 20px; border-bottom: 1px solid var(--hairline); }
+.palette-input .icon { color: var(--text-2); }
+.palette-input input { flex: 1; min-width: 0; border: 0; background: transparent; font: inherit; font-size: 18px; color: var(--text); outline: none; }
+.palette-input input::placeholder { color: var(--text-2); }
+.palette-close { border: 0; background: none; padding: 0; cursor: pointer; }
+.palette-results { max-height: min(60vh, 520px); overflow: auto; padding: 8px 8px 4px; }
+.palette-group { padding: 10px 12px 4px; font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-3); }
+.palette-list { background: transparent; padding: 0; border-radius: 0; }
+.palette-list .row { padding: 10px 12px; border-bottom: 0; border-radius: 12px; }
+.palette-list .row.active, .palette-list .row:hover { background: var(--muted); text-decoration: none; }
+.palette-list .row.active .row-title { color: var(--accent-text); }
+.palette-empty { padding: 28px 16px 24px; text-align: center; color: var(--text-2); font-size: 14px; }
+.palette-foot { display: flex; align-items: center; gap: 16px; padding: 10px 16px; border-top: 1px solid var(--hairline); font-size: 12px; color: var(--text-3); }
+.palette-foot kbd { margin-right: 4px; }
+.palette-foot a { margin-left: auto; font-weight: 500; }
+@media (max-width: 600px) { .palette-box { width: 100%; margin: 0; min-height: 100%; border-radius: 0; } .palette-results { max-height: none; } }
 
 /* ---------- Butonlar ---------- */
 .btn {
@@ -325,7 +342,7 @@ dialog::backdrop { background: rgba(0,0,0,.35); }
 
 /* ---------- Sanatçılar ---------- */
 /* Harf şeridi: header gibi yuvarlak bir kapsayıcı; header'ın altına yapışır, yapışınca beyaz zemin + gölge alır (.stuck, JS). */
-.artists-layout { --letters-h: 40px; --letters-top: calc(var(--header-h) - 4px); }
+.artists-layout { --letters-h: 40px; --letters-top: 8px; }
 .letters {
   position: sticky; top: var(--letters-top); z-index: 10; height: var(--letters-h); box-sizing: border-box;
   display: flex; align-items: center; gap: 2px; padding: 0 6px; margin: 0 0 8px;
@@ -437,6 +454,7 @@ html.plus body { padding-bottom: 0; }
   .tool-row #btn-play { margin-left: auto; }
   .header-mobile { display: flex; align-items: center; gap: 2px; }
   .nav-inner { padding: 0 12px 0 16px; gap: 12px; }
+  .site-header { height: 56px; }
   .hero { padding-top: 24px; }
   .hero p { font-size: 17px; margin-bottom: 24px; }
   .about { padding: 28px 20px; border-radius: 18px; }

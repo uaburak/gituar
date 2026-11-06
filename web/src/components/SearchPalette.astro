@@ -1,0 +1,14 @@
+---
+import Icon from "./Icon.astro";
+---
+<dialog class="palette" id="palette" aria-label="Arama">
+  <form class="palette-box" method="dialog">
+    <label class="palette-input">
+      <Icon name="search" />
+      <input type="search" id="palette-q" placeholder="Şarkı ya da sanatçı ara" autocomplete="off" spellcheck="false" aria-label="Şarkı ya da sanatçı ara" />
+      <button type="button" class="palette-close" id="palette-close" aria-label="Kapat"><kbd class="key">esc</kbd></button>
+    </label>
+    <div class="palette-results" id="palette-results" role="listbox" aria-label="Sonuçlar"></div>
+    <div class="palette-foot"><span><kbd class="key">↑</kbd><kbd class="key">↓</kbd> seç</span><span><kbd class="key">↵</kbd> aç</span><a href="/ara/" id="palette-all">Tüm sonuçlar ›</a></div>
+  </form>
+</dialog>

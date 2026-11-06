@@ -89,7 +89,7 @@ function init(root: HTMLElement) {
   let carry = 0;
   let wakeLock: { release(): Promise<void> } | null = null;
   const pxPerSecond = () => Number(speedInput.value) * 6;
-  const headerH = () => (document.querySelector<HTMLElement>(".site-header")?.offsetHeight ?? 88);
+  const headerH = () => { const h = document.querySelector<HTMLElement>(".site-header"); if (!h) return 0; const pos = getComputedStyle(h).position; return pos === "sticky" || pos === "fixed" ? h.offsetHeight : 0; };
   const bottomMargin = 24;
 
   function sheetFits(): boolean {

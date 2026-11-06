@@ -4,6 +4,7 @@ import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import Header from "../components/Header.astro";
 import Footer from "../components/Footer.astro";
+import SearchPalette from "../components/SearchPalette.astro";
 import AdSlot from "../components/AdSlot.astro";
 import { SITE_NAME, APP_STORE_ID, ADSENSE_CLIENT } from "../lib/site.ts";
 import { jsonLdText } from "../lib/seo.ts";
@@ -58,6 +59,7 @@ const ogImage = existsSync(fileURLToPath(new URL("../../public/og.png", import.m
     {ADSENSE_CLIENT && <meta name="google-adsense-account" content={ADSENSE_CLIENT} />}
     <meta name="theme-color" content="#f5f5f7" id="theme-color" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/site.webmanifest" />
     <link rel="sitemap" href="/sitemap-index.xml" />
     <meta property="og:site_name" content={SITE_NAME} />
@@ -84,14 +86,16 @@ const ogImage = existsSync(fileURLToPath(new URL("../../public/og.png", import.m
     <slot name="head" />
   </head>
   <body>
-    <Header q={q} />
+    <Header />
     <div class:list={["shell", { "shell-plain": !ads }]}>
       {ads && <aside class="side-ad" aria-label="Reklam sütunu"><AdSlot size="side" unit="side-left" /></aside>}
       <main class="page"><slot /></main>
       {ads && <aside class="side-ad" aria-label="Reklam sütunu"><AdSlot size="side" unit="side-right" /></aside>}
     </div>
     <Footer />
+    <SearchPalette />
     {ads && <AdSlot size="sticky" unit="mobile-sticky" />}
     <script src="../scripts/app.ts"></script>
+    <script src="../scripts/palette.ts"></script>
   </body>
 </html>

@@ -36,14 +36,7 @@ document.addEventListener("click", (e) => {
   menuBtn?.setAttribute("aria-expanded", "false");
 });
 
-// "/" tuşu aramaya odaklanır (Repertuarım alışkanlığı)
-document.addEventListener("keydown", (e) => {
-  if (e.key !== "/" || e.metaKey || e.ctrlKey || e.altKey) return;
-  const target = e.target as HTMLElement | null;
-  if (target && /^(INPUT|TEXTAREA)$/.test(target.tagName)) return;
-  const input = document.querySelector<HTMLInputElement>("#q, .search-big input, .search-mini input");
-  if (input) { e.preventDefault(); input.focus(); }
-});
+// "/" ve ⌘K arama panelini açar (palette.ts)
 
 // Giriş durumu → üst bar; Plus durumu → reklamlar
 let adsLoaded = false;

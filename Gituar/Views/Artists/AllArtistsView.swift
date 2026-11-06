@@ -67,30 +67,7 @@ struct AllArtistsView: View {
             List {
                 ForEach(Array(artistList.enumerated()), id: \.element) { index, artist in
                 NavigationLink(destination: ArtistDetailView(artist: artist)) {
-                    HStack(spacing: 14) {
-                        ZStack {
-                            RoundedRectangle(cornerRadius: 12)
-                                .fill(Color(.secondarySystemBackground))
-                                .frame(width: 48, height: 48)
-                            Text(artist.prefix(1).uppercased())
-                                .font(.system(size: 18, weight: .bold, design: .rounded))
-                                .foregroundColor(.primary)
-                        }
-
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text(artist)
-                                .font(.system(size: 15, weight: .semibold))
-                                .lineLimit(1)
-                            Text("\(songCount(for: artist)) Şarkı")
-                                .font(.system(size: 13))
-                                .foregroundColor(.secondary)
-                                .lineLimit(1)
-                        }
-
-                        // List, NavigationLink satırına kendi okunu ekler — ayrıca chevron çizme (çift ok oluyordu)
-                        Spacer()
-                    }
-                    .padding(.vertical, 4)
+                    ArtistRowCard(artist: artist, songCount: songCount(for: artist))
                 }
                 // Her 10 satırda bir yerel reklam (Plus'ta yok)
                 if AdPlacements.shouldShowNativeAd(afterRow: index, isAdFree: adMobManager.isAdFree) {

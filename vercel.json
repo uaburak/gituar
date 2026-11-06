@@ -113,5 +113,6 @@
       "destination": "/ton/b-bemol/",
       "permanent": true
     }
-  ]
+  ],
+  "ignoreCommand": "exit 0"
 }

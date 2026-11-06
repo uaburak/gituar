@@ -3,6 +3,10 @@ import { defineMiddleware } from "astro:middleware";
 import { loadCatalog } from "./lib/catalog.ts";
 
 export const onRequest = defineMiddleware(async (context, next) => {
+  // www.gituar.com → gituar.com (kalıcı)
+  if (context.url.hostname === "www.gituar.com") {
+    return Response.redirect(`https://gituar.com${context.url.pathname}${context.url.search}`, 301);
+  }
   const path = context.url.pathname;
   // Statik dosyalar ve önceden hazırlanmış sayfalar için gerekmez
   if (!/\.(js|css|png|jpg|jpeg|svg|ico|webp|woff2?|map)$/.test(path)) await loadCatalog();

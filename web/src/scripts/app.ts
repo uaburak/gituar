@@ -58,9 +58,9 @@ if (firebaseReady && hadSession) {
     if (user) refreshPlus(user.uid).then((plus) => { if (!plus) loadAds(); });
     else loadAds();
     // Yönetim bağlantısı yalnızca admin hesaplarda (users/{uid}.isAdmin)
-    const adminLinks = [document.getElementById("admin-link"), document.getElementById("admin-link-mobile")].filter(Boolean) as HTMLElement[];
-    if (user) isAdminUser(user.uid).then((admin) => { for (const el of adminLinks) el.hidden = !admin; });
-    else for (const el of adminLinks) el.hidden = true;
+    // Sayfa açılışında son bilinen durum (gituar-admin) <html class="is-admin"> olarak zaten konmuştur; burada yalnızca doğrulanır.
+    if (user) isAdminUser(user.uid).then((admin) => html.classList.toggle("is-admin", admin));
+    else html.classList.remove("is-admin");
   });
 } else {
   loadAds();

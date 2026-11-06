@@ -238,3 +238,53 @@ export async function signOutUser(): Promise<void> {
   try { localStorage.removeItem("gituar-auth"); } catch {}
   setPlus(false);
 }
+
+// ---------- Hesap silme (App Store 5.1.1(v) ile aynı kapsam) ----------
+
+export class ReauthRequired extends Error {
+  constructor(public method: "password" | "google") { super("reauth"); }
+}
+
+/** Oturum 5 dakikadan eskiyse Firebase silmeyi reddeder; veriler silinmeden önce kontrol edilir. */
+export async function needsReauth(user: User): Promise<"password" | "google" | null> {
+  const last = Date.parse(user.metadata.lastSignInTime ?? "");
+  if (Number.isFinite(last) && Date.now() - last < 4.5 * 60 * 1000) return null;
+  return user.providerData.some((p) => p.providerId === "password") ? "password" : "google";
+}
+
+export async function reauthenticate(user: User, password?: string): Promise<void> {
+  const f = await fb();
+  if (!f) throw new Error("Firebase hazır değil");
+  if (password !== undefined) {
+    const cred = f.authMod.EmailAuthProvider.credential(user.email ?? "", password);
+    await f.authMod.reauthenticateWithCredential(user, cred);
+  } else {
+    await f.authMod.reauthenticateWithPopup(user, new f.authMod.GoogleAuthProvider());
+  }
+}
+
+/**
+ * Hesabı ve verilerini siler: şarkılar + popülerlik puanları (Cloudflare API), repertuarlar, tercihler, favoriler,
+ * herkese açık repertuarlar ve profil (Firestore), son olarak giriş hesabı (Firebase Auth).
+ */
+export async function deleteAccount(user: User, apiUrl: string): Promise<void> {
+  const f = await fb();
+  if (!f) throw new Error("Firebase hazır değil");
+  const method = await needsReauth(user);
+  if (method) throw new ReauthRequired(method);
+  const fs = f.fsMod;
+  const token = await user.getIdToken();
+  const res = await fetch(`${apiUrl}/v1/me`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
+  if (!res.ok && res.status !== 404) throw new Error("Şarkıların silinemedi, lütfen tekrar dene.");
+  for (const sub of ["repertoires", "preferences", "favorites"]) {
+    const snap = await fs.getDocs(fs.collection(f.db, "users", user.uid, sub)).catch(() => null);
+    if (snap) for (const d of snap.docs) await fs.deleteDoc(d.ref).catch(() => {});
+  }
+  const pub = await fs.getDocs(fs.query(fs.collection(f.db, "public-repertoires"), fs.where("ownerId", "==", user.uid))).catch(() => null);
+  if (pub) for (const d of pub.docs) await fs.deleteDoc(d.ref).catch(() => {});
+  await fs.deleteDoc(fs.doc(f.db, "users", user.uid)).catch(() => {});
+  await f.authMod.deleteUser(user);
+  try {
+    for (const k of ["gituar-auth", "gituar-plus", "gituar-admin"]) localStorage.removeItem(k);
+  } catch {}
+}

@@ -4,6 +4,7 @@ Disallow: /admin/
 Disallow: /giris/
 Disallow: /repertuarlarim/
 Disallow: /repertuar/
+Disallow: /hesap/
 Disallow: /ara/
 
 Sitemap: https://gituar.com/sitemap-index.xml

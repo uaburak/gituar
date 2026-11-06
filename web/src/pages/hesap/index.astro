@@ -1,0 +1,37 @@
+---
+export const prerender = true;
+import Base from "../../layouts/Base.astro";
+---
+<Base title="Hesabım" noindex ads={false}>
+  <div class="page-head"><h1>Hesabım</h1></div>
+  <div style="max-width:520px">
+    <div id="acc-auth" class="alert" hidden>Hesabını görmek için <a href="/giris/?next=/hesap/">giriş yap</a>.</div>
+    <p class="muted small" id="acc-status">Yükleniyor…</p>
+
+    <section id="acc-main" hidden>
+      <div class="card card-pad">
+        <div class="acc-row"><span class="muted small">Ad</span><b id="acc-name"></b></div>
+        <div class="acc-row"><span class="muted small">E-posta</span><b id="acc-email"></b></div>
+        <div class="acc-row"><span class="muted small">Gituar Pro</span><b id="acc-pro">Yok</b></div>
+        <div class="acc-links">
+          <a class="btn" href="/repertuarlarim/">Repertuarlarım</a>
+          <a class="btn" href="/pro/">Gituar Pro</a>
+        </div>
+        <button class="btn btn-block" id="btn-signout" type="button" style="margin-top:12px">Çıkış yap</button>
+      </div>
+
+      <div class="card card-pad acc-danger">
+        <h2>Hesabı sil</h2>
+        <p class="muted small">Hesabın ve bütün verilerin kalıcı olarak silinir: eklediğin şarkılar, repertuarların, ton ve kapo tercihlerin, profilin. Bu işlem geri alınamaz. Gituar Pro aboneliğin varsa App Store'dan ayrıca iptal etmelisin.</p>
+        <div id="del-error" class="alert alert-error" hidden></div>
+        <div id="del-password" class="field" hidden>
+          <label for="del-pass">Güvenlik için şifreni tekrar gir</label>
+          <input class="input" id="del-pass" type="password" autocomplete="current-password" />
+        </div>
+        <label class="acc-confirm"><input type="checkbox" id="del-confirm" /> Hesabımın ve verilerimin kalıcı olarak silineceğini anladım.</label>
+        <button class="btn btn-block btn-delete" id="btn-delete" type="button" disabled>Hesabımı kalıcı olarak sil</button>
+      </div>
+    </section>
+  </div>
+  <script src="../../scripts/account.ts"></script>
+</Base>

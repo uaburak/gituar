@@ -48,7 +48,7 @@ if (firebaseReady && hadSession) {
   onUser((user) => {
     for (const btn of authBtns) {
       btn.textContent = user ? user.displayName?.split(" ")[0] || "Hesabım" : "Giriş yap";
-      btn.href = user ? "/repertuarlarim/" : "/giris/";
+      btn.href = user ? "/hesap/" : "/giris/";
     }
     if (user) refreshPlus(user.uid).then((plus) => { if (!plus) loadAds(); });
     else loadAds();
@@ -75,4 +75,13 @@ function loadAds() {
     });
   };
   document.head.appendChild(s);
+}
+
+// Hesap silindikten sonra ana sayfada bilgi
+if (new URLSearchParams(location.search).get("hesap") === "silindi") {
+  const note = document.createElement("div");
+  note.className = "alert";
+  note.textContent = "Hesabın ve bütün verilerin silindi.";
+  document.querySelector("main")?.prepend(note);
+  history.replaceState(null, "", location.pathname);
 }

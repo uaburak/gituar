@@ -560,3 +560,12 @@ a.chord-diagram:hover { background: var(--muted); text-decoration: none; }
 .stat-table th { color: var(--text-2); font-weight: 500; }
 .popular-grid { align-items: start; }
 @media (max-width: 600px) { .chord-facts { margin: 0; width: 100%; } .chord-grid { grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); } }
+
+/* ---------- Hesabım ---------- */
+.acc-row { display: flex; justify-content: space-between; gap: 16px; padding: 10px 0; border-bottom: 1px solid var(--hairline); }
+.acc-links { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+.acc-danger { margin-top: 20px; }
+.acc-danger h2 { font-size: 17px; margin: 0 0 6px; }
+.acc-confirm { display: flex; gap: 8px; align-items: flex-start; font-size: 14px; margin: 12px 0; }
+.btn-delete { background: #ff3b30; color: #fff; }
+.btn-delete[disabled] { opacity: .45; }

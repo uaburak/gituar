@@ -1,0 +1,19 @@
+{
+  "name": "gituar-api",
+  "private": true,
+  "type": "module",
+  "description": "Gituar şarkı API'si: Cloudflare Worker + D1. Giriş Firebase'de; yazma isteklerinde Firebase kimlik kartı doğrulanır.",
+  "scripts": {
+    "dev": "cf dev",
+    "deploy": "cf deploy",
+    "types": "cf workers types"
+  },
+  "dependencies": {
+    "jose": "^6.1.0"
+  },
+  "devDependencies": {
+    "cf": "^0.15.0",
+    "@cloudflare/vite-plugin": "beta",
+    "typescript": "^5.9.0"
+  }
+}

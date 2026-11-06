@@ -1,0 +1,47 @@
+---
+import Base from "../../layouts/Base.astro";
+import SongList from "../../components/SongList.astro";
+import AdSlot from "../../components/AdSlot.astro";
+import { catalog } from "../../lib/catalog.ts";
+import { keySlug, keyTurkish, diatonicChords, parseKey } from "../../lib/keys.ts";
+import { siteUrl, breadcrumbJsonLd, fitTitle } from "../../lib/seo.ts";
+import type { CatalogSong } from "@shared/types";
+
+export function getStaticPaths() {
+  const groups = new Map<string, CatalogSong[]>();
+  for (const s of catalog().songs) {
+    const key = (s.originalKey ?? "").trim();
+    if (!parseKey(key)) continue;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key)!.push(s);
+  }
+  return [...groups.entries()]
+    .filter(([, songs]) => songs.length >= 10)
+    .map(([key, songs]) => ({ params: { key: keySlug(key) }, props: { key, songs } }));
+}
+
+const { key, songs } = Astro.props as { key: string; songs: CatalogSong[] };
+const total = songs.length;
+const LIMIT = 300;
+const list = [...songs].sort((a, b) => b.seq - a.seq).slice(0, LIMIT);
+const chords = diatonicChords(key);
+const tr = keyTurkish(key);
+const title = fitTitle([`${key} Tonunda Şarkı Akorları – ${total} Şarkı`, `${key} Tonunda Şarkı Akorları`]);
+const description = `${key} (${tr}) tonundaki ${total} şarkının gitar akorları. Bu tonda sık kullanılan akorlar: ${chords.join(", ")}. Transpoze ve kapo ile istediğin tona taşı.`;
+const base = siteUrl(Astro.site);
+const jsonLd = [
+  { "@context": "https://schema.org", "@type": "CollectionPage", name: `${key} tonunda şarkı akorları`, url: `${base}/ton/${keySlug(key)}/`, description, inLanguage: "tr" },
+  breadcrumbJsonLd(base, [{ name: "Ana sayfa", path: "/" }, { name: "Tonlar", path: "/ton/" }, { name: `${key} tonu`, path: `/ton/${keySlug(key)}/` }]),
+];
+---
+<Base title={title} description={description} jsonLd={jsonLd}>
+  <div class="page-head">
+    <div class="crumbs"><a href="/">Ana sayfa</a><span>/</span><a href="/ton/">Tonlar</a><span>/</span>{key}</div>
+    <h1>{key} tonunda şarkı akorları <span class="h1-kw">· {tr}</span></h1>
+    <p>{total} şarkı. {key} tonunda sık kullanılan akorlar: <strong>{chords.join(", ")}</strong>. Şarkı sayfasında tonu değiştirip kapo ekleyebilirsin.</p>
+  </div>
+  <div class="chip-row" style="margin:0 0 24px">{chords.map((c) => <span class="btn chip mono">{c}</span>)}</div>
+  <SongList songs={list} adEvery={25} unit="ton" />
+  {total > LIMIT && <p class="muted small" style="margin-top:16px">En yeni {LIMIT} şarkı gösteriliyor; diğerleri için <a href={`/ara/?q=${encodeURIComponent(key)}`}>arama</a> ya da <a href="/sanatcilar/">sanatçı dizini</a>.</p>}
+  <AdSlot size="rect" unit="ton-bottom" />
+</Base>

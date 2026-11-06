@@ -1,0 +1,21 @@
+---
+import Base from "../../layouts/Base.astro";
+import { siteUrl, breadcrumbJsonLd } from "../../lib/seo.ts";
+const base = siteUrl(Astro.site);
+const guides = [
+  { path: "/rehber/akor-transpoze/", title: "Akor transpoze nasıl yapılır?", sub: "Yarım ses mantığı, örnekler, kapo ile transpoze" },
+  { path: "/rehber/kapo/", title: "Kapo nedir, nasıl kullanılır?", sub: "Kapo tablosu, hangi perdeye takılır, Gituar'ın kapo hesabı" },
+  { path: "/rehber/ukulele-akorlari/", title: "Ukulele akorları gitarla aynı mı?", sub: "Aynı akor adları, farklı tutuşlar; en kolay ukulele tonları" },
+];
+const description = "Gitar akorları rehberi: akor transpoze, kapo kullanımı, ukulele akorları ve Gituar'ın araçlarıyla şarkıları kendi tonunda çalma.";
+---
+<Base title="Gitar Akorları Rehberi – Transpoze, Kapo, Ukulele" description={description} jsonLd={[{ "@context": "https://schema.org", "@type": "CollectionPage", name: "Gitar akorları rehberi", url: `${base}/rehber/`, description, inLanguage: "tr" }, breadcrumbJsonLd(base, [{ name: "Ana sayfa", path: "/" }, { name: "Rehber", path: "/rehber/" }])]}>
+  <div class="page-head">
+    <div class="crumbs"><a href="/">Ana sayfa</a><span>/</span>Rehber</div>
+    <h1>Gitar akorları rehberi</h1>
+    <p>Kısa, pratik yazılar: tonu değiştirmek, kapo takmak, ukulele ile aynı akorları çalmak.</p>
+  </div>
+  <div class="list">
+    {guides.map((g) => <a class="row" href={g.path}><span class="row-body"><span class="row-title">{g.title}</span><span class="row-sub">{g.sub}</span></span><span class="pick-arrow" aria-hidden="true">›</span></a>)}
+  </div>
+</Base>

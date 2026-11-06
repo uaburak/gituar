@@ -1,0 +1,36 @@
+---
+import Base from "../../layouts/Base.astro";
+import { siteUrl, breadcrumbJsonLd } from "../../lib/seo.ts";
+const base = siteUrl(Astro.site);
+const title = "Ukulele Akorları: Gitar Akorlarıyla Aynı mı?";
+const description = "Ukulele akorları gitar akorlarıyla aynı adı taşır; değişen tutuşlardır. Gituar'daki şarkıları ukulele ile çalma, en kolay ukulele akorları ve transpoze ipuçları.";
+const h1 = "Ukulele akorları ve gitar akorları";
+const path = "/rehber/ukulele-akorlari/";
+const faq: [string, string][] = [["Ukulele akorları gitar akorlarıyla aynı mı?", "Akor adları aynıdır; tutuş şekilleri enstrümana göre değişir."], ["Gituar'da ukulele tutuşları var mı?", "Şimdilik akor adları ve transpoze var; tutuş diyagramları yol haritasında."], ["Hangi tonlar ukulele için kolaydır?", "C, G, F ve Am tonları en kolay tutuşları verir; transpoze ile şarkıyı bu tonlara taşı."]];
+const jsonLd = [
+  { "@context": "https://schema.org", "@type": "Article", headline: h1, description, url: `${base}${path}`, inLanguage: "tr", author: { "@type": "Organization", name: "Gituar" }, publisher: { "@type": "Organization", name: "Gituar" }, mainEntityOfPage: `${base}${path}` },
+  { "@context": "https://schema.org", "@type": "FAQPage", mainEntity: faq.map(([q, a]) => ({ "@type": "Question", name: q, acceptedAnswer: { "@type": "Answer", text: a } })) },
+  breadcrumbJsonLd(base, [{ name: "Ana sayfa", path: "/" }, { name: "Rehber", path: "/rehber/" }, { name: h1, path }]),
+];
+---
+<Base title={title} description={description} jsonLd={jsonLd}>
+  <article class="guide">
+    <div class="page-head">
+      <div class="crumbs"><a href="/">Ana sayfa</a><span>/</span><a href="/rehber/">Rehber</a><span>/</span>Ukulele akorları</div>
+      <h1>{h1}</h1>
+    </div>
+    <div class="guide-body">
+<p>İyi haber: bir şarkının akorları <strong>enstrümana göre değişmez</strong>. "Gülümse"nin akorları gitarda da ukulelede de <span class="mono">Gm – F – D# – Cm</span>'dir. Değişen tek şey, o akoru çalgının üzerinde nasıl tuttuğundur.</p>
+<h2>Gituar'daki akorları ukulele ile çalmak</h2>
+<p>Şarkı sayfasındaki akor adlarını olduğu gibi kullan; ukulele için tutuş şekillerini bildiğin bir akor tablosundan al. Ton şeridi ve kapo hesabı ukulele için de aynen çalışır; <a href="/rehber/akor-transpoze/">transpoze</a> ile şarkıyı ukulelede kolay akorlara (C, G, Am, F) taşıyabilirsin.</p>
+<h2>En kolay ukulele akorları</h2>
+<p>Yeni başlıyorsan <span class="mono">C, Am, F, G</span> dörtlüsü yüzlerce şarkıyı karşılar. <a href="/ton/c/">C tonundaki şarkılar</a> ve <a href="/ton/a-minor/">Am tonundaki şarkılar</a> bu akorlarla en rahat çalınanlardır.</p>
+<h2>Ukulele akordu ve ton farkı</h2>
+<p>Standart ukulele akordu G-C-E-A'dır; gitarın 5. perdesine kapo takmış gibi düşünebilirsin. Bu yüzden aynı tutuş şekli ukulelede gitardan farklı bir akor adıdır; ama Gituar'daki akor <em>adlarına</em> uyarsan her zaman doğru çalarsın.</p>
+<h2>Repertuar ve otomatik kaydırma</h2>
+<p>Ukulele ile çaldığın şarkıları bir repertuarda toplayıp iPhone uygulamasında aynı listeyi açabilirsin. Sayfayı oynat özelliği akor alanını kendi hızında kaydırır.</p>
+      <h2>Sık sorulanlar</h2>
+      {faq.map(([q, a]) => (<details class="faq"><summary>{q}</summary><p>{a}</p></details>))}
+    </div>
+  </article>
+</Base>

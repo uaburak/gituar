@@ -108,25 +108,28 @@ cat dist/robots.txt dist/sitemap-index.xml; ls dist/404.html
 2026-11-05 sonucu (300 şarkı): 353 sayfa, JSON-LD parse hatası 0, tüm indekslenebilir sayfalarda tek H1, noindex
 sayfalar sitemap dışında, `lastmod` tüm katalog URL'lerinde var.
 
-## 7. Yol haritası (kodun dışında ve sonraki adımlar)
+## 7. Durum ve yol haritası
 
-1. **Search Console:** mülk ekle (Domain ya da URL-prefix `https://gituar.com/`), HTML etiketiyle doğrula
-   (`PUBLIC_GSC_VERIFICATION`), `https://gituar.com/sitemap-index.xml` gönder; "Sayfa dizine ekleme" raporunu
-   ilk 2 hafta izle. `koc-chords.web.app` için ayrı mülk açma; Firebase'de 301 ile gituar.com'a yönlendirmeyi düşün.
-2. **Bing Webmaster Tools:** aynı sitemap; Search Console'dan içe aktarma var.
-3. **Paylaşım görseli:** `web/public/og.png` (1200×630, logo + "Türkçe gitar akorları") — eklenince OG/Twitter görseli
-   otomatik basılır.
-4. **Backlink:** App Store sayfası, sosyal profiller ve müzik forumlarında gituar.com; Repertuarım kullanıcılarına
-   duyuru; gitar eğitmeni blogları/YouTube açıklamalarına şarkı sayfası bağlantıları (her sayfanın kalıcı URL'si var).
-5. **İçerik takvimi (yeni sayfa türleri):**
-   - `/akor/ton/{ton}/` ("Am akorları ile çalınan şarkılar") — veri hazır (`originalKey`), şarkı sayfasındaki
-     "benzer şarkılar" bölümü buraya bağlanır.
-   - `/rehber/akor-transpoze/`, `/rehber/kapo/`, `/rehber/ukulele-akor/` — kısa, araçla bütünleşik rehberler
-     ("akor transpoze", "kapo kaçıncı perde", "ukulele akor" sorguları).
-   - Popüler sanatçı/şarkı derlemeleri (editör repertuarları statik sayfa olarak).
-6. **Veri:** yeni şarkılarda `createdAt` yazılması sitemap `lastmod` ve "yeni eklenenler" için değerli; yabancı
+**Yapıldı (2026-11-06, `feature/web-platform`, henüz yayında değil):**
+- Search Console mülkü `https://gituar.com/` eklendi. Doğrulama için iki yol hazır: `web/public/googlecdcd87f95c2b68bd.html`
+  dosyası ve `PUBLIC_GSC_VERIFICATION` meta etiketi (`web/.env`). Yayından sonra Search Console'da DOĞRULA'ya basılır,
+  ardından `https://gituar.com/sitemap-index.xml` gönderilir.
+- Paylaşım görseli `web/public/og.png` (1200×630). Kaynağı `/og/` sayfası (noindex, sitemap dışı); değişirse headless
+  Chrome ile yeniden çekilir:
+  `"Google Chrome" --headless=new --window-size=1200,630 --screenshot=web/public/og.png http://localhost:3000/og/`
+- Ton sayfaları `/ton/` ve `/ton/{slug}/` (en az 10 şarkılı 33 ton; `a-minor`, `c-diyez-minor` gibi). Şarkı sayfasındaki
+  "benzer şarkılar" başlığı ilgili ton sayfasına bağlanır.
+- Rehberler `/rehber/`, `/rehber/akor-transpoze/`, `/rehber/kapo/`, `/rehber/ukulele-akorlari/` (Article + FAQPage +
+  breadcrumb JSON-LD). Alt bilgide "Tonlar" ve "Rehber", ana sayfa özellik kutularında rehber bağlantıları var.
+
+**Sırada:**
+1. **Bing Webmaster Tools:** Search Console'dan içe aktar, aynı sitemap.
+2. **Backlink:** App Store sayfası, sosyal profiller ve müzik forumlarında gituar.com; Repertuarım kullanıcılarına
+   duyuru; gitar eğitmeni blogları/YouTube açıklamalarına şarkı sayfası bağlantıları.
+3. **İçerik:** popüler sanatçı/şarkı derlemeleri (editör repertuarları statik sayfa olarak); yeni rehberler
+   ("ritim kalıpları", "bare akor").
+4. **Veri:** yeni şarkılarda `createdAt` yazılması sitemap `lastmod` ve "yeni eklenenler" için değerli; yabancı
    şarkılarda `inLanguage` için gerekirse katalogda açık dil alanı.
-7. **Performans:** Core Web Vitals'ı Search Console'dan izle; en büyük JS `firebase` paketi (yalnızca giriş/repertuar
-   akışlarında yüklenir). Reklam scriptleri açılınca CLS için reklam alanlarının sabit yüksekliği korunmalı.
-8. **Teknik takip:** çok uzun başlıklı 24 şarkı için elle kısa başlık alanı (`seoTitle`) düşünülebilir;
-   `/ara/` sonuçları istemci tarafı olduğundan arama sayfası indekslenmez (bilinçli).
+5. **Performans:** Core Web Vitals'ı Search Console'dan izle; reklam alanlarının sabit yüksekliği CLS için korunmalı.
+6. **Teknik takip:** çok uzun başlıklı 24 şarkı için elle kısa başlık alanı (`seoTitle`); `/ara/` bilinçli olarak
+   indekslenmez. `www.gituar.com` → `gituar.com` yönlendirmesi Vercel alan adı ayarından yapılmalı.

@@ -1,0 +1,38 @@
+---
+import Base from "../../layouts/Base.astro";
+import { siteUrl, breadcrumbJsonLd } from "../../lib/seo.ts";
+const base = siteUrl(Astro.site);
+const title = "Akor Transpoze Nasıl Yapılır? Tonu Değiştirme Rehberi";
+const description = "Akor transpoze nedir, nasıl yapılır? Yarım ses tablosu, kapo ile transpoze ve Gituar'da tek dokunuşla ton değiştirme. Sesine uymayan şarkıyı kendi tonuna taşı.";
+const h1 = "Akor transpoze: şarkının tonunu değiştirme";
+const path = "/rehber/akor-transpoze/";
+const faq: [string, string][] = [["Transpoze akorların cinsini değiştirir mi?", "Hayır. Majör majör, minör minör kalır; yalnızca kök nota aynı miktarda kayar."], ["Kaç yarım ses kaydırmalıyım?", "Sesine uyana kadar dene; çoğu şarkıda 1–3 yarım ses yeterlidir. Gituar'da ton şeridinden anında deneyebilirsin."], ["Kapo ile transpoze aynı şey mi?", "Kapo, tutuşları değiştirmeden sesi yükseltir; transpoze akor adlarını değiştirir. İkisi birlikte de kullanılır."]];
+const jsonLd = [
+  { "@context": "https://schema.org", "@type": "Article", headline: h1, description, url: `${base}${path}`, inLanguage: "tr", author: { "@type": "Organization", name: "Gituar" }, publisher: { "@type": "Organization", name: "Gituar" }, mainEntityOfPage: `${base}${path}` },
+  { "@context": "https://schema.org", "@type": "FAQPage", mainEntity: faq.map(([q, a]) => ({ "@type": "Question", name: q, acceptedAnswer: { "@type": "Answer", text: a } })) },
+  breadcrumbJsonLd(base, [{ name: "Ana sayfa", path: "/" }, { name: "Rehber", path: "/rehber/" }, { name: h1, path }]),
+];
+---
+<Base title={title} description={description} jsonLd={jsonLd}>
+  <article class="guide">
+    <div class="page-head">
+      <div class="crumbs"><a href="/">Ana sayfa</a><span>/</span><a href="/rehber/">Rehber</a><span>/</span>Akor transpoze</div>
+      <h1>{h1}</h1>
+    </div>
+    <div class="guide-body">
+<p>Bir şarkının akorları sesine çok tiz ya da çok pes geliyorsa şarkıyı başka bir tona taşırsın; buna <strong>transpoze</strong> denir. Akorların birbirine göre uzaklığı aynı kalır, yalnızca hepsi aynı miktarda yukarı ya da aşağı kayar.</p>
+<h2>Yarım ses mantığı</h2>
+<p>Gitarda her perde bir yarım sestir. Notalar sırayla <span class="mono">C, C#, D, D#, E, F, F#, G, G#, A, A#, B</span> diye gider ve B'den sonra tekrar C'ye döner. Bir akoru 2 yarım ses yukarı taşımak demek, listede iki adım ilerlemek demektir: <span class="mono">Am → Bm</span>, <span class="mono">F → G</span>, <span class="mono">C → D</span>.</p>
+<h2>Örnek: Am tonundan Cm tonuna</h2>
+<p>Şarkı <span class="mono">Am – F – C – G</span> ile dönüyor olsun. Üç yarım ses yukarı çıkınca akorlar <span class="mono">Cm – Ab – Eb – Bb</span> olur. Akorun cinsi (majör, minör, 7'li) değişmez; sadece kök nota kayar.</p>
+<h2>Kapo ile transpoze</h2>
+<p>Yeni tondaki akorlar zorsa kapo takıp eski tutuşları koruyabilirsin. Kapoyu 3. perdeye takıp <span class="mono">Am</span> tuttuğunda duyulan akor <span class="mono">Cm</span>'dir. Ayrıntılar <a href="/rehber/kapo/">kapo rehberinde</a>.</p>
+<h2>Gituar'da tek dokunuş</h2>
+<p>Her şarkı sayfasındaki ton şeridinden yeni tonu seç; akorlar anında kayar, sözlerle hizası bozulmaz. Kapo perdesini girersen sayfa gerçekte tuttuğun akor adlarını gösterir. Giriş yaptıysan seçtiğin tonu kaydeder, iPhone uygulamasında aynı tonla açılır.</p>
+<h2>Hangi tonu seçmeli?</h2>
+<p>Şarkının en tiz notasını rahat söyleyebildiğin tonu seç. Genelde 1–3 yarım ses aşağı inmek yeterlidir. <a href="/ton/">Tona göre şarkı listeleri</a> ile aynı tondaki başka şarkıları da bulabilirsin.</p>
+      <h2>Sık sorulanlar</h2>
+      {faq.map(([q, a]) => (<details class="faq"><summary>{q}</summary><p>{a}</p></details>))}
+    </div>
+  </article>
+</Base>

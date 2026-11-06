@@ -1,0 +1,259 @@
+// Tarayıcı tarafı Firebase erişimi. SDK yalnızca gerektiğinde (giriş, repertuar, Plus) yüklenir.
+import { FIREBASE_CONFIG } from "./site.ts";
+import type { User } from "firebase/auth";
+
+export const firebaseReady = Boolean(FIREBASE_CONFIG.apiKey && FIREBASE_CONFIG.appId);
+
+type Fb = {
+  auth: import("firebase/auth").Auth;
+  db: import("firebase/firestore").Firestore;
+  authMod: typeof import("firebase/auth");
+  fsMod: typeof import("firebase/firestore");
+};
+
+let instance: Promise<Fb> | null = null;
+
+export function fb(): Promise<Fb> | null {
+  if (!firebaseReady) return null;
+  if (!instance) {
+    instance = (async () => {
+      const [{ initializeApp, getApps }, authMod, fsMod] = await Promise.all([
+        import("firebase/app"),
+        import("firebase/auth"),
+        import("firebase/firestore"),
+      ]);
+      const app = getApps()[0] ?? initializeApp(FIREBASE_CONFIG);
+      return { auth: authMod.getAuth(app), db: fsMod.getFirestore(app), authMod, fsMod };
+    })();
+  }
+  return instance;
+}
+
+export async function currentUser(): Promise<User | null> {
+  const f = await fb();
+  if (!f) return null;
+  return new Promise((resolve) => {
+    const unsub = f.authMod.onAuthStateChanged(f.auth, (u) => {
+      unsub();
+      resolve(u);
+    });
+  });
+}
+
+export function onUser(cb: (u: User | null) => void): void {
+  const p = fb();
+  if (!p) {
+    cb(null);
+    return;
+  }
+  p.then((f) =>
+    f.authMod.onAuthStateChanged(f.auth, (u) => {
+      try { u ? localStorage.setItem("gituar-auth", "1") : localStorage.removeItem("gituar-auth"); } catch {}
+      cb(u);
+    }),
+  );
+}
+
+/** users/{uid}.plus alanından Plus durumunu okur; sonucu localStorage'a ve <html class="plus"> olarak yazar. */
+export async function refreshPlus(uid: string): Promise<boolean> {
+  const f = await fb();
+  if (!f) return false;
+  let active = false;
+  try {
+    const snap = await f.fsMod.getDoc(f.fsMod.doc(f.db, "users", uid));
+    const plus = snap.data()?.plus as { active?: boolean; until?: { toDate(): Date } } | undefined;
+    const until = plus?.until?.toDate?.();
+    active = plus?.active === true && (!until || until > new Date());
+  } catch {
+    active = localStorage.getItem("gituar-plus") === "1";
+  }
+  setPlus(active);
+  return active;
+}
+
+export function setPlus(active: boolean): void {
+  try {
+    localStorage.setItem("gituar-plus", active ? "1" : "0");
+  } catch {}
+  document.documentElement.classList.toggle("plus", active);
+}
+
+export interface RepertoireDoc {
+  id: string;
+  name: string;
+  songIds: string[];
+  ownerId: string;
+  isPublic: boolean;
+  createdAt?: Date;
+  sourceId?: string;
+}
+
+// iOS ile aynı veri modeli: özel repertuarlar users/{uid}/repertoires, herkese açık olanlar public-repertoires.
+function toRep(id: string, data: Record<string, unknown>, isPublic: boolean): RepertoireDoc {
+  const created = data.createdAt as { toDate?: () => Date } | undefined;
+  return {
+    id,
+    name: String(data.name ?? ""),
+    songIds: Array.isArray(data.songIds) ? (data.songIds as string[]) : [],
+    ownerId: String(data.ownerId ?? ""),
+    isPublic: typeof data.isPublic === "boolean" ? data.isPublic : isPublic,
+    createdAt: created?.toDate?.(),
+    sourceId: typeof data.sourceId === "string" ? data.sourceId : undefined,
+  };
+}
+
+/** Kullanıcının özel ve herkese açık repertuarları, en yeni önce. */
+export async function listMyRepertoires(uid: string): Promise<RepertoireDoc[]> {
+  const f = await fb();
+  if (!f) return [];
+  const [priv, pub] = await Promise.all([
+    f.fsMod.getDocs(f.fsMod.collection(f.db, "users", uid, "repertoires")),
+    f.fsMod.getDocs(f.fsMod.query(f.fsMod.collection(f.db, "public-repertoires"), f.fsMod.where("ownerId", "==", uid))),
+  ]);
+  const all = [...priv.docs.map((d) => toRep(d.id, d.data(), false)), ...pub.docs.map((d) => toRep(d.id, d.data(), true))];
+  return all.sort((a, b) => (b.createdAt?.getTime() ?? 0) - (a.createdAt?.getTime() ?? 0));
+}
+
+export async function createRepertoire(uid: string, name: string): Promise<string> {
+  const f = await fb();
+  if (!f) throw new Error("Firebase hazır değil");
+  const ref = f.fsMod.doc(f.fsMod.collection(f.db, "users", uid, "repertoires"));
+  // createdAt iOS tarafında zorunlu (Date) — Timestamp olarak yazılır
+  await f.fsMod.setDoc(ref, { name, songIds: [], ownerId: uid, createdAt: f.fsMod.Timestamp.now(), isPublic: false });
+  return ref.id;
+}
+
+function repRef(f: Fb, uid: string, rep: Pick<RepertoireDoc, "id" | "isPublic">) {
+  return rep.isPublic ? f.fsMod.doc(f.db, "public-repertoires", rep.id) : f.fsMod.doc(f.db, "users", uid, "repertoires", rep.id);
+}
+
+export async function addSongToRepertoire(uid: string, rep: Pick<RepertoireDoc, "id" | "isPublic">, songId: string): Promise<void> {
+  const f = await fb();
+  if (!f) throw new Error("Firebase hazır değil");
+  await f.fsMod.updateDoc(repRef(f, uid, rep), { songIds: f.fsMod.arrayUnion(songId) });
+}
+
+/** Önce herkese açık, sonra (giriş yapılmışsa) kullanıcının özel repertuarına bakar. */
+export async function getRepertoire(id: string, uid?: string | null): Promise<RepertoireDoc | null> {
+  const f = await fb();
+  if (!f) return null;
+  const pub = await f.fsMod.getDoc(f.fsMod.doc(f.db, "public-repertoires", id));
+  if (pub.exists()) return toRep(pub.id, pub.data(), true);
+  if (uid) {
+    const priv = await f.fsMod.getDoc(f.fsMod.doc(f.db, "users", uid, "repertoires", id));
+    if (priv.exists()) return toRep(priv.id, priv.data(), false);
+  }
+  return null;
+}
+
+// ---------- Yönetim (users/{uid}.isAdmin; kurallar sunucu tarafında da zorlar) ----------
+
+export async function isAdminUser(uid: string): Promise<boolean> {
+  const f = await fb();
+  if (!f) return false;
+  let admin = false;
+  try {
+    const snap = await f.fsMod.getDoc(f.fsMod.doc(f.db, "users", uid));
+    admin = snap.data()?.isAdmin === true;
+  } catch {
+    admin = false;
+  }
+  try { localStorage.setItem("gituar-admin", admin ? "1" : "0"); } catch {}
+  return admin;
+}
+
+const toDate = (v: unknown): Date | undefined => (v as { toDate?: () => Date } | undefined)?.toDate?.();
+
+export interface PendingChord {
+  id: string;
+  artist: string;
+  songName: string;
+  originalKey: string;
+  content: string;
+  addedBy?: string;
+  ownerId?: string;
+  createdAt?: Date;
+  status: string;
+}
+
+/** Onay bekleyen kullanıcı şarkıları (user-chords, status == pending), en yeni önce. */
+export async function listPendingChords(): Promise<PendingChord[]> {
+  const f = await fb();
+  if (!f) return [];
+  const snap = await f.fsMod.getDocs(f.fsMod.query(f.fsMod.collection(f.db, "user-chords"), f.fsMod.where("status", "==", "pending")));
+  return snap.docs
+    .map((d) => {
+      const x = d.data();
+      return {
+        id: d.id, artist: String(x.artist ?? ""), songName: String(x.songName ?? ""), originalKey: String(x.originalKey ?? ""),
+        content: String(x.content ?? ""), addedBy: x.addedBy as string | undefined, ownerId: x.ownerId as string | undefined,
+        createdAt: toDate(x.createdAt), status: String(x.status ?? "pending"),
+      };
+    })
+    .sort((a, b) => (b.createdAt?.getTime() ?? 0) - (a.createdAt?.getTime() ?? 0));
+}
+
+export async function setChordStatus(id: string, status: "approved" | "rejected"): Promise<void> {
+  const f = await fb();
+  if (!f) throw new Error("Firebase hazır değil");
+  await f.fsMod.updateDoc(f.fsMod.doc(f.db, "user-chords", id), { status });
+}
+
+export interface ReportDoc {
+  id: string;
+  songId: string;
+  songName: string;
+  songArtist?: string;
+  reason: string;
+  ownerUsername?: string;
+  ownerId?: string;
+  reportedBy?: string;
+  reportedAt?: Date;
+  status: string;
+}
+
+/** Şikayetler; iOS ile aynı durumlar: pending, in_progress, reviewed, dismissed. */
+export async function listReports(statuses: string[]): Promise<ReportDoc[]> {
+  const f = await fb();
+  if (!f) return [];
+  const snap = await f.fsMod.getDocs(f.fsMod.query(f.fsMod.collection(f.db, "reports"), f.fsMod.where("status", "in", statuses)));
+  return snap.docs
+    .map((d) => {
+      const x = d.data();
+      return {
+        id: d.id, songId: String(x.songId ?? ""), songName: String(x.songName ?? ""), songArtist: x.songArtist as string | undefined,
+        reason: String(x.reason ?? ""), ownerUsername: x.ownerUsername as string | undefined, ownerId: x.ownerId as string | undefined,
+        reportedBy: x.reportedBy as string | undefined, reportedAt: toDate(x.reportedAt), status: String(x.status ?? "pending"),
+      };
+    })
+    .sort((a, b) => (b.reportedAt?.getTime() ?? 0) - (a.reportedAt?.getTime() ?? 0));
+}
+
+export async function setReportStatus(id: string, status: "in_progress" | "reviewed" | "dismissed"): Promise<void> {
+  const f = await fb();
+  if (!f) throw new Error("Firebase hazır değil");
+  await f.fsMod.updateDoc(f.fsMod.doc(f.db, "reports", id), { status });
+}
+
+export async function signInGoogle(): Promise<void> {
+  const f = await fb();
+  if (!f) return;
+  await f.authMod.signInWithPopup(f.auth, new f.authMod.GoogleAuthProvider());
+}
+export async function signInEmail(email: string, password: string): Promise<void> {
+  const f = await fb();
+  if (!f) return;
+  await f.authMod.signInWithEmailAndPassword(f.auth, email, password);
+}
+export async function signUpEmail(email: string, password: string): Promise<void> {
+  const f = await fb();
+  if (!f) return;
+  await f.authMod.createUserWithEmailAndPassword(f.auth, email, password);
+}
+export async function signOutUser(): Promise<void> {
+  const f = await fb();
+  if (!f) return;
+  await f.authMod.signOut(f.auth);
+  try { localStorage.removeItem("gituar-auth"); } catch {}
+  setPlus(false);
+}

@@ -14,7 +14,7 @@ firestore-debug.log
 # Node.js (Functions)
 functions/node_modules/
 node_modules/
-lib/
+functions/lib/
 .runtimeconfig.json
 
 # Local

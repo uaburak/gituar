@@ -1,0 +1,43 @@
+---
+import Base from "../../layouts/Base.astro";
+import { siteUrl, breadcrumbJsonLd } from "../../lib/seo.ts";
+const base = siteUrl(Astro.site);
+const title = "Kapo Nedir, Nasıl Kullanılır? Kapo Tablosu ve Hesabı";
+const description = "Kapo nedir, hangi perdeye takılır, akorlar nasıl değişir? Kapo tablosu, Am/Em/C/G tutuşlarıyla hangi ton çıkar ve Gituar'ın kapo hesabı.";
+const h1 = "Kapo: ne işe yarar, kaçıncı perdeye takılır";
+const path = "/rehber/kapo/";
+const faq: [string, string][] = [["Kapo akor adlarını değiştirir mi?", "Tuttuğun şekil aynı kalır ama duyulan akor kapo perdesi kadar yukarıdadır. Gituar bunu sayfada otomatik gösterir."], ["Kapo hangi perdeye takılır?", "Şarkının tonuna ve sesine göre 1–5 arası yaygındır; 7'den sonra tını incelir."], ["Ukulelede kapo kullanılır mı?", "Evet, ukulele kapoları daha küçüktür; mantık aynıdır."]];
+const jsonLd = [
+  { "@context": "https://schema.org", "@type": "Article", headline: h1, description, url: `${base}${path}`, inLanguage: "tr", author: { "@type": "Organization", name: "Gituar" }, publisher: { "@type": "Organization", name: "Gituar" }, mainEntityOfPage: `${base}${path}` },
+  { "@context": "https://schema.org", "@type": "FAQPage", mainEntity: faq.map(([q, a]) => ({ "@type": "Question", name: q, acceptedAnswer: { "@type": "Answer", text: a } })) },
+  breadcrumbJsonLd(base, [{ name: "Ana sayfa", path: "/" }, { name: "Rehber", path: "/rehber/" }, { name: h1, path }]),
+];
+---
+<Base title={title} description={description} jsonLd={jsonLd}>
+  <article class="guide">
+    <div class="page-head">
+      <div class="crumbs"><a href="/">Ana sayfa</a><span>/</span><a href="/rehber/">Rehber</a><span>/</span>Kapo</div>
+      <h1>{h1}</h1>
+    </div>
+    <div class="guide-body">
+<p><strong>Kapo</strong>, gitarın sapına takılan ve tüm telleri aynı perdeden basan bir kıskaçtır. Taktığın perde kadar yarım ses yukarı çıkarsın ama bildiğin kolay tutuşları (Am, Em, C, G, D) kullanmaya devam edersin.</p>
+<h2>Kapo tablosu</h2>
+<p>Tuttuğun akor + kapo perdesi = duyulan akor. Örneğin:</p>
+<ul>
+  <li>Kapo 1 · <span class="mono">Am</span> tutuşu → <span class="mono">A#m</span> (Bbm) duyulur</li>
+  <li>Kapo 2 · <span class="mono">G</span> tutuşu → <span class="mono">A</span></li>
+  <li>Kapo 3 · <span class="mono">Em</span> tutuşu → <span class="mono">Gm</span></li>
+  <li>Kapo 4 · <span class="mono">C</span> tutuşu → <span class="mono">E</span></li>
+  <li>Kapo 5 · <span class="mono">D</span> tutuşu → <span class="mono">G</span></li>
+</ul>
+<h2>Ne zaman kapo takmalı?</h2>
+<p>Şarkı <span class="mono">F#m – A – B</span> gibi bare (barre) akorlarla yazılmışsa kapoyu 2. perdeye takıp <span class="mono">Em – G – A</span> tutabilirsin. Ses aynı kalır, eller rahatlar. Sesine uymayan şarkıyı yükseltmek için de kapo en hızlı yoldur.</p>
+<h2>Gituar'da kapo hesabı</h2>
+<p>Şarkı sayfasında "Kapo" değerini gir; sayfa, kapo taktığında tutman gereken akor adlarını gösterir. Tonu da değiştirirsen ikisini birlikte hesaplar. Böylece "kapo 3'te hangi akoru tutacağım" sorusunu sayfa senin yerine çözer.</p>
+<h2>İpuçları</h2>
+<p>Kapoyu perde çubuğunun hemen arkasına, tellere dik tak; yamuk takılan kapo detone eder. 7. perdeden sonrası tını olarak inceldiği için şarkıyı <a href="/rehber/akor-transpoze/">transpoze etmek</a> daha iyi sonuç verir.</p>
+      <h2>Sık sorulanlar</h2>
+      {faq.map(([q, a]) => (<details class="faq"><summary>{q}</summary><p>{a}</p></details>))}
+    </div>
+  </article>
+</Base>

@@ -275,6 +275,16 @@ a.card:hover, .editor-hero:hover { text-decoration: none; transform: scale(1.02)
 .promo-card p:last-child { margin: 10px 0 0; max-width: 520px; font-size: 17px; opacity: .75; }
 .promo-card .btn { flex: none; }
 
+/* ---------- Rehber yazıları ---------- */
+.guide-body { background: var(--surface); border-radius: var(--radius-lg); padding: 28px 32px; max-width: 760px; font-size: 16px; line-height: 1.6; }
+.guide-body h2 { font-size: 21px; margin: 28px 0 8px; }
+.guide-body p, .guide-body ul { margin: 0 0 14px; }
+.guide-body li { margin: 4px 0; }
+.guide-body .mono { font-family: var(--mono); font-size: 14px; background: var(--muted); padding: 1px 6px; border-radius: 5px; }
+.faq { border-top: 1px solid var(--hairline); padding: 10px 0; }
+.faq summary { cursor: pointer; font-weight: 600; }
+.faq p { margin: 8px 0 0; color: var(--text-2); }
+
 /* ---------- Sayfa başlıkları ---------- */
 .page-head { margin: 0 0 28px; }
 .crumbs { font-size: 12px; color: var(--text-2); margin-bottom: 16px; }

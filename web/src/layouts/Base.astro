@@ -1,7 +1,5 @@
 ---
 import "../styles/global.css";
-import { existsSync } from "node:fs";
-import { fileURLToPath } from "node:url";
 import Header from "../components/Header.astro";
 import Footer from "../components/Footer.astro";
 import AdSlot from "../components/AdSlot.astro";
@@ -44,10 +42,8 @@ const appArgument = songId ? `gituar://song/${songId}` : "gituar://";
 const fullTitle = bareTitle ? title : `${title} · ${SITE_NAME}`;
 // Search Console doğrulaması: web/.env içine PUBLIC_GSC_VERIFICATION=... yazılınca meta basılır.
 const gscVerification = import.meta.env.PUBLIC_GSC_VERIFICATION ?? "";
-// Paylaşım görseli: web/public/og.png (1200×630) eklenirse otomatik kullanılır; SVG favicon OG için uygun değil.
-const ogImage = existsSync(fileURLToPath(new URL("../../public/og.png", import.meta.url)))
-  ? new URL("/og.png", Astro.site ?? "https://gituar.com").href
-  : "";
+// Paylaşım görseli: web/public/og.png (1200×630); /og/ şablonundan üretilir.
+const ogImage = new URL("/og.png", Astro.site ?? "https://gituar.com").href;
 ---
 <!doctype html>
 <html lang="tr">

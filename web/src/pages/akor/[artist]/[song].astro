@@ -9,14 +9,13 @@ import Icon from "../../../components/Icon.astro";
 import ChordDiagram from "../../../components/ChordDiagram.astro";
 import { songChords, chordHref, LEVEL_LABEL } from "../../../lib/chord-stats.ts";
 import { chordShapes } from "../../../lib/chord-theory.ts";
-import { catalog, sameKeySongs, artistPath, type CatalogSong } from "../../../lib/catalog.ts";
+import { catalog, sameKeySongs, artistPath, songBySlug, type CatalogSong } from "../../../lib/catalog.ts";
 import { siteUrl, songTitleParts, songDescription, songJsonLd, usedChords } from "../../../lib/seo.ts";
 
-export async function getStaticPaths() {
-  return catalog().songs.map((song) => ({ params: { artist: song.artistSlug, song: song.slug }, props: { song } }));
-}
-
-const { song } = Astro.props as { song: CatalogSong };
+// İstek anında: adres veritabanında yoksa 404
+const found = songBySlug(Astro.params.artist ?? "", Astro.params.song ?? "");
+if (!found) return Astro.rewrite("/404/");
+const song: CatalogSong = found;
 const artist = catalog().artistBySlug.get(song.artistSlug);
 const others = (artist?.songs ?? []).filter((s) => s.id !== song.id).slice(0, 8);
 const similar = sameKeySongs(song, 5);

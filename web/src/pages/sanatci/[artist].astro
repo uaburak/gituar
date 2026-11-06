@@ -7,10 +7,9 @@ import { siteUrl, artistTitle, artistDescription, artistJsonLd } from "../../lib
 import { isThinArtist, featuredSongIds } from "../../lib/catalog-rules.mjs";
 import { songChords, chordHref } from "../../lib/chord-stats.ts";
 
-export async function getStaticPaths() {
-  return catalog().artists.map((artist) => ({ params: { artist: artist.slug }, props: { artist } }));
-}
-const { artist } = Astro.props as { artist: ArtistGroup };
+const foundArtist = catalog().artistBySlug.get(Astro.params.artist ?? "");
+if (!foundArtist) return Astro.rewrite("/404/");
+const artist: ArtistGroup = foundArtist;
 const initial = (artist.name[0] ?? "?").toLocaleUpperCase("tr-TR");
 const base = siteUrl(Astro.site);
 const featured = featuredSongIds(artist.slug).map((id) => catalog().byId.get(id)).filter((s) => s !== undefined);

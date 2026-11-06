@@ -10,11 +10,9 @@ import { chordShapes, chordNotes, chordTurkish, noteTurkish, QUALITIES, isOpenCh
 import { siteUrl, breadcrumbJsonLd, fitTitle } from "../../lib/seo.ts";
 import { songPath } from "@shared/catalog";
 
-export function getStaticPaths() {
-  return chordPages().map((entry) => ({ params: { chord: entry.slug }, props: { entry } }));
-}
-
-const { entry } = Astro.props as { entry: ChordEntry };
+const foundEntry = chordPages().find((c) => c.slug === Astro.params.chord);
+if (!foundEntry) return Astro.rewrite("/404/");
+const entry: ChordEntry = foundEntry;
 const { root, quality, name } = entry;
 const shapes = chordShapes(root, quality);
 const notes = chordNotes(root, quality);

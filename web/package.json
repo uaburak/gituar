@@ -9,15 +9,15 @@
     "preview": "astro preview",
     "check": "astro check",
     "deploy": "bash scripts/deploy-vercel.sh",
-    "prebuild": "node scripts/fetch-songs.mjs",
-    "predev": "node scripts/fetch-songs.mjs"
+    "deploy:cf": "astro build && wrangler deploy"
   },
   "dependencies": {
-    "@astrojs/sitemap": "^3.4.0",
     "astro": "^5.12.0",
     "firebase": "^12.0.0"
   },
   "devDependencies": {
-    "typescript": "^5.8.0"
+    "@astrojs/cloudflare": "^12.6.13",
+    "typescript": "^5.8.0",
+    "wrangler": "^4.158.0"
   }
 }

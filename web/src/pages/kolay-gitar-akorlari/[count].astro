@@ -5,14 +5,10 @@ import { easySongs, songChords } from "../../lib/chord-stats.ts";
 import { siteUrl, breadcrumbJsonLd } from "../../lib/seo.ts";
 import { songPath } from "@shared/catalog";
 
-export function getStaticPaths() {
-  const all = easySongs();
-  return [2, 3, 4]
-    .map((n) => ({ n, songs: all.filter((s) => songChords(s).chords.length === n).sort((a, b) => b.seq - a.seq) }))
-    .filter((g) => g.songs.length >= 10)
-    .map((g) => ({ params: { count: `${g.n}-akorlu-sarkilar` }, props: g }));
-}
-const { n, songs } = Astro.props as { n: number; songs: import("@shared/types").CatalogSong[] };
+const m = /^([234])-akorlu-sarkilar$/.exec(Astro.params.count ?? "");
+const n = m ? Number(m[1]) : 0;
+const songs = n ? easySongs().filter((s) => songChords(s).chords.length === n).sort((a, b) => b.seq - a.seq) : [];
+if (songs.length < 10) return Astro.rewrite("/404/");
 const notes = Object.fromEntries(songs.map((s) => [s.id, songChords(s).chords.map((c) => c.name).join(" ")]));
 const base = siteUrl(Astro.site);
 const path = `/kolay-gitar-akorlari/${n}-akorlu-sarkilar/`;

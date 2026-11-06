@@ -1,6 +1,7 @@
 ---
-// Firebase Hosting dist/404.html dosyasını 404 durum koduyla sunar (firebase.json → hosting.public = web/dist).
+// Bulunamayan adresler ve silinen şarkılar buraya yönlenir (Astro.rewrite); durum kodu 404.
 import Base from "../layouts/Base.astro";
+Astro.response.status = 404;
 ---
 <Base title="Sayfa bulunamadı" noindex ads={false}>
   <div class="page-head"><h1>Bu akor burada değil</h1><p>Sayfa taşınmış ya da silinmiş olabilir.</p></div>

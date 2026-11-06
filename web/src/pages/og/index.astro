@@ -1,9 +1,6 @@
 ---
+export const prerender = true;
 // Paylaşım görseli şablonu (1200×630): tarayıcıda ekran görüntüsü alınıp web/public/og.png olarak kaydedilir. Dizine girmez.
-import { catalog } from "../../lib/catalog.ts";
-const c = catalog();
-const songCount = c.songs.length.toLocaleString("tr-TR");
-const artistCount = c.artists.length.toLocaleString("tr-TR");
 ---
 <!doctype html>
 <html lang="tr">

@@ -1,17 +1,16 @@
-// Katalogdan türeyen SEO kuralları. Hem sayfalar (Astro) hem astro.config.mjs (site haritası) bunu kullanır;
-// config Vite alias'ları olmadan yüklendiği için düz JS; şarkıları .cache/songs.json'dan (API) kendisi okur.
+// Şarkılardan türeyen SEO kuralları (sayfalar ve site haritası). Veri yenilenince (catalogVersion) yeniden hesaplanır.
 //  - Kopya şarkılar: akor içeriği birebir aynı olanlardan en eski (seq) ana sayfa, diğerleri ona canonical verir.
 //  - İnce sanatçı sayfaları: tek şarkılı sanatçılar noindex ve site haritası dışı (şarkı sayfası zaten aynı içerik).
 //  - Ton adları: eşsesli tonlar (G# / Ab) tek sayfada; daha çok şarkısı olan yazım asıl ad olur.
 //  - Düetler: "A & B", "A ft. B" kayıtları, katalogda kendi sayfası olan sanatçıların sayfasında da listelenir.
-import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
+import { catalog, catalogVersion } from "./catalog.ts";
 
 const SHARPS = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 const FLATS = { Db: "C#", Eb: "D#", Gb: "F#", Ab: "G#", Bb: "A#", Cb: "B", Fb: "E", "E#": "F", "B#": "C" };
 const MIN_THIN_ARTIST = 2;
 
 let rules;
+let rulesVersion = -1;
 
 function normalizeContent(text) {
   return (text ?? "").replace(/\r/g, "").replace(/[ \t]+/g, " ").replace(/\n{2,}/g, "\n").trim();
@@ -35,9 +34,9 @@ export function creditParts(name) {
 }
 
 function load() {
-  if (rules) return rules;
-  const path = fileURLToPath(new URL("../../.cache/songs.json", import.meta.url));
-  const songs = JSON.parse(readFileSync(path, "utf8"));
+  if (rules && rulesVersion === catalogVersion()) return rules;
+  rulesVersion = catalogVersion();
+  const songs = catalog().songs;
   const songPath = (s) => `/akor/${s.artistSlug}/${s.slug}/`;
 
   // Kopyalar

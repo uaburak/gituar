@@ -1,0 +1,11 @@
+// gituar.com web sitesi (Astro, istek anında üretim). Wecra'nın Worker'larından ayrı.
+{
+  "$schema": "../node_modules/wrangler/config-schema.json",
+  "name": "gituar-web",
+  "main": "./dist/_worker.js/index.js",
+  "compatibility_date": "2026-11-06",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": { "binding": "ASSETS", "directory": "./dist" },
+  "observability": { "enabled": true },
+  "workers_dev": true
+}

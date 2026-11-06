@@ -5,6 +5,5 @@ Disallow: /giris/
 Disallow: /repertuarlarim/
 Disallow: /repertuar/
 Disallow: /ara/
-Disallow: /search-index.json
 
 Sitemap: https://gituar.com/sitemap-index.xml

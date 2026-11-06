@@ -1,0 +1,14 @@
+# Cloudflare yönlendirmeleri (eski Vercel ayarlarının karşılığı)
+/plus/ /pro/ 301
+/akor/ /akorlar/ 301
+/akor/:artist/ /sanatci/:artist/ 301
+/sanatci/ /sanatcilar/ 301
+/ton/d-bemol/ /ton/c-diyez/ 301
+/ton/d-diyez/ /ton/e-bemol/ 301
+/ton/a-bemol/ /ton/g-diyez/ 301
+/ton/a-diyez-minor/ /ton/b-bemol-minor/ 301
+/ton/a-bemol-minor/ /ton/g-diyez-minor/ 301
+/ton/e-bemol-minor/ /ton/d-diyez-minor/ 301
+/ton/g-bemol/ /ton/f-diyez/ 301
+/ton/d-bemol-minor/ /ton/c-diyez-minor/ 301
+/ton/a-diyez/ /ton/b-bemol/ 301

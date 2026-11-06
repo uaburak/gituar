@@ -4,24 +4,16 @@ import SongList from "../../components/SongList.astro";
 import AdSlot from "../../components/AdSlot.astro";
 import { catalog } from "../../lib/catalog.ts";
 import { keySlug, keyTurkish, diatonicChords } from "../../lib/keys.ts";
-import { keyInfo, minKeySongs } from "../../lib/catalog-rules.mjs";
+import { keyInfo, allKeyInfos, minKeySongs } from "../../lib/catalog-rules.mjs";
 import { siteUrl, breadcrumbJsonLd, fitTitle } from "../../lib/seo.ts";
 import type { CatalogSong } from "@shared/types";
 
-export function getStaticPaths() {
-  const groups = new Map<string, CatalogSong[]>();
-  for (const s of catalog().songs) {
-    const info = keyInfo((s.originalKey ?? "").trim());
-    if (!info) continue;
-    if (!groups.has(info.name)) groups.set(info.name, []);
-    groups.get(info.name)!.push(s);
-  }
-  return [...groups.entries()]
-    .filter(([, songs]) => songs.length >= minKeySongs())
-    .map(([key, songs]) => ({ params: { key: keySlug(key) }, props: { key, songs, aliases: keyInfo(key)!.spellings.filter((k) => k !== key) } }));
-}
-
-const { key, songs, aliases } = Astro.props as { key: string; songs: CatalogSong[]; aliases: string[] };
+// Adresteki ton (ör. "a-minor") → eşsesli grubun asıl adı ve şarkıları
+const info = allKeyInfos().find((k) => keySlug(k.name) === Astro.params.key);
+if (!info || info.total < minKeySongs()) return Astro.rewrite("/404/");
+const key = info.name;
+const aliases = info.spellings.filter((k) => k !== key);
+const songs: CatalogSong[] = catalog().songs.filter((s) => keyInfo((s.originalKey ?? "").trim())?.name === key);
 const label = [key, ...aliases].join(" / ");
 const total = songs.length;
 const LIMIT = 300;

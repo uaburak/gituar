@@ -1,0 +1,54 @@
+---
+// Kullanıcı profili: /kullanici/{kullanıcı adı}/ — herkese açık repertuarları ve paylaştığı şarkılar (sunucuda üretilir).
+import ListSection from "../../components/ListSection.astro";
+import SeoText from "../../components/SeoText.astro";
+import Base from "../../layouts/Base.astro";
+import SongList from "../../components/SongList.astro";
+import { catalog } from "../../lib/catalog.ts";
+import { listPublicRepertoiresByUsername } from "../../lib/public-repertoire.ts";
+import { repertoirePath } from "../../lib/repertoire-path.ts";
+import { siteUrl, breadcrumbJsonLd } from "../../lib/seo.ts";
+
+const username = decodeURIComponent(Astro.params.user ?? "").trim().toLocaleLowerCase("tr-TR");
+const reps = username ? await listPublicRepertoiresByUsername(username) : [];
+// Kullanıcının kimliği repertuarlarından; şarkılar sahip kimliğiyle ya da "ekleyen" adıyla eşleşir
+const uid = reps[0]?.ownerId ?? "";
+const songs = catalog().songs
+  .filter((s) => (uid && s.ownerId === uid) || (s.addedBy ?? "").toLocaleLowerCase("tr-TR") === username)
+  .sort((a, b) => b.seq - a.seq);
+if (!username || (reps.length === 0 && songs.length === 0)) return Astro.rewrite("/404/");
+
+const byId = catalog().byId;
+const base = siteUrl(Astro.site);
+const path = `/kullanici/${encodeURIComponent(username)}/`;
+const title = `@${username} – Gituar profili, repertuarları ve akorları`;
+const description = `@${username} kullanıcısının Gituar'da herkesle paylaştığı repertuarlar${songs.length ? " ve şarkı akorları" : ""}: ${reps.slice(0, 4).map((r) => r.name).join(", ")}${reps.length > 4 ? " ve diğerleri" : ""}.`;
+const jsonLd = [
+  { "@type": "ProfilePage", name: `@${username}`, url: base + path, mainEntity: { "@type": "Person", alternateName: `@${username}` } },
+  breadcrumbJsonLd(base, [{ name: "Ana sayfa", path: "/" }, { name: `@${username}` }]),
+];
+const artists = [...new Set(songs.map((s) => s.artist))];
+Astro.response.headers.set("Cache-Control", "public, max-age=300, s-maxage=600");
+---
+<Base title={title} description={description} canonicalPath={path} noindex={reps.length + songs.length < 3} ogType="profile" jsonLd={jsonLd}>
+  <ListSection title={`@${username}`} heading="h1" letter={username.charAt(0).toLocaleUpperCase("tr-TR")} color="#c077db" fixed />
+  {reps.length > 0 && (
+    <ListSection title="Repertuarları" icon="bookmark" color="#0a84ff" open>
+      <ul class="rp-list">
+        {reps.map((r) => {
+          const n = r.songIds.filter((id) => byId.has(id)).length;
+          return <li><a class="row" href={repertoirePath(r)} title={r.name}><span class="rp-badge rp-badge-list" aria-hidden="true">R</span><span class="rp-text"><span class="row-title">{r.name}</span><span class="row-note"> · {n} şarkı</span></span></a></li>;
+        })}
+      </ul>
+    </ListSection>
+  )}
+  {songs.length > 0 && (
+    <ListSection title="Paylaştığı şarkılar" icon="music" color="#ea494d" open={reps.length === 0}>
+      <SongList songs={songs} />
+    </ListSection>
+  )}
+  <SeoText title={`@${username} profili`}>
+    <p>@{username}, Gituar'da {reps.length > 0 ? `${reps.length} repertuarı` : ""}{reps.length > 0 && songs.length > 0 ? " ve " : ""}{songs.length > 0 ? `${songs.length} şarkının akorlarını` : ""} herkesle paylaşıyor.{artists.length > 0 && ` Paylaştığı şarkılar arasında ${artists.slice(0, 4).join(", ")} gibi sanatçılar var.`}</p>
+    <p>Bir repertuarı açıp şarkılarını çalabilir, beğendiğini kendi repertuarlarına kaydedebilirsin. Akorları tonunu değiştirerek, kapo ekleyerek ve otomatik kaydırmayla çalabilirsin.</p>
+  </SeoText>
+</Base>

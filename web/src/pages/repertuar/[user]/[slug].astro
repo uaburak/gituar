@@ -35,7 +35,7 @@ Astro.response.headers.set("Cache-Control", "public, max-age=300, s-maxage=600")
     <div class="rp-title">
       <span class="rp-icon rp-icon-letter" style="--c:#0a84ff" aria-hidden="true">R</span>
       <h1>{rep.name}</h1>
-      <span class="rp-owner">@{rep.ownerUsername}</span>
+      <a class="rp-owner" href={`/kullanici/${encodeURIComponent(rep.ownerUsername)}/`}>@{rep.ownerUsername}</a>
       <button type="button" class="rp-save" id="rep-save" aria-label="Repertuarlarıma kaydet" title="Repertuarlarıma kaydet">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4.5L5 21V4a1 1 0 0 1 1-1Z"/></svg>
       </button>

@@ -6,7 +6,7 @@ import type { CatalogSong } from "@shared/types";
 import { API_URL } from "./site.ts";
 
 /** API'den gelen şarkı: katalog alanlarına ek olarak popülerlik puanı ve güncellenme zamanı. */
-export type ApiSong = CatalogSong & { score?: number; updatedAt?: string };
+export type ApiSong = CatalogSong & { score?: number; updatedAt?: string; ownerId?: string };
 
 interface Catalog {
   songs: ApiSong[];
@@ -42,6 +42,7 @@ async function fetchAll(): Promise<ApiSong[]> {
         updatedAt: new Date(s.updatedAt as number).toISOString(),
         score: s.score as number,
         ...(s.addedBy ? { addedBy: s.addedBy as string } : {}),
+        ...(s.ownerId ? { ownerId: s.ownerId as string } : {}),
       });
     }
     if (page.songs.length < 1000) break;

@@ -39,3 +39,42 @@ export async function findPublicRepertoire(username: string, slug: string): Prom
     return null;
   }
 }
+
+/** Kullanıcı adına göre herkese açık repertuarlar (en yeni önce). Profil sayfası kullanır. */
+export async function listPublicRepertoiresByUsername(username: string): Promise<PublicRepertoire[]> {
+  const key = FIREBASE_CONFIG.apiKey;
+  if (!key) return [];
+  const base = `https://firestore.googleapis.com/v1/projects/${FIREBASE_CONFIG.projectId}/databases/(default)/documents`;
+  try {
+    const rows: { document?: { name: string; fields?: Fields } }[] = await fetch(`${base}:runQuery?key=${key}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        structuredQuery: {
+          from: [{ collectionId: "public-repertoires" }],
+          where: { fieldFilter: { field: { fieldPath: "ownerUsername" }, op: "EQUAL", value: { stringValue: username } } },
+          limit: 200,
+        },
+      }),
+    }).then((r) => r.json());
+    return rows
+      .filter((r) => r.document)
+      .map((r) => {
+        const f = r.document!.fields ?? {};
+        return {
+          id: r.document!.name.split("/").pop()!,
+          name: f.name?.stringValue ?? "",
+          songIds: (f.songIds?.arrayValue?.values ?? []).map((v) => v.stringValue ?? "").filter(Boolean),
+          ownerId: f.ownerId?.stringValue ?? "",
+          ownerUsername: f.ownerUsername?.stringValue ?? username,
+          slug: f.slug?.stringValue ?? "",
+          createdAt: f.createdAt?.timestampValue ?? "",
+        };
+      })
+      .filter((r) => r.name && r.slug)
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  } catch (e) {
+    console.warn("[public-repertoire] profil okunamadı:", (e as Error).message);
+    return [];
+  }
+}

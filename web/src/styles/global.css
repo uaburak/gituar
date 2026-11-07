@@ -1028,3 +1028,4 @@ a.cd-label:hover { color: var(--accent-text); text-decoration: none; }
 .rp-save.is-saved { background: none; cursor: default; }
 .rp-save[hidden] { display: none; }
 .rp-section.rp-rep-head { border-bottom: 0; }
+a.rp-owner:hover { color: var(--accent-text); text-decoration: none; }

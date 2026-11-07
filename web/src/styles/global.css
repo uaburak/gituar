@@ -825,7 +825,8 @@ details.rp-section[open] > .rp-title .rp-chev { transform: rotate(-135deg); }
 /* Satırlar (Repertuarım ölçüleri): 55 px, 20 px iç boşluk, sırayla açık gri / beyaz, çizgisiz.
    İki sütunlu listelerde sıra önce aşağı, sonra yan sütuna akar (CSS sütunları). */
 .rp-list { list-style: none; margin: 0; padding: 0; display: block; }
-@media (min-width: 728px) { .rp-list.rp-split { column-count: 2; column-gap: 0; } }
+/* Bütün listeler geniş ekranda iki sütun (önce aşağı, sonra yan sütuna akar); telefonda tek sütun */
+@media (min-width: 728px) { .rp-list { column-count: 2; column-gap: 0; } }
 .rp-list li { break-inside: avoid; min-width: 0; }
 .rp-list li:nth-child(odd), .rp-artists > .row:nth-child(odd), .rp-info > li:nth-child(odd) { background: var(--zebra); }
 .rp-list .row, .page-card .list .row { display: flex; align-items: center; gap: 0; min-height: 55px; padding: 0 var(--card-pad); border: 0; color: var(--text); font-size: 13px; }

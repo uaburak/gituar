@@ -9,7 +9,7 @@ function setSaved() {
   btn.classList.add("is-saved");
   label.textContent = "Kaydedildi";
   const svg = btn.querySelector("svg");
-  if (svg) svg.innerHTML = '<circle cx="12" cy="12" r="9"/><path d="m8 12.2 2.8 2.8L16.2 9"/>';
+  if (svg) svg.setAttribute("fill", "currentColor"); // kayıtlı: yer imi dolu
 }
 
 if (head && btn) {

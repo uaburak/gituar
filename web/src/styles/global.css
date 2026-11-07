@@ -812,9 +812,9 @@ a.rp-section.rp-title, button.rp-section.rp-title { width: calc(100% + 2 * var(-
 .rp-title:hover { background: var(--row-hover-soft); text-decoration: none; }
 .rp-title h1, .rp-title h2 { flex: 1; min-width: 0; font-size: 16px; font-weight: 600; letter-spacing: 0; line-height: 1.15; }
 .rp-note { font-size: 13px; color: var(--text-3); }
-.rp-chev { width: 8px; height: 8px; border-right: 2px solid var(--text-3); border-bottom: 2px solid var(--text-3); transform: rotate(-45deg); margin-right: 4px; transition: transform .2s ease; flex: none; }
+.rp-chev { width: 8px; height: 8px; margin: 0 4px 3px auto; border-right: 2px solid var(--text-3); border-bottom: 2px solid var(--text-3); transform: rotate(45deg); transition: transform .2s ease; flex: none; }
 details.rp-section > .rp-title .rp-chev { transform: rotate(45deg); }
-details.rp-section[open] > .rp-title .rp-chev { transform: rotate(-135deg); }
+details.rp-section[open] > .rp-title .rp-chev { transform: rotate(-135deg); margin-bottom: -3px; }
 .rp-icon { width: 24px; height: 24px; flex: none; display: grid; place-items: center; border-radius: 6px; background: var(--c); color: #fff; }
 .rp-icon svg { width: 14px; height: 14px; display: block; }
 .rp-body { border-top: 0; }

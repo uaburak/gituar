@@ -91,6 +91,7 @@ const H = heading;
     <summary class="rp-title">
       <span class="rp-icon" style={`--c:${color}`} aria-hidden="true"><svg viewBox="0 0 24 24" set:html={svg} /></span>
       <H>{title}</H>{note && <span class="rp-note">{note}</span>}
+      <span class="rp-chev" aria-hidden="true"></span>
     </summary>
     <div class="rp-body"><slot /></div>
   </details>

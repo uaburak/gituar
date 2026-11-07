@@ -21,7 +21,11 @@ const description = "Türkçe şarkıların gitar akorları: topluluğun paylaş
   <ListSection title="Popüler Akorlar" icon="bolt" color="#ea494d">
     <SongList songs={popular} cols={1} />
   </ListSection>
-  <ListSection title="Rastgele" color="#c077db" action="btn-random" />
+  <ListSection title="Rastgele" color="#c077db" id="random">
+    <ul class="rp-list" id="random-list" data-total={catalog().songs.length}></ul>
+    <p class="muted small rp-empty" id="random-status">Yükleniyor…</p>
+    <button type="button" class="rp-more rp-more-btn" id="random-refresh">Başka şarkılar getir</button>
+  </ListSection>
   <ListSection title="Öne Çıkanlar" color="#f0a800" href="/editorun-secimleri/" />
   <ListSection title="Yeni Akorlar" color="#ff9500">
     <SongList songs={newest} cols={1} />

@@ -988,3 +988,5 @@ details.rp-section[open] > .rp-title .rp-chev { transform: rotate(-135deg); }
 .rp-seo h2 { font-size: 16px; line-height: 24px; font-weight: 600; color: var(--text); margin: 0 0 8px; }
 .rp-seo h3 { font-size: 14px; font-weight: 600; color: var(--text); margin: 18px 0 4px; }
 .rp-seo p { margin: 0 0 10px; }
+.rp-more-btn { width: 100%; border: 0; background: none; text-align: left; color: var(--accent-text); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.rp-more-btn:hover { background: var(--row-hover-soft); }

@@ -48,7 +48,11 @@ const diagrams = analysis.chords.slice(0, 12).map((c) => ({ ...c, shape: chordSh
       <p class="muted small rp-diagram-note">Diyagramlar orijinal tondaki akorları gösterir. Kâğıttaki bir akorun üstüne gelince de diyagramı açılır. <a href="/akorlar/">Bütün akorlar</a></p>
     </Fragment>
     <Fragment slot="after">
-      <ListSection title="Rastgele" color="#c077db" action="btn-random" />
+      <ListSection title="Rastgele" color="#c077db" id="random">
+        <ul class="rp-list" id="random-list" data-total={catalog().songs.length}></ul>
+        <p class="muted small rp-empty" id="random-status">Yükleniyor…</p>
+        <button type="button" class="rp-more rp-more-btn" id="random-refresh">Başka şarkılar getir</button>
+      </ListSection>
       <ListSection title={`${song.artist} akorları`} icon="music" color="#f0a800" href={artistPath(song.artistSlug)} />
       {suggested.length > 0 && (
         <ListSection title="Önerilen akorlar" icon="none" open>

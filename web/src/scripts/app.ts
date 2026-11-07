@@ -106,10 +106,11 @@ if (new URLSearchParams(location.search).get("hesap") === "silindi") {
   history.replaceState(null, "", location.pathname);
 }
 
-// Açılır bölümlerdeki "Tümü" satırı listenin son hücresi olur. İki sütunda (sütunlar önce aşağı dolar)
+// Açılır bölümlerdeki "Tümü" satırı (listede en az 19 öğe varsa) listenin son hücresi olur. İki sütunda (sütunlar önce aşağı dolar)
 // hücre sayısı tekse son satırda yalnızca sol hücre kalır; "Tümü" oraya, sol alt köşeye yerleşir.
 // Liste sonradan doldurulsa da (repertuarlar, rastgele) ve ekran genişliği değişse de yeri korunur.
 const twoCols = matchMedia("(min-width: 728px)");
+const MIN_FOR_ALL = 19;
 function placeAllRows() {
   document.querySelectorAll<HTMLElement>(".rp-all-holder").forEach((holder) => {
     const item = holder.querySelector<HTMLElement>(".rp-all-item");
@@ -118,6 +119,9 @@ function placeAllRows() {
     holder.remove();
     const place = () => {
       const others = [...list.children].filter((el) => el !== item && !(el as HTMLElement).hidden);
+      // Liste en az 19 öğe (şarkı, sanatçı, repertuar) değilse "Tümü" gösterilmez
+      item.hidden = others.length < MIN_FOR_ALL;
+      if (item.hidden) return;
       const total = others.length + 1;
       // Sol sütunun sonu: ilk ceil(total/2) hücre sol sütundadır
       const index = twoCols.matches && total % 2 === 1 ? Math.ceil(total / 2) - 1 : others.length;

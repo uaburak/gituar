@@ -1,4 +1,5 @@
 ---
+import SeoText from "../../components/SeoText.astro";
 import ListSection from "../../components/ListSection.astro";
 import Base from "../../layouts/Base.astro";
 import { catalog } from "../../lib/catalog.ts";
@@ -12,16 +13,15 @@ const base = siteUrl(Astro.site);
 const description = "Gitar akorlarını tona göre bul: majör ve minör tonlarda şarkı listeleri, her tonun sık kullanılan akorları. Transpoze ve kapo ile istediğin tona taşı.";
 ---
 <Base title="Tona Göre Şarkı Akorları – Majör ve Minör Tonlar" description={description} jsonLd={[{ "@context": "https://schema.org", "@type": "CollectionPage", name: "Tona göre şarkı akorları", url: `${base}/ton/`, description, inLanguage: "tr" }, breadcrumbJsonLd(base, [{ name: "Ana sayfa", path: "/" }, { name: "Tonlar", path: "/ton/" }])]}>
-  <div class="rp-head"><h1>Tona göre şarkı akorları</h1></div>
-  <div class="rp-content">
-    <p>Hangi tonda çalmak istiyorsan o tondaki şarkıları listele. Ton sayfasının başında o tonun sık kullanılan akorları yazar.</p>
-  </div>
-  <ListSection title="Tonlar" color="#ea494d" open>
-    <ul class="rp-list rp-split">
+  <ListSection title="Tona göre şarkı akorları" heading="h1" icon="key" color="#54779a" open>
+    <ul class="rp-list">
       {keys.map(([label, n, k]) => (
         <li><a class="row" href={`/ton/${keySlug(k)}/`} title={`${label} tonunda şarkı akorları`}><span class="rp-badge rp-badge-key" aria-hidden="true">{k}</span><span class="rp-text"><span class="row-title">{label} tonu</span><span class="row-note"> · {keyTurkish(k)}</span></span></a></li>
       ))}
     </ul>
   </ListSection>
-  <ListSection title="Gitar akorları tablosu" color="#f0a800" href="/akorlar/" />
+  <ListSection title="Gitar akorları tablosu" href="/akorlar/" />
+  <SeoText title="Hangi tonda çalmak istiyorsun?">
+    <p>Hangi tonda çalmak istiyorsan o tondaki şarkıları listele. Ton sayfasında o tonun sık kullanılan akorları ve o tonda yazılmış şarkılar yer alır; şarkı sayfasında tonu değiştirip kapo ekleyebilirsin.</p>
+  </SeoText>
 </Base>

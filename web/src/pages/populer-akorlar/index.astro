@@ -1,5 +1,6 @@
 ---
 import ListSection from "../../components/ListSection.astro";
+import SeoText from "../../components/SeoText.astro";
 import Base from "../../layouts/Base.astro";
 import SongList from "../../components/SongList.astro";
 import { catalog } from "../../lib/catalog.ts";
@@ -24,4 +25,7 @@ const jsonLd = [
   </ListSection>
   <ListSection title="Yeni Akorlar" color="#ff9500" href="/yeni-eklenenler/" />
   <ListSection title="Öne Çıkanlar" color="#0a84ff" href="/editorun-secimleri/" />
+  <SeoText title="En çok çalınan şarkılar">
+    <p>Gituar'da en çok açılan, favorilere ve repertuarlara en çok eklenen şarkıların gitar akorları. Liste kullanıcıların ilgisine göre sürekli güncellenir.</p>
+  </SeoText>
 </Base>

@@ -1,5 +1,6 @@
 ---
 import ListSection from "../../components/ListSection.astro";
+import SeoText from "../../components/SeoText.astro";
 import Base from "../../layouts/Base.astro";
 import SongList from "../../components/SongList.astro";
 import { newestSongs } from "../../lib/catalog.ts";
@@ -20,4 +21,7 @@ const jsonLd = [
     <SongList songs={songs} />
   </ListSection>
   <ListSection title="Popüler sanatçılar" color="#f0a800" href="/sanatcilar/" />
+  <SeoText title="Yeni eklenen gitar akorları">
+    <p>Gituar'a en son eklenen şarkıların gitar akorları, en yeniden eskiye. Yeni çıkan ve yeni eklenen Türkçe şarkı akorları her gün güncellenir.</p>
+  </SeoText>
 </Base>

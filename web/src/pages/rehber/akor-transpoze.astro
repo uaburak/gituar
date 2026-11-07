@@ -17,10 +17,8 @@ const jsonLd = [
 ---
 <Base title={title} description={description} jsonLd={jsonLd}>
   <article class="guide">
-    <div class="rp-head">
-      <h1>{h1}</h1>
-    </div>
-    <div class="rp-content">
+    <ListSection title={h1} heading="h1" icon="book" color="#ff9500" fixed />
+    <div class="rp-content rp-article">
 <p>Bir şarkının akorları sesine çok tiz ya da çok pes geliyorsa şarkıyı başka bir tona taşırsın; buna <strong>transpoze</strong> denir. Akorların birbirine göre uzaklığı aynı kalır, yalnızca hepsi aynı miktarda yukarı ya da aşağı kayar.</p>
 <h2>Yarım ses mantığı</h2>
 <p>Gitarda her perde bir yarım sestir. Notalar sırayla <span class="mono">C, C#, D, D#, E, F, F#, G, G#, A, A#, B</span> diye gider ve B'den sonra tekrar C'ye döner. Bir akoru 2 yarım ses yukarı taşımak demek, listede iki adım ilerlemek demektir: <span class="mono">Am → Bm</span>, <span class="mono">F → G</span>, <span class="mono">C → D</span>.</p>

@@ -1,6 +1,7 @@
 ---
 import Base from "../../layouts/Base.astro";
 import SongList from "../../components/SongList.astro";
+import SeoText from "../../components/SeoText.astro";
 import ListSection from "../../components/ListSection.astro";
 import { catalog } from "../../lib/catalog.ts";
 import { keySlug, keyTurkish, diatonicChords } from "../../lib/keys.ts";
@@ -29,16 +30,15 @@ const jsonLd = [
 ];
 ---
 <Base title={title} description={description} jsonLd={jsonLd}>
-  <div class="rp-head"><h1>{label} tonunda şarkı akorları <span class="h1-kw">· {tr}</span></h1></div>
-  <div class="rp-content">
-    <p>{key} tonunda sık kullanılan akorlar: <strong>{chords.join(", ")}</strong>. Şarkı sayfasında tonu değiştirip kapo ekleyebilirsin.</p>
-  </div>
-  <ListSection title={`${key} tonundaki şarkılar`} color="#ea494d" open>
+  <ListSection title={`${label} tonunda şarkı akorları`} heading="h1" icon="key" color="#54779a" open note={tr}>
     <SongList songs={list} />
     {total > LIMIT && <p class="muted small rp-empty">En yeni {LIMIT} şarkı gösteriliyor; diğerleri için <a href={`/ara/?q=${encodeURIComponent(key)}`}>arama</a> ya da <a href="/sanatcilar/">sanatçı dizini</a>.</p>}
   </ListSection>
-  <ListSection title={`${key} tonunun akorları`} icon="none">
+  <ListSection title={`${key} tonunun akorları`}>
     <div class="rp-pills">{chords.map((c) => <span class="mono">{c}</span>)}</div>
   </ListSection>
-  <ListSection title="Bütün tonlar" color="#f0a800" href="/ton/" />
+  <ListSection title="Bütün tonlar" href="/ton/" />
+  <SeoText title={`${key} tonu`}>
+    <p>{key} tonunda sık kullanılan akorlar: <strong>{chords.join(", ")}</strong>. Şarkı sayfasında tonu değiştirip kapo ekleyebilirsin.</p>
+  </SeoText>
 </Base>

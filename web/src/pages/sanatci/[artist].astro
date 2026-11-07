@@ -1,4 +1,5 @@
 ---
+import SeoText from "../../components/SeoText.astro";
 import Base from "../../layouts/Base.astro";
 import SongList from "../../components/SongList.astro";
 import ListSection from "../../components/ListSection.astro";
@@ -77,4 +78,7 @@ const easyNotes = Object.fromEntries(easiest.map((s) => [s.id, songChords(s).cho
   <ListSection title="Bütün sanatçılar" icon="none" href="/sanatcilar/" />
   <ListSection title="Şarkı öner" icon="quote" color="#c077db" href="/iletisim/" />
   <script src="../../scripts/song-filter.ts"></script>
+  <SeoText title={`${artist.name} gitar akorları`}>
+    <p>{artistDescription(artist)}</p>
+  </SeoText>
 </Base>

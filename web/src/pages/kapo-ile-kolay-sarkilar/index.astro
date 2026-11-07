@@ -2,6 +2,7 @@
 // Barre içeren ama kapo takınca açık akorlara inen şarkılar: "Kapo 2 · Em G D C".
 import Base from "../../layouts/Base.astro";
 import SongList from "../../components/SongList.astro";
+import SeoText from "../../components/SeoText.astro";
 import ListSection from "../../components/ListSection.astro";
 import { capoEasySongs, songChords } from "../../lib/chord-stats.ts";
 import { siteUrl, breadcrumbJsonLd } from "../../lib/seo.ts";
@@ -18,15 +19,15 @@ const jsonLd = [
 ];
 ---
 <Base title="Kapo ile Kolay Şarkılar – Barre Olmadan Çal" description={description} jsonLd={jsonLd}>
-  <div class="rp-head"><h1>Kapo ile kolay çalınan şarkılar</h1></div>
-  <div class="rp-content">
-    <p>Bu şarkılar orijinal tonda barre akor içeriyor ama kapo takınca yalnızca açık akorlarla çalınıyor. Her satırda kapoyu takacağın perde ve tutacağın akorlar yazıyor; ses orijinaliyle aynı kalır. Kapo nasıl kullanılır, <a href="/rehber/kapo/">kapo rehberinde</a> anlatıyoruz.</p>
-  </div>
+  <h1 class="visually-hidden">Kapo ile kolay çalınan şarkılar</h1>
   {groups.map((g, i) => (
-    <ListSection title={`Kapo ${g.f}. perdede kolaylaşan şarkılar`} color="#ea494d" open={i === 0} id={`kapo-${g.f}`}>
+    <ListSection title={`Kapo ${g.f}. perdede kolaylaşan şarkılar`} open={i === 0} id={`kapo-${g.f}`}>
       <SongList songs={g.songs.slice(0, PER)} notes={notes} />
     </ListSection>
   ))}
-  <ListSection title="Kapo rehberi" color="#ff9500" href="/rehber/kapo/" />
-  <ListSection title="Kolay gitar akorları" color="#f0a800" href="/kolay-gitar-akorlari/" />
+  <ListSection title="Kapo rehberi" href="/rehber/kapo/" />
+  <ListSection title="Kolay gitar akorları" href="/kolay-gitar-akorlari/" />
+  <SeoText title="Kapo ile kolay çalınan şarkılar">
+    <p>Bu şarkılar orijinal tonda barre akor içeriyor ama kapo takınca yalnızca açık akorlarla çalınıyor. Her satırda kapoyu takacağın perde ve tutacağın akorlar yazıyor; ses orijinaliyle aynı kalır. Kapo nasıl kullanılır, <a href="/rehber/kapo/">kapo rehberinde</a> anlatıyoruz.</p>
+  </SeoText>
 </Base>

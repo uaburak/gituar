@@ -25,11 +25,7 @@ const jsonLd = [
 Astro.response.headers.set("Cache-Control", "public, max-age=300, s-maxage=600");
 ---
 <Base title={title} description={description} canonicalPath={path} noindex={songs.length < 3} jsonLd={jsonLd}>
-  <div class="rp-head">
-    <h1>{rep.name}</h1>
-    <p class="muted small rp-head-note">@{rep.ownerUsername} · {songs.length} şarkı</p>
-  </div>
-  <ListSection title="Şarkılar" color="#ea494d" open>
+  <ListSection title={rep.name} heading="h1" icon="bookmark" color="#0a84ff" open note={`@${rep.ownerUsername} · ${songs.length} şarkı`}>
     <SongList songs={songs} />
     {songs.length === 0 && <p class="muted small rp-empty">Bu repertuarda henüz şarkı yok.</p>}
   </ListSection>

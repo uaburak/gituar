@@ -1,4 +1,5 @@
 ---
+import SeoText from "../../components/SeoText.astro";
 import ListSection from "../../components/ListSection.astro";
 import Base from "../../layouts/Base.astro";
 import SongList from "../../components/SongList.astro";
@@ -22,12 +23,11 @@ const jsonLd = [
 ];
 ---
 <Base title={`${n} Akorlu Kolay Şarkılar – Barresiz Gitar Şarkıları`} description={description} jsonLd={jsonLd}>
-  <div class="rp-head"><h1>{n} akorlu kolay şarkılar</h1></div>
-  <div class="rp-content">
-    <p>Bu listedeki şarkılar yalnızca {n} açık akorla çalınıyor ve hiç barre gerektirmiyor. Satırda şarkının akorları yazar; akorları bilmiyorsan <a href="/akorlar/">akor tablosuna</a> bak.</p>
-  </div>
-  <ListSection title={`${n} akorlu şarkılar`} color="#ea494d" open>
+  <ListSection title={`${n} akorlu kolay şarkılar`} heading="h1" icon="easy" color="#32a852" open>
     <SongList songs={songs.slice(0, LIMIT)} notes={notes} />
   </ListSection>
-  <ListSection title="Kolay gitar akorları" color="#f0a800" href="/kolay-gitar-akorlari/" />
+  <ListSection title="Kolay gitar akorları" href="/kolay-gitar-akorlari/" />
+  <SeoText title={`${n} akorla çalınan şarkılar`}>
+    <p>Bu listedeki şarkılar yalnızca {n} açık akorla çalınıyor ve hiç barre gerektirmiyor. Satırda şarkının akorları yazar; akorları bilmiyorsan <a href="/akorlar/">akor tablosuna</a> bak.</p>
+  </SeoText>
 </Base>

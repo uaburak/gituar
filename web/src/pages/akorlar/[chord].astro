@@ -3,6 +3,7 @@
 import Base from "../../layouts/Base.astro";
 import SongList from "../../components/SongList.astro";
 import ChordDiagram from "../../components/ChordDiagram.astro";
+import SeoText from "../../components/SeoText.astro";
 import ListSection from "../../components/ListSection.astro";
 import { catalog } from "../../lib/catalog.ts";
 import { chordPages, type ChordEntry } from "../../lib/chord-stats.ts";
@@ -46,12 +47,7 @@ const jsonLd = [
 void SHARPS; void chordSlug;
 ---
 <Base title={title} description={description} jsonLd={jsonLd}>
-  <div class="rp-head"><h1>{label} akoru nasıl basılır? <span class="h1-kw">· {tr}</span></h1></div>
-  <div class="rp-content">
-    <p>{answer}</p>
-    {!open && <p class="muted">Barre zor geliyorsa kapo kullanabilirsin: <a href="/rehber/kapo/">kapo rehberi</a> ve <a href="/kapo-ile-kolay-sarkilar/">kapo ile kolay çalınan şarkılar</a>.</p>}
-  </div>
-  <ListSection title={`${name} akoru`} color="#ea494d" open>
+  <ListSection title={`${label} akoru nasıl basılır?`} heading="h1" icon="chord" color="#ea494d" open note={tr}>
     <div class="chord-shapes">
       {shapes.map((s, i) => <ChordDiagram shape={s} label={name} size={i === 0 ? "lg" : "sm"} caption={s.name} />)}
     </div>
@@ -62,13 +58,17 @@ void SHARPS; void chordSlug;
       {entry.aliases.length > 0 && <li><span>Diğer yazımı: </span><b class="mono">{entry.aliases.join(", ")}</b></li>}
     </ul>
   </ListSection>
-  <ListSection title={`${name} akoruyla çalınan şarkılar`} icon="none" open>
+  <ListSection title={`${name} akoruyla çalınan şarkılar`} open>
     <SongList songs={songs.slice(0, LIMIT)} />
   </ListSection>
   {(sameRoot.length > 0 || neighbors.length > 0) && (
-    <ListSection title="İlgili akorlar" icon="none" open all="/akorlar/">
+    <ListSection title="İlgili akorlar" all="/akorlar/">
       <div class="rp-pills">{[...sameRoot, ...neighbors].map((c) => <a class="mono" href={`/akorlar/${c.slug}/`}>{c.name}</a>)}</div>
     </ListSection>
   )}
-  <ListSection title="Gitar akorları tablosu" color="#f0a800" href="/akorlar/" />
+  <ListSection title="Gitar akorları tablosu" href="/akorlar/" />
+  <SeoText title={`${name} akoru`}>
+    <p>{answer}</p>
+    {!open && <p>Barre zor geliyorsa kapo kullanabilirsin: <a href="/rehber/kapo/">kapo rehberi</a> ve <a href="/kapo-ile-kolay-sarkilar/">kapo ile kolay çalınan şarkılar</a>.</p>}
+  </SeoText>
 </Base>

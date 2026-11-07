@@ -15,7 +15,7 @@ const popularArtists = (byPop.length >= 12 ? byPop : [...byPop, ...topArtists(24
 const songsTitle = popularSongs.length ? "Popüler şarkılar" : "";
 ---
 <Base title="Ara" description="Şarkı ya da sanatçı ara." noindex>
-  <div class="rp-head rp-head-search"><h1>Şarkı ara</h1></div>
+  <ListSection title="Şarkı ara" heading="h1" icon="search" color="#0a84ff" fixed />
   <form class="search-big rp-search" role="search" action="/ara/" method="get">
     <Icon name="search" />
     <input type="search" name="q" id="q" placeholder="Şarkı ya da sanatçı" autocomplete="off" aria-label="Ara" autofocus />
@@ -24,23 +24,23 @@ const songsTitle = popularSongs.length ? "Popüler şarkılar" : "";
   <p class="muted small rp-search-status" id="search-status">Şarkı adı, sanatçı ya da ikisi birden: "sezen gülümse" gibi.</p>
 
   <div id="popular">
-    <h2 class="rp-subtitle">Popüler sanatçılar</h2>
-    <div class="rp-pills">{popularArtists.map((a) => <a href={artistPath(a.slug)} title={`${a.name} akorları`}>{a.name}</a>)}</div>
+    <ListSection title="Popüler sanatçılar" color="#499c9f" open all="/sanatcilar/">
+      <div class="rp-pills">{popularArtists.map((a) => <a href={artistPath(a.slug)} title={`${a.name} akorları`}>{a.name}</a>)}</div>
+    </ListSection>
     {popularSongs.length > 0 && (
-      <>
-        <h2 class="rp-subtitle">{songsTitle}</h2>
-        <SongList songs={popularSongs} />
-      </>
+      <ListSection title="Popüler şarkılar" icon="bolt" color="#ea494d" open all="/populer-akorlar/">
+        <SongList songs={popularSongs.slice(0, 19)} />
+      </ListSection>
     )}
   </div>
 
   <section id="artist-results" hidden>
-    <h2 class="rp-subtitle">Sanatçılar</h2>
-    <ul class="rp-list" id="artist-list"></ul>
+    <ListSection title="Sanatçılar" color="#499c9f" fixed />
+    <ul class="rp-list rp-flush" id="artist-list"></ul>
   </section>
   <section id="song-results" hidden>
-    <h2 class="rp-subtitle">Şarkılar</h2>
-    <ul class="rp-list rp-split" id="results"></ul>
+    <ListSection title="Şarkılar" icon="music" color="#ea494d" fixed />
+    <ul class="rp-list rp-flush" id="results"></ul>
     <button class="btn chip rp-show-more" id="show-more" type="button" hidden></button>
   </section>
   <script src="../../scripts/search.ts"></script>

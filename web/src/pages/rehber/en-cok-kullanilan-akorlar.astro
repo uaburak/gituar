@@ -35,11 +35,8 @@ void keyInfo;
 ---
 <Base title="En Çok Kullanılan Gitar Akorları – Türkçe Şarkı Analizi" description={description} jsonLd={jsonLd}>
   <article class="guide">
-    <div class="rp-head">
-      <h1>{h1}</h1>
-      <p class="muted small rp-head-note">Gituar kataloğundaki şarkılardan hesaplandı · Güncelleme: {updated}</p>
-    </div>
-    <div class="rp-content">
+    <ListSection title={h1} heading="h1" icon="book" color="#ff9500" fixed note={`Güncelleme: ${updated}`} />
+    <div class="rp-content rp-article">
       <p class="answer">Türkçe şarkılarda en çok kullanılan gitar akoru <strong>{top[0].name}</strong>: şarkıların {pct(top[0].songIds.length)}'inde geçiyor. Onu {top[1].name} ({pct(top[1].songIds.length)}), {top[2].name} ({pct(top[2].songIds.length)}) ve {top[3].name} ({pct(top[3].songIds.length)}) izliyor. Bir şarkıda en sık {modal[0]} farklı akor kullanılıyor; şarkıların {pct(easy)}'i yalnızca açık akorlarla çalınabiliyor.</p>
 
       <h2>En sık 15 akor</h2>

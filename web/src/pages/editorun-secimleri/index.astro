@@ -1,5 +1,6 @@
 ---
 import ListSection from "../../components/ListSection.astro";
+import SeoText from "../../components/SeoText.astro";
 import Base from "../../layouts/Base.astro";
 import SongList from "../../components/SongList.astro";
 import { catalog } from "../../lib/catalog.ts";
@@ -27,11 +28,10 @@ const jsonLd = [
 ];
 ---
 <Base title="Popüler Gitar Şarkıları – Editörün Seçimleri" description={description} noindex={picks.length === 0} jsonLd={jsonLd}>
-  <div class="rp-head"><h1>Editörün Seçimleri <span class="h1-kw">· popüler gitar şarkıları</span></h1></div>
-  <div class="rp-content"><p id="editor-meta">Gituar ekibinin hazırladığı repertuarlar.</p></div>
+  <ListSection title="Editörün Seçimleri" heading="h1" icon="sparkles" color="#0a84ff" fixed note="popüler gitar şarkıları" />
   {picks.length > 0 ? (
     picks.map((p, i) => (
-      <ListSection title={p.name} color="#ea494d" open={i === 0} id={`liste-${p.id}`} all={repertoirePath(p)}>
+      <ListSection title={p.name} icon="list" color="#0a84ff" open={i === 0} id={`liste-${p.id}`} all={repertoirePath(p)}>
         <SongList songs={p.songs.slice(0, SHOW)} />
       </ListSection>
     ))
@@ -43,6 +43,9 @@ const jsonLd = [
       </ListSection>
     </>
   )}
-  <ListSection title="Popüler akorlar" color="#f0a800" href="/" />
+  <ListSection title="Popüler akorlar" href="/populer-akorlar/" />
+  <SeoText title="Popüler gitar şarkıları">
+    <p>Gituar ekibinin hazırladığı repertuarlar: başlangıç için, hareketli, slow, rock, türküler ve daha fazlası. Her şarkı akorlarıyla; tonu değiştirebilir, kapo ekleyebilirsin.</p>
+  </SeoText>
   <script src="../../scripts/editor-picks.ts"></script>
 </Base>

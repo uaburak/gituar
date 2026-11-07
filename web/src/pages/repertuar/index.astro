@@ -4,12 +4,14 @@ import ListSection from "../../components/ListSection.astro";
 import Base from "../../layouts/Base.astro";
 ---
 <Base title="Repertuar" noindex>
-  <div class="rp-head"><h1 id="rep-title">Repertuar</h1></div>
-  <div class="rp-content"><p id="rep-meta" class="muted"></p></div>
-  <ListSection title="Şarkılar" color="#ea494d" open>
-    <ul class="rp-list" id="rep-songs"></ul>
-    <p class="muted small rp-empty" id="rep-status">Yükleniyor…</p>
-  </ListSection>
-  <ListSection title="Repertuarlarım" icon="none" href="/repertuarlarim/" />
+  <div class="rp-section rp-static">
+    <div class="rp-title">
+      <span class="rp-icon" style="--c:#0a84ff" aria-hidden="true"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M6 3h12a1 1 0 0 1 1 1v17l-7-4.5L5 21V4a1 1 0 0 1 1-1Z"/></svg></span>
+      <h1 id="rep-title">Repertuar</h1><span class="rp-note" id="rep-meta"></span>
+    </div>
+  </div>
+  <ul class="rp-list rp-flush" id="rep-songs"></ul>
+  <p class="muted small rp-empty" id="rep-status">Yükleniyor…</p>
+  <ListSection title="Repertuarlarım" icon="star" color="#f0a800" href="/repertuarlarim/" />
   <script src="../../scripts/repertoire.ts"></script>
 </Base>

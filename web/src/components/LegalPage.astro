@@ -12,11 +12,8 @@ const links = [
 ];
 ---
 <Base title={title} description={description} ads={false}>
-  <div class="rp-head">
-    <h1>{title}</h1>
-    <p class="muted small rp-head-note">Son güncelleme: {updated}</p>
-  </div>
-  <article class="rp-content legal-body">
+  <ListSection title={title} heading="h1" fixed note={`Son güncelleme: ${updated}`} />
+  <article class="rp-content rp-article legal-body">
     <slot />
   </article>
   {links.filter((l) => l.path !== path).map((l) => <ListSection title={l.label} icon="none" href={l.path} />)}

@@ -14,8 +14,10 @@ interface Props {
   note?: string;
   /** Açılır bölümün altında "Tümü ›" bağlantısı: bölümün kendi sayfası. */
   all?: string;
+  /** Açılmayan sabit başlık satırı (sayfa başlığı); altındaki içerik bölümün dışında durur. */
+  fixed?: boolean;
 }
-const { title, icon: iconProp, color: colorProp, open = false, href, action, id, heading = "h2", note, all } = Astro.props;
+const { title, icon: iconProp, color: colorProp, open = false, href, action, id, heading = "h2", note, all, fixed = false } = Astro.props;
 
 // Hat ikonları (24'lük kutu; s = çizgi, f = dolgu). Renk currentColor → bölümün rengi.
 const S = 'fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"';
@@ -78,7 +80,14 @@ for (const ch of title) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
 const color = colorProp ?? PALETTE[h % PALETTE.length];
 const H = heading;
 ---
-{href ? (
+{fixed ? (
+  <div class="rp-section rp-static" id={id}>
+    <div class="rp-title">
+      <span class="rp-icon" style={`--c:${color}`} aria-hidden="true"><svg viewBox="0 0 24 24" set:html={svg} /></span>
+      <H>{title}</H>{note && <span class="rp-note">{note}</span>}
+    </div>
+  </div>
+) : href ? (
   <a class="rp-section rp-title" href={href} id={id}>
     <span class="rp-icon" style={`--c:${color}`} aria-hidden="true"><svg viewBox="0 0 24 24" set:html={svg} /></span>
     <H>{title}</H>{note && <span class="rp-note">{note}</span>}

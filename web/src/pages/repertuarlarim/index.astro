@@ -4,16 +4,14 @@ import ListSection from "../../components/ListSection.astro";
 import Base from "../../layouts/Base.astro";
 ---
 <Base title="Repertuarlarım" noindex>
-  <div class="rp-head">
-    <h1>Repertuarlarım</h1>
-  </div>
-  <div class="rp-content"><p id="rep-meta" class="muted">iPhone'daki Gituar ile eşitlenir</p></div>
+  <ListSection title="Repertuarlarım" heading="h1" icon="star" color="#f0a800" fixed />
+  <p id="rep-meta" class="muted small rp-empty">iPhone'daki Gituar ile eşitlenir</p>
   <div id="rep-auth" class="alert" hidden>Repertuarlarını görmek için <a href="/giris/?next=/repertuarlarim/">giriş yap</a>.</div>
-  <ListSection title="Repertuarlarım" color="#ea494d" open>
+  <ListSection title="Repertuarlar" icon="bookmark" color="#0a84ff" open>
     <ul class="rp-list" id="rep-grid"></ul>
     <p class="muted small rp-empty" id="rep-status">Yükleniyor…</p>
   </ListSection>
-  <ListSection title="Yeni repertuar" icon="dot" color="#c077db" open>
+  <ListSection title="Yeni repertuar" open>
     <form id="rep-create" class="rep-create rp-form" hidden>
       <input class="input" name="name" placeholder="Yeni repertuar adı · şarkıları şarkı sayfasından eklersin" required aria-label="Yeni repertuar adı" />
       <button class="btn btn-primary" type="submit">Oluştur</button>

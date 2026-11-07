@@ -3,6 +3,7 @@
 import Base from "../../layouts/Base.astro";
 import SongList from "../../components/SongList.astro";
 import ChordDiagram from "../../components/ChordDiagram.astro";
+import SeoText from "../../components/SeoText.astro";
 import ListSection from "../../components/ListSection.astro";
 import { easySongs, songChords, capoEasySongs, chordHref } from "../../lib/chord-stats.ts";
 import { chordShapes, chordSlug } from "../../lib/chord-theory.ts";
@@ -30,26 +31,25 @@ const jsonLd = [
 ];
 ---
 <Base title="Kolay Gitar Akorları – Barresiz Şarkılar ve Temel Akorlar" description={description} jsonLd={jsonLd}>
-  <div class="rp-head"><h1>Kolay gitar akorları <span class="h1-kw">· barresiz şarkılar</span></h1></div>
-  <div class="rp-content">
-    <p>Kolay gitar akorları, barre gerektirmeyen açık akorlardır: Am, C, D, Em, G, A, Dm ve E. Aşağıda akorların diyagramları ve en az akorlu şarkılardan başlayan liste var.</p>
-  </div>
-  <ListSection title="Temel açık akorlar" color="#ea494d" open>
+  <ListSection title="Kolay gitar akorları" heading="h1" icon="easy" color="#32a852" open note="barresiz şarkılar">
+    <SongList songs={songs.slice(0, LIMIT)} notes={notes} />
+  </ListSection>
+  <ListSection title="Temel açık akorlar" all="/akorlar/">
     <div class="chord-grid">
       {basics.map(([r, q]) => <ChordDiagram shape={chordShapes(r, q)[0]} label={r + q} href={chordHref(r, q)} />)}
     </div>
   </ListSection>
-  <ListSection title="Açık akorlarla çalınan şarkılar" icon="none" open>
-    <SongList songs={songs.slice(0, LIMIT)} notes={notes} />
-  </ListSection>
-  <ListSection title="Akor sayısına göre" icon="none">
+  <ListSection title="Akor sayısına göre">
     <div class="rp-pills">
       {byCount.map((g) => <a href={`/kolay-gitar-akorlari/${g.n}-akorlu-sarkilar/`}>{g.n} akorlu şarkılar</a>)}
     </div>
   </ListSection>
-  <ListSection title="Sık sorulan sorular" icon="none">
+  <ListSection title="Sık sorulan sorular">
     <ul class="rp-info rp-faq">{faq.map(([q, a]) => <li><b>{q}</b><span>{a}</span></li>)}</ul>
   </ListSection>
-  <ListSection title="Kapo ile kolay şarkılar" color="#ff9500" href="/kapo-ile-kolay-sarkilar/" />
-  <ListSection title="Gitar akorları tablosu" color="#f0a800" href="/akorlar/" />
+  <ListSection title="Kapo ile kolay şarkılar" href="/kapo-ile-kolay-sarkilar/" />
+  <ListSection title="Gitar akorları tablosu" href="/akorlar/" />
+  <SeoText title="Barresiz çalınan şarkılar">
+    <p>Kolay gitar akorları, barre gerektirmeyen açık akorlardır: Am, C, D, Em, G, A, Dm ve E. Yukarıdaki liste en az akorlu şarkılardan başlar; her satırda şarkının akorları yazar.</p>
+  </SeoText>
 </Base>

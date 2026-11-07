@@ -994,3 +994,9 @@ button.rp-all { width: 100%; border: 0; background: none; font: inherit; text-al
 .rp-all:hover { background: var(--row-hover); text-decoration: none; }
 .rp-badge-all { background: var(--pro-gradient); }
 .rp-badge-all svg { width: 13px; height: 13px; }
+/* Sabit sayfa başlığı satırının altındaki süzme kutusu */
+.rp-filter-row { padding: 16px 0 4px; }
+.rp-filter-row .rp-filter { margin: 0; }
+.rp-icon-letter { font-size: 12px; font-weight: 700; line-height: 1; }
+.page-card .rp-flush { margin-left: calc(-1 * var(--card-pad)); margin-right: calc(-1 * var(--card-pad)); }
+.rp-article { padding-top: 20px; }

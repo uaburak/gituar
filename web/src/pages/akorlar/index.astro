@@ -1,4 +1,5 @@
 ---
+import SeoText from "../../components/SeoText.astro";
 import ListSection from "../../components/ListSection.astro";
 import Base from "../../layouts/Base.astro";
 import ChordDiagram from "../../components/ChordDiagram.astro";
@@ -20,22 +21,21 @@ const jsonLd = [
 ];
 ---
 <Base title="Gitar Akorları Tablosu – Akor Nasıl Basılır?" description={description} jsonLd={jsonLd}>
-  <div class="rp-head"><h1>Gitar akorları tablosu</h1></div>
-  <div class="rp-content">
-    <p>Gitarda en çok kullanılan akorlar Am, G, C, Em, Dm ve F'dir; Türkçe şarkıların üçte birinden fazlasında geçerler. Aşağıda her akorun diyagramı, nasıl basıldığı ve o akorla çalınan şarkılar var. Yeni başlıyorsan önce açık akorları öğren, sonra <a href="/kolay-gitar-akorlari/">kolay şarkılarla</a> pratik yap.</p>
-  </div>
-  <ListSection title="Temel açık akorlar" color="#ea494d" open all="/kolay-gitar-akorlari/">
+  <ListSection title="Gitar akorları tablosu" heading="h1" icon="chord" color="#ea494d" open all="/kolay-gitar-akorlari/">
     <div class="chord-grid">
       {basics.map((c) => <ChordDiagram shape={chordShapes(c.root, c.quality)[0]} label={c.name} href={`/akorlar/${c.slug}/`} />)}
     </div>
   </ListSection>
   {groups.map((g) => (
-    <ListSection title={`${g.note} akorları`} icon="none">
+    <ListSection title={`${g.note} akorları`} icon="chord">
       <div class="chord-grid">
         {g.chords.map((c) => <ChordDiagram shape={chordShapes(c.root, c.quality)[0]} label={c.name} href={`/akorlar/${c.slug}/`} />)}
       </div>
     </ListSection>
   ))}
-  <ListSection title="Kolay gitar akorları" color="#f0a800" href="/kolay-gitar-akorlari/" />
-  <ListSection title="Kapo ile kolay şarkılar" color="#ff9500" href="/kapo-ile-kolay-sarkilar/" />
+  <ListSection title="Kolay gitar akorları" href="/kolay-gitar-akorlari/" />
+  <ListSection title="Kapo ile kolay şarkılar" href="/kapo-ile-kolay-sarkilar/" />
+  <SeoText title="Gitarda en çok kullanılan akorlar">
+    <p>Gitarda en çok kullanılan akorlar Am, G, C, Em, Dm ve F'dir; Türkçe şarkıların üçte birinden fazlasında geçerler. Yukarıda her akorun diyagramı var; akora tıklayınca nasıl basıldığını ve o akorla çalınan şarkıları görürsün. Yeni başlıyorsan önce açık akorları öğren, sonra <a href="/kolay-gitar-akorlari/">kolay şarkılarla</a> pratik yap.</p>
+  </SeoText>
 </Base>

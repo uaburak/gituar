@@ -1,0 +1,9 @@
+---
+// Sayfanın en altındaki tanıtım metni (ana sayfadaki gibi): başlık + paragraflar, slot ile.
+interface Props { title: string }
+const { title } = Astro.props;
+---
+<section class="rp-seo">
+  <h2>{title}</h2>
+  <slot />
+</section>

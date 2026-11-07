@@ -1,6 +1,7 @@
 ---
 // Yasal sayfalar için ortak kabuk: başlık, güncelleme tarihi, gövde ve diğer yasal sayfalara bağlantılar.
 import Base from "../layouts/Base.astro";
+import ListSection from "./ListSection.astro";
 interface Props { title: string; description: string; updated: string; path: string }
 const { title, description, updated, path } = Astro.props;
 const links = [
@@ -11,15 +12,13 @@ const links = [
 ];
 ---
 <Base title={title} description={description} ads={false}>
-  <div class="crumbs"><a href="/">Ana sayfa</a><span>/</span>{title}</div>
-  <div class="legal-layout">
-    <nav class="card legal-menu" aria-label="Yasal sayfalar">
-      {links.map((l) => <a href={l.path} aria-current={l.path === path ? "page" : undefined}>{l.label}</a>)}
-    </nav>
-    <article class="guide-body legal-body">
-      <h1>{title}</h1>
-      <p class="legal-updated">Son güncelleme: {updated}</p>
-      <slot />
-    </article>
+  <div class="rp-head">
+    <h1>{title}</h1>
+    <p class="muted small rp-head-note">Son güncelleme: {updated}</p>
   </div>
+  <article class="rp-content legal-body">
+    <slot />
+  </article>
+  {links.filter((l) => l.path !== path).map((l) => <ListSection title={l.label} icon="none" href={l.path} />)}
+  <ListSection title="gituar.com" icon="heart" color="#ea494d" href="/" />
 </Base>

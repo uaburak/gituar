@@ -2,7 +2,7 @@
 // Barre içeren ama kapo takınca açık akorlara inen şarkılar: "Kapo 2 · Em G D C".
 import Base from "../../layouts/Base.astro";
 import SongList from "../../components/SongList.astro";
-import AdSlot from "../../components/AdSlot.astro";
+import ListSection from "../../components/ListSection.astro";
 import { capoEasySongs, songChords } from "../../lib/chord-stats.ts";
 import { siteUrl, breadcrumbJsonLd } from "../../lib/seo.ts";
 
@@ -18,20 +18,15 @@ const jsonLd = [
 ];
 ---
 <Base title="Kapo ile Kolay Şarkılar – Barre Olmadan Çal" description={description} jsonLd={jsonLd}>
-  <div class="page-head">
-    <nav class="crumbs" aria-label="Sayfa yolu"><a href="/">Ana sayfa</a><span>/</span><a href="/kolay-gitar-akorlari/">Kolay gitar akorları</a><span>/</span>Kapo ile kolay</nav>
-    <h1>Kapo ile kolay çalınan şarkılar</h1>
-    <p class="answer">Bu şarkılar orijinal tonda barre akor içeriyor ama kapo takınca yalnızca açık akorlarla çalınıyor. Her satırda kapoyu takacağın perde ve tutacağın akorlar yazıyor; ses orijinaliyle aynı kalır. Kapo nasıl kullanılır, <a href="/rehber/kapo/">kapo rehberinde</a> anlatıyoruz.</p>
+  <div class="rp-head"><h1>Kapo ile kolay çalınan şarkılar</h1></div>
+  <div class="rp-content">
+    <p>Bu şarkılar orijinal tonda barre akor içeriyor ama kapo takınca yalnızca açık akorlarla çalınıyor. Her satırda kapoyu takacağın perde ve tutacağın akorlar yazıyor; ses orijinaliyle aynı kalır. Kapo nasıl kullanılır, <a href="/rehber/kapo/">kapo rehberinde</a> anlatıyoruz.</p>
   </div>
-  <div class="chord-chips">
-    {groups.map((g) => <a class="btn chip" href={`#kapo-${g.f}`}>Kapo {g.f}</a>)}
-  </div>
-  <AdSlot size="inline" unit="capo-top" />
-  {groups.map((g) => (
-    <section class="section" id={`kapo-${g.f}`}>
-      <div class="section-head"><h2>Kapo {g.f}. perdede kolaylaşan şarkılar</h2></div>
+  {groups.map((g, i) => (
+    <ListSection title={`Kapo ${g.f}. perdede kolaylaşan şarkılar`} icon={i === 0 ? "bolt" : "none"} color="#ea494d" open={i === 0} id={`kapo-${g.f}`}>
       <SongList songs={g.songs.slice(0, PER)} notes={notes} />
-    </section>
+    </ListSection>
   ))}
-<AdSlot size="leaderboard" unit="capo-bottom" />
-  </Base>
+  <ListSection title="Kapo rehberi" color="#ff9500" href="/rehber/kapo/" />
+  <ListSection title="Kolay gitar akorları" color="#ffcc00" href="/kolay-gitar-akorlari/" />
+</Base>

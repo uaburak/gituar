@@ -39,41 +39,42 @@ const otherArtists = topArtists(21).filter((a) => a.slug !== artist.slug).slice(
 const easyNotes = Object.fromEntries(easiest.map((s) => [s.id, songChords(s).chords.map((c) => c.name).join(" ")]));
 ---
 <Base noindex={thin} title={artistTitle(artist)} description={artistDescription(artist)} ogType="profile" jsonLd={artistJsonLd(artist, base)}>
-  <div class="rp-head">
-    <nav class="crumbs" aria-label="Sayfa yolu"><a href="/">Ana sayfa</a><span>/</span><a href="/sanatcilar/">Sanatçılar</a><span>/</span>{artist.name}</nav>
-    <h1>{artist.name} akorları</h1>
-    {n >= 3 && (
-      <p class="artist-facts">
-        {n} şarkı{topKey && <> · en sık ton <strong>{topKey[0]}</strong></>}
-        {topChords.length > 0 && <> · en çok kullanılan akorlar {topChords.slice(0, 4).map(([name, c], i) => { const href = chordHref(c.root, c.quality); return <>{i > 0 && ", "}{href ? <a href={href}>{name}</a> : name}</>; })}</>}
-        {easyCount > 0 && <> · {easyCount} şarkı barresiz</>}
-      </p>
+  <ListSection title={`${artist.name} akorları`} heading="h1" icon="none" open>
+    {n >= 8 && (
+      <form class="search-inline rp-filter" role="search" onsubmit="return false">
+        <Icon name="search" />
+        <input type="search" id="song-filter" placeholder={`${artist.name} şarkılarında ara`} autocomplete="off" aria-label="Şarkılarda ara" />
+      </form>
     )}
-    <form class="search-inline rp-filter" role="search" onsubmit="return false">
-      <Icon name="search" />
-      <input type="search" id="song-filter" placeholder={`${artist.name} şarkılarında ara`} autocomplete="off" aria-label="Şarkılarda ara" />
-    </form>
-  </div>
-  <ListSection title={`${artist.name} şarkıları`} icon="bolt" color="#ff3b30" open note={`${n} şarkı`}>
-    <SongList songs={artist.songs} showArtist={false} id="artist-songs" />
-    <p class="muted small" id="filter-empty" hidden>Bu aramayla eşleşen şarkı yok.</p>
+    <SongList songs={artist.songs} cols={1} id="artist-songs" />
+    <p class="muted small rp-empty" id="filter-empty" hidden>Bu aramayla eşleşen şarkı yok.</p>
   </ListSection>
+  {otherArtists.length > 0 && (
+    <ListSection title="Benzer Sanatçılar" icon="none" open>
+      <ul class="rp-list">{otherArtists.map((a) => <ArtistRow artist={a} />)}</ul>
+    </ListSection>
+  )}
   {n >= 5 && easiest.length >= 3 && (
-    <ListSection title={`En kolay ${artist.name} şarkıları`} icon="none" note="barresiz">
-      <SongList songs={easiest} showArtist={false} notes={easyNotes} />
+    <ListSection title={`En kolay ${artist.name} şarkıları`} icon="none">
+      <SongList songs={easiest} cols={1} notes={easyNotes} />
     </ListSection>
   )}
   {featured.length > 0 && (
-    <ListSection title="Düetleri" icon="none">
-      <SongList songs={featured} />
+    <ListSection title={`${artist.name} düetleri`} icon="none">
+      <SongList songs={featured} cols={1} />
     </ListSection>
   )}
-  {otherArtists.length > 0 && (
-    <ListSection title="Diğer sanatçılar" icon="none" open>
-      <div class="list rp-artists">{otherArtists.map((a) => <ArtistRow artist={a} />)}</div>
+  {n >= 3 && (
+    <ListSection title="Bilgiler" icon="none">
+      <ul class="rp-info">
+        <li><span>Şarkı sayısı: </span><b>{n}</b></li>
+        {topKey && <li><span>En sık ton: </span><b>{topKey[0]}</b></li>}
+        {topChords.length > 0 && <li><span>En çok kullanılan akorlar: </span>{topChords.slice(0, 4).map(([name, c], i) => { const href = chordHref(c.root, c.quality); return <>{i > 0 && ", "}{href ? <a href={href}>{name}</a> : <b>{name}</b>}</>; })}</li>}
+        {easyCount > 0 && <li><span>Barresiz çalınan: </span><b>{easyCount} şarkı</b></li>}
+      </ul>
     </ListSection>
   )}
-  <ListSection title="Bütün sanatçılar" icon="none" href="/sanatcilar/" note="A'dan Z'ye" />
-  <ListSection title="Şarkı öner" icon="none" href="/iletisim/" />
+  <ListSection title="Bütün sanatçılar" icon="none" href="/sanatcilar/" />
+  <ListSection title="Şarkı öner" icon="quote" color="#c077db" href="/iletisim/" />
   <script src="../../scripts/song-filter.ts"></script>
 </Base>

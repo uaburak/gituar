@@ -1,5 +1,5 @@
 ---
-import AdSlot from "../../components/AdSlot.astro";
+import ListSection from "../../components/ListSection.astro";
 import Base from "../../layouts/Base.astro";
 import { catalog } from "../../lib/catalog.ts";
 import { keySlug, keyTurkish } from "../../lib/keys.ts";
@@ -12,15 +12,16 @@ const base = siteUrl(Astro.site);
 const description = "Gitar akorlarını tona göre bul: majör ve minör tonlarda şarkı listeleri, her tonun sık kullanılan akorları. Transpoze ve kapo ile istediğin tona taşı.";
 ---
 <Base title="Tona Göre Şarkı Akorları – Majör ve Minör Tonlar" description={description} jsonLd={[{ "@context": "https://schema.org", "@type": "CollectionPage", name: "Tona göre şarkı akorları", url: `${base}/ton/`, description, inLanguage: "tr" }, breadcrumbJsonLd(base, [{ name: "Ana sayfa", path: "/" }, { name: "Tonlar", path: "/ton/" }])]}>
-  <div class="page-head">
-    <div class="crumbs"><a href="/">Ana sayfa</a><span>/</span>Tonlar</div>
-    <h1>Tona göre şarkı akorları</h1>
-    <p>Hangi tonda çalmak istiyorsan o tondaki şarkıları listele. Sayfa başında tonun sık kullanılan akorları yazar.</p>
+  <div class="rp-head"><h1>Tona göre şarkı akorları</h1></div>
+  <div class="rp-content">
+    <p>Hangi tonda çalmak istiyorsan o tondaki şarkıları listele. Ton sayfasının başında o tonun sık kullanılan akorları yazar.</p>
   </div>
-  <div class="grid-3 pick-grid">
-    {keys.map(([label, n, k]) => (
-      <a class="card pick" href={`/ton/${keySlug(k)}/`}><span class="pick-tile mono" aria-hidden="true">{k}</span><span class="pick-body"><span class="pick-title">{label} tonu</span><span class="muted small">{keyTurkish(k)}</span></span><span class="pick-arrow" aria-hidden="true">›</span></a>
-    ))}
-  </div>
-<AdSlot size="leaderboard" unit="keys" />
-  </Base>
+  <ListSection title="Tonlar" icon="bolt" color="#ea494d" open>
+    <ul class="rp-list rp-split">
+      {keys.map(([label, n, k]) => (
+        <li><a class="row" href={`/ton/${keySlug(k)}/`} title={`${label} tonunda şarkı akorları`}><span class="rp-badge rp-badge-key" aria-hidden="true">{k}</span><span class="rp-text"><span class="row-title">{label} tonu</span><span class="row-note"> · {keyTurkish(k)}</span></span></a></li>
+      ))}
+    </ul>
+  </ListSection>
+  <ListSection title="Gitar akorları tablosu" color="#ffcc00" href="/akorlar/" />
+</Base>

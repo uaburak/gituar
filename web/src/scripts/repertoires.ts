@@ -19,9 +19,8 @@ const newBtn = document.getElementById("rep-new-btn") as HTMLButtonElement;
     const reps = await listMyRepertoires(user!.uid);
     grid.innerHTML = reps
       .map((r) => {
-        const initial = esc(r.name.trim().charAt(0).toLocaleUpperCase("tr-TR") || "?");
         const sub = `${r.songIds.length} şarkı${r.isPublic ? " · herkese açık" : ""}`;
-        return `<a class="card pick" href="/repertuar/?id=${esc(r.id)}"><span class="pick-tile" aria-hidden="true">${initial}</span><span class="pick-body"><span class="pick-title">${esc(r.name)}</span><span class="muted small">${sub}</span></span><span class="pick-arrow" aria-hidden="true">›</span></a>`;
+        return `<li><a class="row" href="/repertuar/?id=${esc(r.id)}"><span class="rp-badge rp-badge-list" aria-hidden="true">R</span><span class="rp-text"><span class="row-title">${esc(r.name)}</span><span class="row-note"> · ${sub}</span></span></a></li>`;
       })
       .join("");
     meta.textContent = `${reps.length} repertuar · iPhone'daki Gituar ile eşitlenir`;

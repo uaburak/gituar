@@ -53,5 +53,5 @@ export function editorPicks(): Promise<EditorPick[]> {
 }
 
 export function pickCardHtml(p: EditorPick, esc: (s: string) => string): string {
-  return `<a class="card pick" href="/repertuar/?id=${esc(p.id)}"><span class="pick-tile" aria-hidden="true">${esc(p.name.trim().charAt(0).toLocaleUpperCase("tr-TR"))}</span><span class="pick-body"><span class="pick-title">${esc(p.name)}</span><span class="muted small">${p.count} şarkı · Editör repertuarı</span></span><span class="pick-arrow" aria-hidden="true">›</span></a>`;
+  return `<li><a class="row" href="/repertuar/?id=${esc(p.id)}" title="${esc(p.name)}"><span class="rp-badge rp-badge-list" aria-hidden="true">R</span><span class="rp-text"><span class="row-title">${esc(p.name)}</span><span class="row-note"> · ${p.count} şarkı</span></span></a></li>`;
 }

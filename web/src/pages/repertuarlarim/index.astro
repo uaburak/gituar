@@ -1,20 +1,24 @@
 ---
 export const prerender = true;
+import ListSection from "../../components/ListSection.astro";
 import Base from "../../layouts/Base.astro";
 ---
 <Base title="Repertuarlarım" noindex>
-  <div class="page-head">
-    <div class="title-row">
-      <div><h1>Repertuarlarım</h1><p id="rep-meta">iPhone'daki Gituar ile eşitlenir</p></div>
-      <button class="btn btn-primary" id="rep-new-btn" type="button" hidden>Yeni repertuar</button>
-    </div>
+  <div class="rp-head">
+    <h1>Repertuarlarım</h1>
   </div>
+  <div class="rp-content"><p id="rep-meta" class="muted">iPhone'daki Gituar ile eşitlenir</p></div>
   <div id="rep-auth" class="alert" hidden>Repertuarlarını görmek için <a href="/giris/?next=/repertuarlarim/">giriş yap</a>.</div>
-  <form id="rep-create" class="card rep-create" hidden>
-    <input class="input" name="name" placeholder="Yeni repertuar adı · şarkıları şarkı sayfasından eklersin" required aria-label="Yeni repertuar adı" />
-    <button class="btn btn-primary" type="submit">Oluştur</button>
-  </form>
-  <div class="grid-3 pick-grid rep-grid" id="rep-grid"></div>
-  <p class="muted small" id="rep-status" style="margin-top:16px">Yükleniyor…</p>
+  <ListSection title="Repertuarlarım" icon="bolt" color="#ea494d" open>
+    <ul class="rp-list" id="rep-grid"></ul>
+    <p class="muted small rp-empty" id="rep-status">Yükleniyor…</p>
+  </ListSection>
+  <ListSection title="Yeni repertuar" icon="dot" color="#c077db" open>
+    <form id="rep-create" class="rep-create rp-form" hidden>
+      <input class="input" name="name" placeholder="Yeni repertuar adı · şarkıları şarkı sayfasından eklersin" required aria-label="Yeni repertuar adı" />
+      <button class="btn btn-primary" type="submit">Oluştur</button>
+    </form>
+    <button class="btn btn-primary" id="rep-new-btn" type="button" hidden>Yeni repertuar</button>
+  </ListSection>
   <script src="../../scripts/repertoires.ts"></script>
 </Base>

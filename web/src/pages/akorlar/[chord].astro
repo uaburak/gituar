@@ -3,7 +3,7 @@
 import Base from "../../layouts/Base.astro";
 import SongList from "../../components/SongList.astro";
 import ChordDiagram from "../../components/ChordDiagram.astro";
-import AdSlot from "../../components/AdSlot.astro";
+import ListSection from "../../components/ListSection.astro";
 import { catalog } from "../../lib/catalog.ts";
 import { chordPages, type ChordEntry } from "../../lib/chord-stats.ts";
 import { chordShapes, chordNotes, chordTurkish, noteTurkish, QUALITIES, isOpenChord, chordSlug, SHARPS, pitchClass } from "../../lib/chord-theory.ts";
@@ -46,39 +46,29 @@ const jsonLd = [
 void SHARPS; void chordSlug;
 ---
 <Base title={title} description={description} jsonLd={jsonLd}>
-  <div class="page-head">
-    <nav class="crumbs" aria-label="Sayfa yolu"><a href="/">Ana sayfa</a><span>/</span><a href="/akorlar/">Akorlar</a><span>/</span>{name}</nav>
-    <h1>{label} akoru nasıl basılır? <span class="h1-kw">· {tr}</span></h1>
-    <p class="answer">{answer}</p>
+  <div class="rp-head"><h1>{label} akoru nasıl basılır? <span class="h1-kw">· {tr}</span></h1></div>
+  <div class="rp-content">
+    <p>{answer}</p>
+    {!open && <p class="muted">Barre zor geliyorsa kapo kullanabilirsin: <a href="/rehber/kapo/">kapo rehberi</a> ve <a href="/kapo-ile-kolay-sarkilar/">kapo ile kolay çalınan şarkılar</a>.</p>}
   </div>
-
-  <section class="chord-shapes card">
-    {shapes.map((s, i) => <ChordDiagram shape={s} label={name} size={i === 0 ? "lg" : "sm"} caption={s.name} />)}
-    <dl class="chord-facts">
-      <div><dt>Notalar</dt><dd class="mono">{notes.join(" – ")}</dd></div>
-      <div><dt>Tür</dt><dd>{QUALITIES[quality].tr}</dd></div>
-      <div><dt>Zorluk</dt><dd>{open ? "Kolay · açık akor" : "Barre akor"}</dd></div>
-      {entry.aliases.length > 0 && <div><dt>Diğer yazımı</dt><dd class="mono">{entry.aliases.join(", ")}</dd></div>}
-    </dl>
-  </section>
-
-  {!open && (
-    <p class="muted small" style="margin-top:12px">Barre zor geliyorsa kapo kullanabilirsin: <a href="/rehber/kapo/">kapo rehberi</a> ve <a href="/kapo-ile-kolay-sarkilar/">kapo ile kolay çalınan şarkılar</a>.</p>
-  )}
-
-  <AdSlot size="inline" unit="chord-top" />
-
-  <section class="section">
-    <div class="section-head"><h2>{name} akoruyla çalınan şarkılar</h2></div>
+  <ListSection title={`${name} akoru`} icon="bolt" color="#ea494d" open>
+    <div class="chord-shapes">
+      {shapes.map((s, i) => <ChordDiagram shape={s} label={name} size={i === 0 ? "lg" : "sm"} caption={s.name} />)}
+    </div>
+    <ul class="rp-info">
+      <li><span>Notalar: </span><b class="mono">{notes.join(" – ")}</b></li>
+      <li><span>Tür: </span><b>{QUALITIES[quality].tr}</b></li>
+      <li><span>Zorluk: </span><b>{open ? "Kolay · açık akor" : "Barre akor"}</b></li>
+      {entry.aliases.length > 0 && <li><span>Diğer yazımı: </span><b class="mono">{entry.aliases.join(", ")}</b></li>}
+    </ul>
+  </ListSection>
+  <ListSection title={`${name} akoruyla çalınan şarkılar`} icon="none" open>
     <SongList songs={songs.slice(0, LIMIT)} />
-  </section>
-
+  </ListSection>
   {(sameRoot.length > 0 || neighbors.length > 0) && (
-    <section class="section">
-      <div class="section-head"><h2>İlgili akorlar</h2><a href="/akorlar/">Tüm akorlar ›</a></div>
-      <div class="chord-chips">
-        {[...sameRoot, ...neighbors].map((c) => <a class="chip btn mono" href={`/akorlar/${c.slug}/`}>{c.name}</a>)}
-      </div>
-    </section>
+    <ListSection title="İlgili akorlar" icon="none" open>
+      <div class="rp-pills">{[...sameRoot, ...neighbors].map((c) => <a class="mono" href={`/akorlar/${c.slug}/`}>{c.name}</a>)}</div>
+    </ListSection>
   )}
+  <ListSection title="Gitar akorları tablosu" color="#ffcc00" href="/akorlar/" />
 </Base>

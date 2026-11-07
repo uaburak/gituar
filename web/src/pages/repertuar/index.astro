@@ -1,10 +1,15 @@
 ---
 export const prerender = true;
+import ListSection from "../../components/ListSection.astro";
 import Base from "../../layouts/Base.astro";
 ---
 <Base title="Repertuar" noindex>
-  <div class="page-head"><div class="crumbs"><a href="/repertuarlarim/">Repertuarlarım</a></div><h1 id="rep-title">Repertuar</h1><p id="rep-meta"></p></div>
-  <div class="list" id="rep-songs"></div>
-  <p class="muted small" id="rep-status" style="margin-top:16px">Yükleniyor…</p>
+  <div class="rp-head"><h1 id="rep-title">Repertuar</h1></div>
+  <div class="rp-content"><p id="rep-meta" class="muted"></p></div>
+  <ListSection title="Şarkılar" icon="bolt" color="#ea494d" open>
+    <ul class="rp-list" id="rep-songs"></ul>
+    <p class="muted small rp-empty" id="rep-status">Yükleniyor…</p>
+  </ListSection>
+  <ListSection title="Repertuarlarım" icon="none" href="/repertuarlarim/" />
   <script src="../../scripts/repertoire.ts"></script>
 </Base>

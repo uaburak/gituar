@@ -7,6 +7,6 @@ const meta = document.getElementById("editor-meta");
 editorPicks().then((picks) => {
   if (!grid) return;
   grid.innerHTML = picks.map((p) => pickCardHtml(p, esc)).join("");
-  if (meta) meta.textContent = picks.length ? `${picks.length} özel liste · Gituar ekibinin hazırladığı repertuarlar` : "Gituar ekibinin hazırladığı repertuarlar";
+  if (meta) meta.textContent = "Gituar ekibinin hazırladığı repertuarlar.";
   if (status) status.textContent = picks.length ? "" : "Şu an listelenecek repertuar yok.";
 });

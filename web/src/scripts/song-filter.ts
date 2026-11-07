@@ -4,7 +4,7 @@ const input = document.getElementById("song-filter") as HTMLInputElement | null;
 const list = document.getElementById("artist-songs");
 const empty = document.getElementById("filter-empty");
 if (input && list) {
-  const rows = [...list.querySelectorAll<HTMLAnchorElement>(".row")].map((el) => ({ el, key: turkeyNormalized(el.querySelector(".row-title")?.textContent ?? "") }));
+  const rows = [...list.querySelectorAll<HTMLAnchorElement>(".row")].map((a) => ({ el: (a.closest("li") ?? a) as HTMLElement, key: turkeyNormalized(a.querySelector(".row-title")?.textContent ?? "") }));
   const ads = [...list.querySelectorAll<HTMLElement>(".ad-slot")];
   input.addEventListener("input", () => {
     const q = turkeyNormalized(input.value.trim());

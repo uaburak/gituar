@@ -1,6 +1,6 @@
 ---
 // Katalogdan hesaplanan, başka yerde bulunmayan istatistikler: en sık akorlar, akor sayısı dağılımı, tonlar.
-import AdSlot from "../../components/AdSlot.astro";
+import ListSection from "../../components/ListSection.astro";
 import Base from "../../layouts/Base.astro";
 import { catalog } from "../../lib/catalog.ts";
 import { chordStats, chordHref, easySongs, capoEasySongs } from "../../lib/chord-stats.ts";
@@ -35,12 +35,11 @@ void keyInfo;
 ---
 <Base title="En Çok Kullanılan Gitar Akorları – Türkçe Şarkı Analizi" description={description} jsonLd={jsonLd}>
   <article class="guide">
-    <div class="page-head">
-      <div class="crumbs"><a href="/">Ana sayfa</a><span>/</span><a href="/rehber/">Rehber</a><span>/</span>En çok kullanılan akorlar</div>
+    <div class="rp-head">
       <h1>{h1}</h1>
-      <p class="muted small">Gituar kataloğundaki şarkılardan hesaplandı · Güncelleme: {updated}</p>
+      <p class="muted small rp-head-note">Gituar kataloğundaki şarkılardan hesaplandı · Güncelleme: {updated}</p>
     </div>
-    <div class="guide-body">
+    <div class="rp-content">
       <p class="answer">Türkçe şarkılarda en çok kullanılan gitar akoru <strong>{top[0].name}</strong>: şarkıların {pct(top[0].songIds.length)}'inde geçiyor. Onu {top[1].name} ({pct(top[1].songIds.length)}), {top[2].name} ({pct(top[2].songIds.length)}) ve {top[3].name} ({pct(top[3].songIds.length)}) izliyor. Bir şarkıda en sık {modal[0]} farklı akor kullanılıyor; şarkıların {pct(easy)}'i yalnızca açık akorlarla çalınabiliyor.</p>
 
       <h2>En sık 15 akor</h2>
@@ -74,5 +73,6 @@ void keyInfo;
       <p>Her şarkının akor satırları ayrıştırıldı. Bas notası (D/F# gibi) atıldı, aynı akorun eşsesli yazımları (A# ve Bb gibi) birleştirildi, bir şarkıda tekrar eden akor bir kez sayıldı. Açık akorlar: C, D, E, G, A, Am, Em, Dm ve bunların 7, sus ve maj7 biçimleri.</p>
     </div>
   </article>
-<AdSlot size="leaderboard" unit="guide-top" />
-  </Base>
+  <ListSection title="Gitar akorları rehberi" color="#ff9500" href="/rehber/" />
+  <ListSection title="Gitar akorları tablosu" color="#ffcc00" href="/akorlar/" />
+</Base>

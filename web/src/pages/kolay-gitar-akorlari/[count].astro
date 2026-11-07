@@ -1,4 +1,5 @@
 ---
+import ListSection from "../../components/ListSection.astro";
 import Base from "../../layouts/Base.astro";
 import SongList from "../../components/SongList.astro";
 import { easySongs, songChords } from "../../lib/chord-stats.ts";
@@ -21,10 +22,12 @@ const jsonLd = [
 ];
 ---
 <Base title={`${n} Akorlu Kolay Şarkılar – Barresiz Gitar Şarkıları`} description={description} jsonLd={jsonLd}>
-  <div class="page-head">
-    <nav class="crumbs" aria-label="Sayfa yolu"><a href="/">Ana sayfa</a><span>/</span><a href="/kolay-gitar-akorlari/">Kolay gitar akorları</a><span>/</span>{n} akorlu şarkılar</nav>
-    <h1>{n} akorlu kolay şarkılar</h1>
-    <p class="answer">Bu listedeki şarkılar yalnızca {n} açık akorla çalınıyor ve hiç barre gerektirmiyor. Satırın altında şarkının akorları yazar; akorları bilmiyorsan <a href="/akorlar/">akor tablosuna</a> bak.</p>
+  <div class="rp-head"><h1>{n} akorlu kolay şarkılar</h1></div>
+  <div class="rp-content">
+    <p>Bu listedeki şarkılar yalnızca {n} açık akorla çalınıyor ve hiç barre gerektirmiyor. Satırda şarkının akorları yazar; akorları bilmiyorsan <a href="/akorlar/">akor tablosuna</a> bak.</p>
   </div>
-  <SongList songs={songs.slice(0, LIMIT)} notes={notes} />
+  <ListSection title={`${n} akorlu şarkılar`} icon="bolt" color="#ea494d" open>
+    <SongList songs={songs.slice(0, LIMIT)} notes={notes} />
+  </ListSection>
+  <ListSection title="Kolay gitar akorları" color="#ffcc00" href="/kolay-gitar-akorlari/" />
 </Base>

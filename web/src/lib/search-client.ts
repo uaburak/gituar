@@ -77,12 +77,14 @@ export async function newestSongs(limit = 100): Promise<SongEntry[]> {
   return (await get<{ songs: ApiListSong[] }>(`/v1/songs?sort=new&limit=${limit}`)).songs.map(toEntry);
 }
 
+/** Repertuarım düzenindeki şarkı satırı: `<ul class="rp-list">` içine `<li>`. */
 export function rowHtml(e: SongEntry): string {
-  return `<a class="row" href="${e.p}"><span class="row-body"><span class="row-title">${esc(e.s)}</span><span class="row-sub">${esc(e.a)}</span></span>${e.k ? `<span class="row-key">${esc(e.k)}</span>` : ""}<svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></a>`;
+  return `<li><a class="row" href="${e.p}" title="${esc(e.a)} - ${esc(e.s)} akor"><span class="rp-badge" aria-hidden="true">A</span><span class="rp-text"><span class="row-artist">${esc(e.a)} - </span><span class="row-title">${esc(e.s)}</span></span></a></li>`;
 }
 
+/** Repertuarım düzenindeki sanatçı satırı ("S" rozeti). */
 export function artistRowHtml(a: ArtistHit): string {
-  return `<a class="row" href="${a.path}"><span class="row-body"><span class="row-title">${esc(a.name)}</span><span class="row-sub">${a.count} şarkı</span></span><svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></a>`;
+  return `<li><a class="row" href="${a.path}" title="${esc(a.name)} akorları"><span class="rp-badge rp-badge-artist" aria-hidden="true">S</span><span class="rp-text"><span class="row-title">${esc(a.name)}</span><span class="row-note"> · ${a.count} şarkı</span></span></a></li>`;
 }
 
 export function esc(s: string): string {

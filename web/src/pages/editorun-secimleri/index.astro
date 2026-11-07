@@ -1,5 +1,5 @@
 ---
-import AdSlot from "../../components/AdSlot.astro";
+import ListSection from "../../components/ListSection.astro";
 import Base from "../../layouts/Base.astro";
 import SongList from "../../components/SongList.astro";
 import { catalog } from "../../lib/catalog.ts";
@@ -26,32 +26,23 @@ const jsonLd = [
 ];
 ---
 <Base title="Popüler Gitar Şarkıları – Editörün Seçimleri" description={description} noindex={picks.length === 0} jsonLd={jsonLd}>
-  <div class="page-head">
-    <div class="crumbs"><a href="/">Ana sayfa</a><span>/</span>Editörün Seçimleri</div>
-    <h1>Editörün Seçimleri <span class="h1-kw">· popüler gitar şarkıları</span></h1>
-    <p id="editor-meta">{picks.length ? `${picks.length} özel liste · Gituar ekibinin hazırladığı repertuarlar` : "Gituar ekibinin hazırladığı repertuarlar"}</p>
-  </div>
-  <div class="editor-hero editor-hero-static" aria-hidden="true"></div>
+  <div class="rp-head"><h1>Editörün Seçimleri <span class="h1-kw">· popüler gitar şarkıları</span></h1></div>
+  <div class="rp-content"><p id="editor-meta">Gituar ekibinin hazırladığı repertuarlar.</p></div>
   {picks.length > 0 ? (
-    <>
-      <div class="grid-3 pick-grid" style="margin-top:24px">
-        {picks.map((p) => (
-          <a class="card pick" href={`#liste-${p.id}`}><span class="pick-tile" aria-hidden="true">{p.name.trim().charAt(0).toLocaleUpperCase("tr-TR")}</span><span class="pick-body"><span class="pick-title">{p.name}</span><span class="muted small">{p.songs.length} şarkı · Editör repertuarı</span></span><span class="pick-arrow" aria-hidden="true">›</span></a>
-        ))}
-      </div>
-      {picks.map((p) => (
-        <section class="section" id={`liste-${p.id}`}>
-          <div class="section-head"><h2>{p.name}</h2><a href={`/repertuar/?id=${p.id}`}>Tüm liste ({p.songs.length}) ›</a></div>
-          <SongList songs={p.songs.slice(0, SHOW)} />
-        </section>
-      ))}
-    </>
+    picks.map((p, i) => (
+      <ListSection title={p.name} icon={i === 0 ? "bolt" : "none"} color="#ea494d" open={i === 0} id={`liste-${p.id}`}>
+        <SongList songs={p.songs.slice(0, SHOW)} />
+        <a class="rp-more" href={`/repertuar/?id=${p.id}`}>Tüm liste ({p.songs.length}) ›</a>
+      </ListSection>
+    ))
   ) : (
     <>
-      <div class="grid-3 pick-grid" id="editor-picks" style="margin-top:24px"></div>
-      <p class="muted small" id="editor-status" style="margin-top:16px">Yükleniyor…</p>
-      <AdSlot size="leaderboard" unit="editor" />
-  <script src="../../scripts/editor-picks.ts"></script>
+      <ListSection title="Repertuarlar" icon="bolt" color="#ea494d" open>
+        <ul class="rp-list" id="editor-picks"></ul>
+        <p class="muted small rp-empty" id="editor-status">Yükleniyor…</p>
+      </ListSection>
+      <script src="../../scripts/editor-picks.ts"></script>
     </>
   )}
+  <ListSection title="Popüler akorlar" color="#ffcc00" href="/" />
 </Base>

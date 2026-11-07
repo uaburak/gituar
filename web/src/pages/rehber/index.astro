@@ -1,6 +1,6 @@
 ---
 export const prerender = true;
-import AdSlot from "../../components/AdSlot.astro";
+import ListSection from "../../components/ListSection.astro";
 import Base from "../../layouts/Base.astro";
 import { siteUrl, breadcrumbJsonLd } from "../../lib/seo.ts";
 const base = siteUrl(Astro.site);
@@ -13,13 +13,12 @@ const guides = [
 const description = "Gitar akorları rehberi: akor transpoze, kapo kullanımı, ukulele akorları ve Gituar'ın araçlarıyla şarkıları kendi tonunda çalma.";
 ---
 <Base title="Gitar Akorları Rehberi – Transpoze, Kapo, Ukulele" description={description} jsonLd={[{ "@context": "https://schema.org", "@type": "CollectionPage", name: "Gitar akorları rehberi", url: `${base}/rehber/`, description, inLanguage: "tr" }, breadcrumbJsonLd(base, [{ name: "Ana sayfa", path: "/" }, { name: "Rehber", path: "/rehber/" }])]}>
-  <div class="page-head">
-    <div class="crumbs"><a href="/">Ana sayfa</a><span>/</span>Rehber</div>
-    <h1>Gitar akorları rehberi</h1>
-    <p>Kısa, pratik yazılar: tonu değiştirmek, kapo takmak, ukulele ile aynı akorları çalmak.</p>
-  </div>
-  <div class="list">
-    {guides.map((g) => <a class="row" href={g.path}><span class="row-body"><span class="row-title">{g.title}</span><span class="row-sub">{g.sub}</span></span><span class="pick-arrow" aria-hidden="true">›</span></a>)}
-  </div>
-<AdSlot size="leaderboard" unit="guides" />
-  </Base>
+  <div class="rp-head"><h1>Gitar akorları rehberi</h1></div>
+  <div class="rp-content"><p>Kısa, pratik yazılar: tonu değiştirmek, kapo takmak, ukulele ile aynı akorları çalmak.</p></div>
+  <ListSection title="Yazılar" icon="bolt" color="#ea494d" open>
+    <ul class="rp-list">
+      {guides.map((g) => <li><a class="row" href={g.path} title={g.title}><span class="rp-badge rp-badge-guide" aria-hidden="true">R</span><span class="rp-text"><span class="row-title">{g.title}</span><span class="row-note"> · {g.sub}</span></span></a></li>)}
+    </ul>
+  </ListSection>
+  <ListSection title="Gitar akorları tablosu" color="#ffcc00" href="/akorlar/" />
+</Base>

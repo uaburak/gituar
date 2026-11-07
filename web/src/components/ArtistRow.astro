@@ -4,7 +4,9 @@ import { artistPath } from "@shared/catalog";
 interface Props { artist: ArtistGroup }
 const { artist } = Astro.props;
 ---
-<a class="row" href={artistPath(artist.slug)} title={`${artist.name} akorları`}>
-  <span class="rp-badge rp-badge-artist" aria-hidden="true">S</span>
-  <span class="rp-text"><span class="row-title">{artist.name}</span><span class="row-note"> · {artist.songs.length} şarkı</span></span>
-</a>
+<li>
+  <a class="row" href={artistPath(artist.slug)} title={`${artist.name} akorları`}>
+    <span class="rp-badge rp-badge-artist" aria-hidden="true">S</span>
+    <span class="rp-text"><span class="row-title">{artist.name}</span><span class="row-note"> · {artist.songs.length} şarkı</span></span>
+  </a>
+</li>

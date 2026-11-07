@@ -714,7 +714,7 @@ html.plus body { padding-bottom: 0; }
 }
 
 /* ---------- Yasal sayfalar ve çerez bildirimi ---------- */
-.legal-body h2 { font-size: 19px; }
+.legal-body h2 { font-size: 16px; }
 .legal-layout { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 24px; align-items: start; }
 .legal-menu { position: sticky; top: 16px; display: grid; gap: 4px; padding: 12px; }
 .legal-menu a { padding: 8px 12px; border-radius: 10px; font-size: 14px; color: var(--text-2); }
@@ -792,7 +792,7 @@ a.chord-diagram:hover { background: var(--muted); text-decoration: none; }
    ===================================================================== */
 .ad-top { width: 100%; min-height: 90px; margin: 0 auto 24px; }
 @media (max-width: 759px) { .ad-top { min-height: 100px; } }
-.page-card { --card-pad: 20px; background: var(--surface); border-radius: 20px; padding: 0 var(--card-pad) var(--card-pad); overflow: hidden; }
+.page-card { --card-pad: 20px; background: var(--surface); border-radius: 20px; padding: 0 var(--card-pad) var(--card-pad); overflow: clip; }
 :root[data-theme="dark"] .page-card { box-shadow: inset 0 0 0 1px var(--hairline); }
 .page-card > :first-child:not(.rp-section):not(.rp-head) { margin-top: var(--card-pad); }
 /* Panel içindeki eski kartlar düzleşir: zemin yok, ince kenar */
@@ -824,9 +824,9 @@ details.rp-section[open] > .rp-title .rp-chev { transform: rotate(-135deg); }
 .rp-icon-heart::before { content: ""; width: 14px; height: 13px; background: var(--c); clip-path: path("M7 13 L1.2 7.2 A3.4 3.4 0 0 1 7 2.4 A3.4 3.4 0 0 1 12.8 7.2 Z"); }
 .rp-icon-none { display: none; }
 .rp-body { border-top: 0; }
-.rp-body > :not(.rp-list):not(.list) { margin-left: var(--card-pad); margin-right: var(--card-pad); }
+.rp-body > :not(.rp-list):not(.list):not(.rp-info):not(.rp-pills):not(.chord-grid):not(.chord-shapes):not(.rp-more) { margin-left: var(--card-pad); margin-right: var(--card-pad); }
 .rp-body > p:first-child, .rp-body > .rp-info:first-child { margin-top: 16px; }
-.rp-body > :last-child:not(.rp-list):not(.list) { margin-bottom: 20px; }
+.rp-body > :last-child:not(.rp-list):not(.list):not(.rp-info):not(.rp-pills):not(.chord-grid):not(.chord-shapes):not(.rp-more) { margin-bottom: 20px; }
 
 /* Satırlar (Repertuarım ölçüleri): 55 px, 20 px iç boşluk, sırayla açık gri / beyaz, çizgisiz.
    İki sütunlu listelerde sıra önce aşağı, sonra yan sütuna akar (CSS sütunları). */
@@ -847,8 +847,40 @@ details.rp-section[open] > .rp-title .rp-chev { transform: rotate(-135deg); }
 .page-card .list .row { border-bottom: 0; }
 
 /* Sayfa başlığı (Repertuarım "page-title") */
-.rp-head { margin: 0 calc(-1 * var(--card-pad)); padding: 30px var(--card-pad) 0; }
-.rp-head h1 { font-size: 16px; font-weight: 600; line-height: 24px; letter-spacing: 0; }
+.rp-head { margin: 0 calc(-1 * var(--card-pad)) 20px; padding: 30px var(--card-pad) 0; }
+.rp-head h1 { font-size: 24px; font-weight: 600; line-height: 30px; letter-spacing: 0; }
+.rp-head h1 .h1-kw { font-weight: 400; color: var(--text-3); }
+.rp-head-song { margin-bottom: 0; }
+.rp-head-song h1 { font-size: 16px; line-height: 24px; }
+.rp-head-search { padding-bottom: 20px; border-bottom: 1px solid var(--rp-line); }
+.rp-head-search h1 { font-size: 20px; }
+/* Sayfa metni (Repertuarım "page-content"): 14 px, 28 px satır */
+.rp-content { font-size: 14px; line-height: 28px; color: var(--text); padding-bottom: 32px; }
+.rp-content > :first-child { margin-top: 0; }
+.rp-content p { margin: 0 0 14px; }
+.rp-content h2 { font-size: 16px; font-weight: 600; line-height: 24px; margin: 28px 0 8px; }
+.rp-content ul, .rp-content ol { margin: 0 0 14px; padding-left: 22px; }
+.rp-content .muted { color: var(--text-2); }
+.rp-body > .rp-content { padding: 16px 0; }
+/* Hap bağlantılar (Repertuarım "Popüler Aramalar") */
+.rp-pills { display: flex; flex-wrap: wrap; gap: 10px; padding: 20px var(--card-pad); margin: 0; list-style: none; }
+.rp-body > .rp-pills { margin: 0; }
+.rp-pills a, .rp-pills span { display: inline-block; padding: 5px 10px; border-radius: 6px; background: #499c9f; color: #f7f7f7; font-size: 13px; line-height: 15px; text-decoration: none; }
+.rp-pills a:hover { background: #3e8689; text-decoration: none; }
+.rp-pills .mono { font-family: var(--mono); }
+/* Ara başlık (Repertuarım "search-suggest-list-title") */
+.rp-subtitle { margin: 40px calc(-1 * var(--card-pad)) 0; padding: 0 var(--card-pad) 10px; border-bottom: 1px solid var(--rp-line); font-size: 16px; font-weight: 600; line-height: 24px; }
+.rp-subtitle + .rp-list, .rp-subtitle + .rp-pills { margin: 0 calc(-1 * var(--card-pad)); }
+.rp-subtitle + .rp-pills { padding-top: 20px; }
+/* Kart içinde, bölüm dışında duran listeler kart kenarına kadar uzanır */
+.page-card > .rp-list, .page-card > .rp-pills { margin-left: calc(-1 * var(--card-pad)); margin-right: calc(-1 * var(--card-pad)); }
+/* Rozetli liste satırında ikinci rozet türleri */
+.rp-badge-key { background: #54779a; min-width: 44px; text-align: center; font-family: var(--mono); font-size: 12px; }
+.rp-badge-list { background: #c077db; }
+.rp-badge-guide { background: #ff9500; }
+/* Akor diyagramları bölüm içinde */
+.rp-body > .chord-grid { padding: 16px var(--card-pad); margin: 0; box-shadow: none; background: transparent; }
+.rp-body > .chord-shapes { margin: 0; padding: 16px var(--card-pad); box-shadow: none; background: transparent; }
 .rp-head h1 a { color: inherit; }
 .rp-head .crumbs { margin-bottom: 10px; }
 
@@ -912,7 +944,8 @@ details.rp-section[open] > .rp-title .rp-chev { transform: rotate(-135deg); }
 
 @media print { .rp-menu, .rp-keys, .rp-font, .rp-diagrams, .rp-section, .rp-head .crumbs, .ad-top { display: none !important; } .page-card { box-shadow: none; padding: 0; } }
 .rp-head .artist-facts { margin: 8px 0 0; font-size: 14px; }
-.rp-filter { margin-top: 16px; max-width: 420px; height: 40px; background: var(--page); }
+.rp-filter { margin-top: 4px; margin-bottom: 16px; max-width: 420px; height: 40px; background: var(--page); }
+.rp-empty { padding: 16px 0; }
 /* Panel içindeki eski sayfa başlıkları ve bölüm başlıkları da Repertuarım başlık satırı gibi */
 .page-card > .page-head, .page-card > .guide > .page-head, .page-card > article > .page-head {
   margin: 0 calc(-1 * var(--card-pad)) 20px; padding: 28px var(--card-pad) 22px; border-bottom: 1px solid var(--hairline);
@@ -924,3 +957,34 @@ details.rp-section[open] > .rp-title .rp-chev { transform: rotate(-135deg); }
 .page-card > .section:first-child .section-head { border-top: 0; }
 .page-card .ad-leaderboard { margin: 32px auto 8px; }
 .page-card .legal-layout { margin-top: var(--card-pad); }
+
+/* Sabit (açılıp kapanmayan) bölüm başlığı */
+.rp-static > .rp-title { cursor: default; }
+.rp-static > .rp-title:hover { background: none; }
+/* Sanatçılar: harf şeridi (ton şeridi gibi), kaydırınca header'ın altına yapışır */
+.rp-letters {
+  position: sticky; top: 0; z-index: 5; display: flex; align-items: center; gap: 4px; overflow-x: auto; scrollbar-width: none;
+  height: auto; margin: 0 calc(-1 * var(--card-pad)); padding: 8px 10px; border: 0; border-radius: 0; background: var(--surface); border-bottom: 1px solid var(--rp-line);
+  -webkit-backdrop-filter: none; backdrop-filter: none;
+}
+.rp-letters a { flex: none; min-width: 32px; height: 32px; padding: 0 8px; display: grid; place-items: center; border-radius: 6px; color: var(--text); font-size: 12px; font-weight: 600; }
+.rp-letters a:hover { background: var(--row-hover); text-decoration: none; }
+.rp-letters a.active { background: var(--accent); color: var(--on-accent); }
+.rp-letters.stuck { background: var(--surface); border-color: var(--rp-line); box-shadow: 0 6px 16px -10px rgba(0, 0, 0, .25); }
+
+/* Arama sayfası */
+.rp-search { max-width: none; margin: 20px 0 0; }
+.rp-search-status { margin: 12px 0 0; }
+.rp-subtitle + .rp-list, section > .rp-subtitle + .rp-list { margin: 0 calc(-1 * var(--card-pad)); }
+#popular > .rp-pills, #popular > .rp-list { margin-left: calc(-1 * var(--card-pad)); margin-right: calc(-1 * var(--card-pad)); }
+.rp-show-more { margin-top: 16px; }
+.rp-form { display: flex; gap: 8px; margin: 16px 0 20px; }
+.rp-form .input { flex: 1; }
+#rep-new-btn { display: none; }
+/* SSS: soru kalın, cevap altında */
+.rp-faq li b { display: block; }
+.rp-faq li span { display: block; color: var(--text-2); }
+.rp-head-note { margin: 6px 0 0; }
+.legal-body { padding-bottom: 24px; }
+.rp-content .rp-info, .rp-content .rp-list { padding-left: 0; margin-bottom: 0; }
+.rp-content .rp-section { line-height: normal; }

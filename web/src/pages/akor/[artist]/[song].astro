@@ -5,6 +5,7 @@ import Base from "../../../layouts/Base.astro";
 import SongSheet from "../../../components/SongSheet.astro";
 import SongList from "../../../components/SongList.astro";
 import ListSection from "../../../components/ListSection.astro";
+import AdSlot from "../../../components/AdSlot.astro";
 import ChordDiagram from "../../../components/ChordDiagram.astro";
 import { songChords, chordHref, LEVEL_LABEL } from "../../../lib/chord-stats.ts";
 import { chordShapes } from "../../../lib/chord-theory.ts";
@@ -36,7 +37,7 @@ const diagrams = analysis.chords.slice(0, 12).map((c) => ({ ...c, shape: chordSh
   <Fragment slot="head">
     <meta property="music:musician" content={artistUrl} />
   </Fragment>
-  <div class="rp-head">
+  <div class="rp-head rp-head-song">
     <h1><a href={artistPath(song.artistSlug)}>{song.artist}</a> - {song.songName} - Akor</h1>
   </div>
   <SongSheet song={song}>
@@ -54,6 +55,7 @@ const diagrams = analysis.chords.slice(0, 12).map((c) => ({ ...c, shape: chordSh
           <SongList songs={suggested} />
         </ListSection>
       )}
+      <AdSlot size="video" unit="song-video" />
       {keyHref && <ListSection title={`${song.originalKey} tonundaki şarkılar`} icon="none" href={keyHref} />}
       <ListSection title="Yeni Akorlar" color="#ff9500">
         <SongList songs={newest} />

@@ -1,5 +1,6 @@
 ---
 export const prerender = true;
+import ListSection from "../../components/ListSection.astro";
 import LegalPage from "../../components/LegalPage.astro";
 const faq: [string, string][] = [
   ["Gituar ücretsiz mi?", "Evet. Tüm akorlar, transpoze, kapo ve repertuarlar ücretsizdir. Reklamsız kullanmak istersen Gituar Pro aboneliğini alabilirsin."],
@@ -16,6 +17,7 @@ const jsonLd = { "@context": "https://schema.org", "@type": "FAQPage", mainEntit
   <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
   <p><strong>Gituar</strong>, Türkçe şarkıların gitar akorlarını bir araya getiren ücretsiz bir akor sitesi ve iPhone uygulamasıdır. Akorları kullanıcılar ekler, editörler onayladıktan sonra yayımlanır. Akorları kendi tonuna transpoze edebilir, kapo hesabı yapabilir, otomatik kaydırmayla çalabilir ve şarkılarını repertuarlarda toplayabilirsin.</p>
   <p>Öneri, görüş ve şikayetlerini <a href="mailto:iletisim@gituar.com">iletisim@gituar.com</a> adresine yazabilirsin.</p>
-  <h2>Sık sorulan sorular</h2>
-  {faq.map(([q, a]) => (<details class="faq"><summary>{q}</summary><p>{a}</p></details>))}
+  <ListSection title="Sık sorulan sorular" icon="none" open>
+    <ul class="rp-info rp-faq">{faq.map(([q, a]) => <li><b>{q}</b><span>{a}</span></li>)}</ul>
+  </ListSection>
 </LegalPage>

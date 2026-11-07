@@ -3,7 +3,7 @@
 import Base from "../../layouts/Base.astro";
 import SongList from "../../components/SongList.astro";
 import ChordDiagram from "../../components/ChordDiagram.astro";
-import AdSlot from "../../components/AdSlot.astro";
+import ListSection from "../../components/ListSection.astro";
 import { easySongs, songChords, capoEasySongs, chordHref } from "../../lib/chord-stats.ts";
 import { chordShapes, chordSlug } from "../../lib/chord-theory.ts";
 import { siteUrl, breadcrumbJsonLd } from "../../lib/seo.ts";
@@ -30,31 +30,26 @@ const jsonLd = [
 ];
 ---
 <Base title="Kolay Gitar Akorları – Barresiz Şarkılar ve Temel Akorlar" description={description} jsonLd={jsonLd}>
-  <div class="page-head">
-    <nav class="crumbs" aria-label="Sayfa yolu"><a href="/">Ana sayfa</a><span>/</span>Kolay gitar akorları</nav>
-    <h1>Kolay gitar akorları <span class="h1-kw">· barresiz şarkılar</span></h1>
-    <p class="answer">Kolay gitar akorları, barre gerektirmeyen açık akorlardır: Am, C, D, Em, G, A, Dm ve E. Aşağıda akorların diyagramları ve en az akorlu şarkılardan başlayan liste var.</p>
+  <div class="rp-head"><h1>Kolay gitar akorları <span class="h1-kw">· barresiz şarkılar</span></h1></div>
+  <div class="rp-content">
+    <p>Kolay gitar akorları, barre gerektirmeyen açık akorlardır: Am, C, D, Em, G, A, Dm ve E. Aşağıda akorların diyagramları ve en az akorlu şarkılardan başlayan liste var.</p>
   </div>
-
-  <section class="chord-grid card" aria-label="Temel açık akorlar">
-    {basics.map(([r, q]) => <ChordDiagram shape={chordShapes(r, q)[0]} label={r + q} href={chordHref(r, q)} />)}
-  </section>
-
-  <div class="chord-chips" style="margin-top:20px">
-    {byCount.map((g) => <a class="btn chip" href={`/kolay-gitar-akorlari/${g.n}-akorlu-sarkilar/`}>{g.n} akorlu şarkılar</a>)}
-    <a class="btn chip" href="/kapo-ile-kolay-sarkilar/">Kapo ile kolay</a>
-    <a class="btn chip" href="/akorlar/">Tüm akorlar</a>
-  </div>
-
-  <AdSlot size="inline" unit="easy-top" />
-
-  <section class="section">
-    <div class="section-head"><h2>Açık akorlarla çalınan şarkılar</h2></div>
+  <ListSection title="Temel açık akorlar" icon="bolt" color="#ea494d" open>
+    <div class="chord-grid">
+      {basics.map(([r, q]) => <ChordDiagram shape={chordShapes(r, q)[0]} label={r + q} href={chordHref(r, q)} />)}
+    </div>
+  </ListSection>
+  <ListSection title="Açık akorlarla çalınan şarkılar" icon="none" open>
     <SongList songs={songs.slice(0, LIMIT)} notes={notes} />
-  </section>
-
-  <section class="section guide-body">
-    <h2>Sık sorulanlar</h2>
-    {faq.map(([q, a]) => (<details class="faq"><summary>{q}</summary><p>{a}</p></details>))}
-  </section>
+  </ListSection>
+  <ListSection title="Akor sayısına göre" icon="none">
+    <div class="rp-pills">
+      {byCount.map((g) => <a href={`/kolay-gitar-akorlari/${g.n}-akorlu-sarkilar/`}>{g.n} akorlu şarkılar</a>)}
+    </div>
+  </ListSection>
+  <ListSection title="Sık sorulan sorular" icon="none">
+    <ul class="rp-info rp-faq">{faq.map(([q, a]) => <li><b>{q}</b><span>{a}</span></li>)}</ul>
+  </ListSection>
+  <ListSection title="Kapo ile kolay şarkılar" color="#ff9500" href="/kapo-ile-kolay-sarkilar/" />
+  <ListSection title="Gitar akorları tablosu" color="#ffcc00" href="/akorlar/" />
 </Base>

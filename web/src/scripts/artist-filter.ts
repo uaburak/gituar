@@ -2,7 +2,7 @@
 import { turkeyNormalized } from "@shared/turkish";
 
 const input = document.getElementById("artist-filter") as HTMLInputElement;
-const rows = [...document.querySelectorAll<HTMLAnchorElement>("[data-group] .artist-row")].map((el) => ({ el, key: turkeyNormalized(el.textContent ?? "") }));
+const rows = [...document.querySelectorAll<HTMLAnchorElement>("[data-group] .rp-artist-row")].map((a) => ({ el: (a.closest("li") ?? a) as HTMLElement, key: turkeyNormalized(a.querySelector(".row-title")?.textContent ?? "") }));
 const groups = [...document.querySelectorAll<HTMLElement>("[data-group]")];
 const rail = document.querySelector<HTMLElement>(".letters");
 const letterLinks = [...document.querySelectorAll<HTMLAnchorElement>(".letters a[data-letter]")];
@@ -13,7 +13,7 @@ input.addEventListener("input", () => {
   const q = turkeyNormalized(input.value.trim());
   let visible = 0;
   for (const r of rows) { const show = !q || r.key.includes(q); r.el.hidden = !show; if (show) visible++; }
-  for (const g of groups) g.hidden = Boolean(q) && !g.querySelector(".artist-row:not([hidden])");
+  for (const g of groups) g.hidden = Boolean(q) && !g.querySelector("li:not([hidden])");
   if (rail) rail.hidden = Boolean(q);
   if (empty) empty.hidden = visible > 0;
 });

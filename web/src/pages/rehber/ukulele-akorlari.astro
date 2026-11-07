@@ -1,6 +1,6 @@
 ---
 export const prerender = true;
-import AdSlot from "../../components/AdSlot.astro";
+import ListSection from "../../components/ListSection.astro";
 import Base from "../../layouts/Base.astro";
 import { siteUrl, breadcrumbJsonLd } from "../../lib/seo.ts";
 const base = siteUrl(Astro.site);
@@ -17,11 +17,10 @@ const jsonLd = [
 ---
 <Base title={title} description={description} jsonLd={jsonLd}>
   <article class="guide">
-    <div class="page-head">
-      <div class="crumbs"><a href="/">Ana sayfa</a><span>/</span><a href="/rehber/">Rehber</a><span>/</span>Ukulele akorları</div>
+    <div class="rp-head">
       <h1>{h1}</h1>
     </div>
-    <div class="guide-body">
+    <div class="rp-content">
 <p>İyi haber: bir şarkının akorları <strong>enstrümana göre değişmez</strong>. "Gülümse"nin akorları gitarda da ukulelede de <span class="mono">Gm – F – D# – Cm</span>'dir. Değişen tek şey, o akoru çalgının üzerinde nasıl tuttuğundur.</p>
 <h2>Gituar'daki akorları ukulele ile çalmak</h2>
 <p>Şarkı sayfasındaki akor adlarını olduğu gibi kullan; ukulele için tutuş şekillerini bildiğin bir akor tablosundan al. Ton şeridi ve kapo hesabı ukulele için de aynen çalışır; <a href="/rehber/akor-transpoze/">transpoze</a> ile şarkıyı ukulelede kolay akorlara (C, G, Am, F) taşıyabilirsin.</p>
@@ -31,9 +30,11 @@ const jsonLd = [
 <p>Standart ukulele akordu G-C-E-A'dır; gitarın 5. perdesine kapo takmış gibi düşünebilirsin. Bu yüzden aynı tutuş şekli ukulelede gitardan farklı bir akor adıdır; ama Gituar'daki akor <em>adlarına</em> uyarsan her zaman doğru çalarsın.</p>
 <h2>Repertuar ve otomatik kaydırma</h2>
 <p>Ukulele ile çaldığın şarkıları bir repertuarda toplayıp iPhone uygulamasında aynı listeyi açabilirsin. Sayfayı oynat özelliği akor alanını kendi hızında kaydırır.</p>
-      <h2>Sık sorulanlar</h2>
-      {faq.map(([q, a]) => (<details class="faq"><summary>{q}</summary><p>{a}</p></details>))}
     </div>
   </article>
-<AdSlot size="leaderboard" unit="guide-ukulele" />
-  </Base>
+  <ListSection title="Sık sorulan sorular" icon="none">
+    <ul class="rp-info rp-faq">{faq.map(([q, a]) => <li><b>{q}</b><span>{a}</span></li>)}</ul>
+  </ListSection>
+  <ListSection title="Gitar akorları rehberi" color="#ff9500" href="/rehber/" />
+  <ListSection title="Gitar akorları tablosu" color="#ffcc00" href="/akorlar/" />
+</Base>

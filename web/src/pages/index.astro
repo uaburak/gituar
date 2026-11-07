@@ -34,10 +34,10 @@ const description = "Türkçe şarkıların gitar akorları: topluluğun paylaş
   </ListSection>
   <ListSection title="Repertuarlarım" icon="none" href="/repertuarlarim/" />
   <ListSection title="Popüler Sanatçılar" icon="none">
-    <div class="list rp-artists rp-artists-1">{artists.map((a) => <ArtistRow artist={a} />)}</div>
+    <ul class="rp-list">{artists.map((a) => <ArtistRow artist={a} />)}</ul>
   </ListSection>
   <ListSection title="Yeni Eklenen Sanatçılar" icon="none">
-    <div class="list rp-artists rp-artists-1">{newestArtists.map((a) => <ArtistRow artist={a} />)}</div>
+    <ul class="rp-list">{newestArtists.map((a) => <ArtistRow artist={a} />)}</ul>
   </ListSection>
   <ListSection title="İstek, Öneri, Şikayet" icon="none" href="/iletisim/" />
   <ListSection title="gituar.com" icon="heart" color="#ea494d" href="/hakkinda/" />

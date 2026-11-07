@@ -1,5 +1,5 @@
 ---
-import AdSlot from "../../components/AdSlot.astro";
+import ListSection from "../../components/ListSection.astro";
 import Base from "../../layouts/Base.astro";
 import SongList from "../../components/SongList.astro";
 import { newestSongs } from "../../lib/catalog.ts";
@@ -16,11 +16,8 @@ const jsonLd = [
 ];
 ---
 <Base title="Yeni Eklenen Gitar Akorları – Son 200 Şarkı" description={description} jsonLd={jsonLd}>
-  <div class="page-head">
-    <nav class="crumbs" aria-label="Sayfa yolu"><a href="/">Ana sayfa</a><span>/</span>Yeni eklenenler</nav>
-    <h1>Yeni eklenen akorlar</h1>
-    <p>Kataloğa en son eklenen şarkılar, en yeniden eskiye.</p>
-  </div>
-  <SongList songs={songs} />
-<AdSlot size="leaderboard" unit="newest" />
-  </Base>
+  <ListSection title="Yeni eklenen akorlar" heading="h1" icon="none" open>
+    <SongList songs={songs} />
+  </ListSection>
+  <ListSection title="Popüler sanatçılar" color="#ffcc00" href="/sanatcilar/" />
+</Base>

@@ -1,5 +1,5 @@
 ---
-import AdSlot from "../../components/AdSlot.astro";
+import ListSection from "../../components/ListSection.astro";
 import Base from "../../layouts/Base.astro";
 import ChordDiagram from "../../components/ChordDiagram.astro";
 import { chordPages } from "../../lib/chord-stats.ts";
@@ -20,26 +20,22 @@ const jsonLd = [
 ];
 ---
 <Base title="Gitar Akorları Tablosu – Akor Nasıl Basılır?" description={description} jsonLd={jsonLd}>
-  <div class="page-head">
-    <nav class="crumbs" aria-label="Sayfa yolu"><a href="/">Ana sayfa</a><span>/</span>Akorlar</nav>
-    <h1>Gitar akorları tablosu</h1>
-    <p class="answer">Gitarda en çok kullanılan akorlar Am, G, C, Em, Dm ve F'dir; Türkçe şarkıların üçte birinden fazlasında geçerler. Aşağıda her akorun diyagramı, nasıl basıldığı ve o akorla çalınan şarkılar var. Yeni başlıyorsan önce açık akorları öğren, sonra <a href="/kolay-gitar-akorlari/">kolay şarkılarla</a> pratik yap.</p>
+  <div class="rp-head"><h1>Gitar akorları tablosu</h1></div>
+  <div class="rp-content">
+    <p>Gitarda en çok kullanılan akorlar Am, G, C, Em, Dm ve F'dir; Türkçe şarkıların üçte birinden fazlasında geçerler. Aşağıda her akorun diyagramı, nasıl basıldığı ve o akorla çalınan şarkılar var. Yeni başlıyorsan önce açık akorları öğren, sonra <a href="/kolay-gitar-akorlari/">kolay şarkılarla</a> pratik yap.</p>
   </div>
-
-  <section class="section" style="margin-top:24px">
-    <div class="section-head"><h2>Temel açık akorlar</h2><a href="/kolay-gitar-akorlari/">Bu akorlarla çalınan şarkılar ›</a></div>
-    <div class="chord-grid card">
+  <ListSection title="Temel açık akorlar" icon="bolt" color="#ea494d" open>
+    <div class="chord-grid">
       {basics.map((c) => <ChordDiagram shape={chordShapes(c.root, c.quality)[0]} label={c.name} href={`/akorlar/${c.slug}/`} />)}
     </div>
-  </section>
-
+  </ListSection>
   {groups.map((g) => (
-    <section class="section">
-      <div class="section-head"><h2>{g.note} akorları</h2></div>
-      <div class="chord-grid card">
+    <ListSection title={`${g.note} akorları`} icon="none">
+      <div class="chord-grid">
         {g.chords.map((c) => <ChordDiagram shape={chordShapes(c.root, c.quality)[0]} label={c.name} href={`/akorlar/${c.slug}/`} />)}
       </div>
-    </section>
+    </ListSection>
   ))}
-<AdSlot size="leaderboard" unit="chords-index" />
-  </Base>
+  <ListSection title="Kolay gitar akorları" color="#ffcc00" href="/kolay-gitar-akorlari/" />
+  <ListSection title="Kapo ile kolay şarkılar" color="#ff9500" href="/kapo-ile-kolay-sarkilar/" />
+</Base>

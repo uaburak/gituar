@@ -1,6 +1,6 @@
 ---
 export const prerender = true;
-import AdSlot from "../../components/AdSlot.astro";
+import ListSection from "../../components/ListSection.astro";
 import Base from "../../layouts/Base.astro";
 import { siteUrl, breadcrumbJsonLd } from "../../lib/seo.ts";
 const base = siteUrl(Astro.site);
@@ -17,11 +17,10 @@ const jsonLd = [
 ---
 <Base title={title} description={description} jsonLd={jsonLd}>
   <article class="guide">
-    <div class="page-head">
-      <div class="crumbs"><a href="/">Ana sayfa</a><span>/</span><a href="/rehber/">Rehber</a><span>/</span>Kapo</div>
+    <div class="rp-head">
       <h1>{h1}</h1>
     </div>
-    <div class="guide-body">
+    <div class="rp-content">
 <p><strong>Kapo</strong>, gitarın sapına takılan ve tüm telleri aynı perdeden basan bir kıskaçtır. Taktığın perde kadar yarım ses yukarı çıkarsın ama bildiğin kolay tutuşları (Am, Em, C, G, D) kullanmaya devam edersin.</p>
 <h2>Kapo tablosu</h2>
 <p>Tuttuğun akor + kapo perdesi = duyulan akor. Örneğin:</p>
@@ -38,9 +37,11 @@ const jsonLd = [
 <p>Şarkı sayfasında "Kapo" değerini gir; sayfa, kapo taktığında tutman gereken akor adlarını gösterir. Tonu da değiştirirsen ikisini birlikte hesaplar. Böylece "kapo 3'te hangi akoru tutacağım" sorusunu sayfa senin yerine çözer.</p>
 <h2>İpuçları</h2>
 <p>Kapoyu perde çubuğunun hemen arkasına, tellere dik tak; yamuk takılan kapo detone eder. 7. perdeden sonrası tını olarak inceldiği için şarkıyı <a href="/rehber/akor-transpoze/">transpoze etmek</a> daha iyi sonuç verir.</p>
-      <h2>Sık sorulanlar</h2>
-      {faq.map(([q, a]) => (<details class="faq"><summary>{q}</summary><p>{a}</p></details>))}
     </div>
   </article>
-<AdSlot size="leaderboard" unit="guide-kapo" />
-  </Base>
+  <ListSection title="Sık sorulan sorular" icon="none">
+    <ul class="rp-info rp-faq">{faq.map(([q, a]) => <li><b>{q}</b><span>{a}</span></li>)}</ul>
+  </ListSection>
+  <ListSection title="Gitar akorları rehberi" color="#ff9500" href="/rehber/" />
+  <ListSection title="Gitar akorları tablosu" color="#ffcc00" href="/akorlar/" />
+</Base>

@@ -993,5 +993,5 @@ details.rp-section[open] > .rp-title .rp-chev { transform: rotate(-135deg); marg
 .rp-all { gap: 0; }
 button.rp-all { width: 100%; border: 0; background: none; font: inherit; text-align: left; cursor: pointer; }
 .rp-all:hover { background: var(--row-hover); text-decoration: none; }
-.rp-badge-all { background: #8e8e93; }
+.rp-badge-all { background: var(--pro-gradient); }
 .rp-badge-all svg { width: 13px; height: 13px; }

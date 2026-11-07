@@ -66,7 +66,7 @@ function quantize(raw: number[], total: number, min = 1): number[] {
 /**
  * Kâğıttaki akorların süresini konumlarından tahmin eder (veri gerektirmez):
  * - Sözsüz akor satırı (giriş, ara): her akor bir ölçü.
- * - Sözlü satır: satır ~CHARS_PER_BAR karakter başına bir ölçü sürer (en az 1); akorlar bu süreyi sözdeki
+ * - Sözlü satır: satır ~CHARS_PER_BAR karakter başına bir ölçü sürer (en az 1, en az akor sayısı / 2); akorlar bu süreyi sözdeki
  *   yerleri arasındaki mesafeye göre paylaşır, tam vuruşa yuvarlanır (her akor en az bir vuruş).
  *   İlk akor satır başında değilse aradaki süre önceki akora eklenir (önceki akor çalmaya devam eder).
  */
@@ -91,7 +91,8 @@ export function chordTimeline(pre: HTMLElement, beatsPerBar: number): TimedChord
     }
     const last = chords[chords.length - 1];
     const span = Math.max(lyric.length, last.col + last.len, 1);
-    const total = Math.max(1, Math.round(span / CHARS_PER_BAR)) * beatsPerBar;
+    // En az 1 ölçü; çok akorlu kısa satırlar sıkışmasın diye en az (akor sayısı / 2) ölçü
+    const total = Math.max(1, Math.round(span / CHARS_PER_BAR), Math.ceil(chords.length / 2)) * beatsPerBar;
     const lead = (chords[0].col / span) * total;
     const raw = chords.map((c, k) => (((k + 1 < chords.length ? chords[k + 1].col : span) - c.col) / span) * total);
     // Satır başındaki boşluk önceki akora (varsa) eklenir; yoksa ilk akora

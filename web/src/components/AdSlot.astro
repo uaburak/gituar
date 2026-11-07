@@ -1,33 +1,101 @@
 ---
 // Tek reklam bileşeni. Plus kullanıcılarında app.ts `html.plus` sınıfını koyar ve CSS hepsini gizler.
-// AdSense yayıncı kimliği yoksa Wecra'daki gibi kesikli kutu kalır (tasarım ve ölçü kontrolü için).
+// Yerleşim, büyük akor sitelerindeki düzene göre:
+//   leaderboard → içerik kartının üstünde geniş üst reklam (masaüstü 970/728, mobil 320×100/300×250)
+//   incontent   → akor kâğıdının hemen altında geniş reklam
+//   side        → içerik sütununun iki yanında, kaydırınca sabit kalan 160×600
+//   sticky      → ekranın altında, kapatılabilen sabit şerit (masaüstü 970/728×90, mobil 320×50/100)
+//   rect/inline → sayfa içi kutu ve liste aralarındaki reklamlar
+//   video       → sayfa içinde sessiz başlayan video reklam (outstream); reklam bitince kutu kapanır.
+//                 Canlıda AdSense'in kod birimi yok: AdSense'te "görüntülü reklam birimlerinde video" açılınca
+//                 video reklamlar zaten diğer birimlerin içinde gelir. Bu yer yalnızca yerelde ve ileride
+//                 Ad Manager / reklam ağı (VAST etiketi) bağlanınca çizilir.
 import { ADSENSE_CLIENT, ADSENSE_SLOTS } from "../lib/site.ts";
-interface Props { size: "side" | "leaderboard" | "rect" | "inline" | "sticky"; unit: string; class?: string }
+type Size = "side" | "leaderboard" | "incontent" | "rect" | "inline" | "sticky" | "video";
+interface Props { size: Size; unit: string; class?: string }
 const { size, unit, class: className = "" } = Astro.props;
-const labels = { side: "160 × 600", leaderboard: "728 × 90", rect: "300 × 250", inline: "Liste içi · her 10 satırda bir", sticky: "320 × 50" };
+const labels: Record<Size, string> = { side: "160 × 600", leaderboard: "970 × 250 · 728 × 90", incontent: "970 × 250 · 300 × 250", rect: "300 × 250", inline: "728 × 90", sticky: "728 × 90 · 320 × 50", video: "Video · 16:9" };
 const format = size === "side" ? "vertical" : size === "rect" ? "rectangle" : size === "sticky" ? "horizontal" : "auto";
 // AdSense birimi (data-ad-slot) yer türüne göre .env'den gelir; `unit` yalnızca ölçüm/etiket içindir.
-// 728×90 için ayrı birim yoksa duyarlı liste içi birimi kullanılır.
-const slot = ADSENSE_SLOTS[size] || (size === "leaderboard" ? ADSENSE_SLOTS.inline : "");
+// Ayrı birim yoksa geniş yerler duyarlı liste içi birimi kullanır.
+const slot = ADSENSE_SLOTS[size] || (size === "leaderboard" || size === "incontent" ? ADSENSE_SLOTS.inline : "");
 // Yerelde (astro dev) AdSense reklam basmaz (onaylı alan adı ve birim ister). Bunun yerine Google'ın
-// herkese açık örnek reklam ağından (Google Publisher Tag, /6355419/Travel/Europe) gerçek test reklamları çekilir.
+// herkese açık örnek reklam ağından (Google Publisher Tag, /6355419/...) gerçek test reklamları çekilir.
 // Canlıda hiçbir zaman çizilmez (import.meta.env.DEV yalnızca dev sunucusunda true).
 const demo = import.meta.env.DEV;
 const live = !demo && Boolean(ADSENSE_CLIENT && slot);
-const testSizes: Record<typeof size, string> = { side: "160x600", leaderboard: "728x90", rect: "300x250", inline: "728x90", sticky: "320x50" };
-// AdSense'te sabit boyutlu oluşturulan birimler (yan 160×600, mobil alt 320×50); diğerleri duyarlı
-const fixed = size === "side" ? { w: 160, h: 600 } : size === "sticky" ? { w: 320, h: 50 } : null;
+// Mobil alt şerit AdSense'te sabit 320×50 birimdir; diğerleri duyarlı
+const fixed = size === "side" ? { w: 160, h: 600 } : null;
+const close = size === "sticky";
 ---
-{demo && (
+{demo && size === "video" && (
+  <div class:list={["ad-slot", "ad-video", "ad-test", className]} data-unit={unit} aria-label="Google test video reklamı (yalnızca yerelde)">
+    <div class="ad-video-box">
+      <video class="ad-video-media" muted playsinline preload="none"></video>
+      <div class="ad-video-ui"></div>
+    </div>
+  </div>
+)}
+{demo && size === "video" && (
+  <script is:inline>
+    // Google IMA SDK ile outstream video: Google'ın herkese açık örnek VAST etiketi (yalnızca yerelde).
+    // Görünür olunca sessiz başlar; reklam bitince ya da reklam gelmezse kutu kapanır.
+    (function () {
+      const TAG = "https://pubads.g.doubleclick.net/gampad/ads?iu=/21775744923/external/single_ad_samples&sz=640x480&cust_params=sample_ct%3Dlinear&ciu_szs=300x250%2C728x90&gdfp_req=1&output=vast&unviewed_position_start=1&env=vp&impl=s&correlator=";
+      const run = () => document.querySelectorAll(".ad-video:not([data-ima])").forEach((slot) => {
+        slot.dataset.ima = "1";
+        const video = slot.querySelector("video"), ui = slot.querySelector(".ad-video-ui");
+        const collapse = () => slot.classList.add("ad-video-done");
+        let manager;
+        const start = () => {
+          const ima = google.ima;
+          const container = new ima.AdDisplayContainer(ui, video);
+          container.initialize();
+          const loader = new ima.AdsLoader(container);
+          loader.addEventListener(ima.AdErrorEvent.Type.AD_ERROR, collapse);
+          loader.addEventListener(ima.AdsManagerLoadedEvent.Type.ADS_MANAGER_LOADED, (e) => {
+            manager = e.getAdsManager(video);
+            manager.addEventListener(ima.AdErrorEvent.Type.AD_ERROR, collapse);
+            manager.addEventListener(ima.AdEvent.Type.ALL_ADS_COMPLETED, collapse);
+            manager.addEventListener(ima.AdEvent.Type.SKIPPED, collapse);
+            manager.init(ui.offsetWidth, ui.offsetHeight, ima.ViewMode.NORMAL);
+            manager.setVolume(0);
+            manager.start();
+          });
+          const req = new ima.AdsRequest();
+          req.adTagUrl = TAG + Date.now();
+          req.linearAdSlotWidth = ui.offsetWidth; req.linearAdSlotHeight = ui.offsetHeight;
+          req.nonLinearAdSlotWidth = ui.offsetWidth; req.nonLinearAdSlotHeight = ui.offsetHeight / 3;
+          req.setAdWillAutoPlay(true); req.setAdWillPlayMuted(true);
+          loader.requestAds(req);
+        };
+        new ResizeObserver(() => manager && manager.resize(ui.offsetWidth, ui.offsetHeight, google.ima.ViewMode.NORMAL)).observe(ui);
+        const io = new IntersectionObserver((es) => { if (es.some((x) => x.isIntersecting)) { io.disconnect(); start(); } }, { threshold: 0.5 });
+        io.observe(slot);
+      });
+      if (window.google && google.ima) return run();
+      const s = document.createElement("script");
+      s.src = "https://imasdk.googleapis.com/js/sdkloader/ima3.js";
+      s.async = true;
+      s.onload = run;
+      s.onerror = () => document.querySelectorAll(".ad-video").forEach((x) => x.classList.add("ad-video-done"));
+      document.head.appendChild(s);
+    })();
+  </script>
+)}
+{demo && size !== "video" && (
   <div class:list={["ad-slot", `ad-${size}`, "ad-test", className]} data-unit={unit} aria-label="Google test reklamı (yalnızca yerelde)">
-    <div class="gpt-test" data-gpt-size={testSizes[size]}></div>
+    {close && <button type="button" class="ad-close" aria-label="Reklamı kapat">×</button>}
+    <div class="gpt-test" data-gpt-kind={size}></div>
     <span class="ad-test-label">Test reklamı · {labels[size]}</span>
   </div>
 )}
-{demo && (
+{demo && size !== "video" && (
   <script is:inline>
     // Google Publisher Tag'i bir kez yükle; sayfadaki test yerlerini Google'ın herkese açık örnek ağından doldur.
-    // Örnek ağ aynı sayfaya bir boyuttan çoğu zaman tek reklam verir; boş dönen yer ölçülü test kutusu olarak kalır.
+    // Her yer birden çok boyut ister (gerçek sitelerdeki gibi); Google o an verebildiği boyutu yerleştirir.
+    // Örnek ağ yalnızca 728×90, 300×250, 320×50 ve 160×600 verir; aynı boyutu sayfada çoğu zaman bir kez verir.
+    // Boş dönen yer ölçülü test kutusu olarak kalır.
     if (!window.__gptTest) {
       window.__gptTest = true;
       window.googletag = window.googletag || { cmd: [] };
@@ -35,33 +103,53 @@ const fixed = size === "side" ? { w: 160, h: 600 } : size === "sticky" ? { w: 32
       s.src = "https://securepubads.g.doubleclick.net/tag/js/gpt.js";
       s.async = true;
       document.head.appendChild(s);
-      const units = ["/6355419/Travel/Europe", "/6355419/Travel/Asia", "/6355419/Travel/Europe/France", "/6355419/Travel/Europe/Germany"];
+      const wide = () => innerWidth >= 1000, mid = () => innerWidth >= 760;
+      const kinds = {
+        leaderboard: { unit: "/6355419/Travel/Asia", sizes: () => wide() ? [[970, 250], [970, 90], [728, 90]] : mid() ? [[728, 90]] : [[320, 100], [320, 50], [300, 250]] },
+        incontent: { unit: "/6355419/Travel/Europe/France", sizes: () => wide() ? [[970, 250], [970, 90], [728, 90], [300, 250]] : [[336, 280], [300, 250]] },
+        inline: { unit: "/6355419/Travel/Europe/Germany", sizes: () => mid() ? [[728, 90], [300, 250]] : [[300, 250], [320, 100]] },
+        rect: { unit: "/6355419/Travel/Europe/Germany", sizes: () => [[300, 250]] },
+        side: { unit: "/6355419/Travel/Europe", sizes: () => [[160, 600]] },
+        sticky: { unit: "/6355419/Travel/Europe", sizes: () => mid() ? [[970, 90], [728, 90]] : [[320, 100], [320, 50]] },
+      };
       const fill = () => googletag.cmd.push(() => {
         let n = 0;
         document.querySelectorAll(".gpt-test:not([id])").forEach((el) => {
           const box = el.closest(".ad-slot");
           if (getComputedStyle(box).display === "none" || (el.closest(".side-ad") && !el.closest(".side-ad").offsetWidth)) return;
-          const [w, h] = el.dataset.gptSize.split("x").map(Number);
-          el.id = "gpt-test-" + n;
-          googletag.defineSlot(units[n++ % units.length], [w, h], el.id)?.addService(googletag.pubads());
+          const k = kinds[el.dataset.gptKind];
+          el.id = "gpt-test-" + (n++);
+          googletag.defineSlot(k.unit, k.sizes(), el.id)?.addService(googletag.pubads());
         });
+        // Sayfa geçişinde tam ekran reklam (interstitial): site içi bir bağlantıya tıklanınca açılır
+        const inter = googletag.defineOutOfPageSlot("/6355419/Travel/Europe/France/Paris", googletag.enums.OutOfPageFormat.INTERSTITIAL);
+        if (inter) inter.addService(googletag.pubads());
         googletag.pubads().addEventListener("slotRenderEnded", (e) => {
-          if (e.isEmpty) document.getElementById(e.slot.getSlotElementId())?.closest(".ad-slot")?.classList.add("ad-test-empty");
+          const box = document.getElementById(e.slot.getSlotElementId())?.closest(".ad-slot");
+          box?.classList.toggle("ad-test-empty", e.isEmpty);
         });
         googletag.pubads().enableSingleRequest();
         googletag.enableServices();
         document.querySelectorAll(".gpt-test[id]").forEach((el) => googletag.display(el.id));
+        if (inter) googletag.display(inter);
       });
       if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", fill); else fill();
     }
   </script>
 )}
-{!demo && (live || !ADSENSE_CLIENT) && (
+{!demo && size !== "video" && (live || !ADSENSE_CLIENT) && (
   <div class:list={["ad-slot", `ad-${size}`, className]} data-unit={unit} aria-label="Reklam">
+    {close && <button type="button" class="ad-close" aria-label="Reklamı kapat">×</button>}
     {live
       ? (fixed
           ? <ins class="adsbygoogle" style={`display:inline-block;width:${fixed.w}px;height:${fixed.h}px`} data-ad-client={ADSENSE_CLIENT} data-ad-slot={slot}></ins>
           : <ins class="adsbygoogle" style="display:block;width:100%" data-ad-client={ADSENSE_CLIENT} data-ad-slot={slot} data-ad-format={format} data-full-width-responsive="true"></ins>)
       : <div class="ad-placeholder"><b>REKLAM</b><span>{labels[size]}</span></div>}
   </div>
+)}
+{close && (
+  <script is:inline>
+    // Alt şeridin kapatma düğmesi: yalnızca bu sayfa için gizler
+    document.querySelectorAll(".ad-sticky .ad-close").forEach((b) => b.addEventListener("click", () => b.closest(".ad-sticky").remove()));
+  </script>
 )}

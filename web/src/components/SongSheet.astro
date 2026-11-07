@@ -2,6 +2,7 @@
 import { selectableKeys, rootNote } from "@shared/chords";
 import type { CatalogSong } from "@shared/types";
 import { sheetHtml } from "../lib/sheet-html.ts";
+import AdSlot from "./AdSlot.astro";
 interface Props { song: CatalogSong }
 const { song } = Astro.props;
 const originalRoot = rootNote(song.originalKey);
@@ -35,10 +36,12 @@ const keySuffix = (song.originalKey ?? "").trim().slice(originalRoot.length);
   <div class="sheet is-original" id="sheet">
     <pre class="chords" id="chords" set:html={sheetHtml(song.content)} />
   </div>
+  <AdSlot size="incontent" unit="song-after-sheet" />
   <div class="rp-warning ugc-note">
     <p>Gituar, kullanıcıların kendi içeriklerini paylaştığı bir topluluk platformudur; tüm içerikler kullanıcı sorumluluğundadır. Bu içerik müzik eğitimi amacıyla yayımlanmış olup hakları sahiplerine aittir. Telif ihlali içerdiğini düşünüyorsan bizimle <a href="/iletisim/">iletişime</a> geç.</p>
     <p class="rp-by">Ekleyen @anonim · <button type="button" class="ugc-report" id="report-open">Şikayet et</button></p>
   </div>
+  <AdSlot size="video" unit="song-video" />
   <slot name="after" />
   <div class="play-bar" id="play-bar" aria-label="Otomatik kaydırma">
     <button class="btn tb" id="play-toggle" type="button">Durdur</button>

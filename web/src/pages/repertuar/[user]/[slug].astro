@@ -1,0 +1,38 @@
+---
+// Herkese açık repertuar: /repertuar/{kullanıcı adı}/{repertuar slug'ı}/ — sunucuda şarkılarıyla üretilir.
+import ListSection from "../../../components/ListSection.astro";
+import Base from "../../../layouts/Base.astro";
+import SongList from "../../../components/SongList.astro";
+import { catalog } from "../../../lib/catalog.ts";
+import { findPublicRepertoire } from "../../../lib/public-repertoire.ts";
+import { siteUrl, breadcrumbJsonLd } from "../../../lib/seo.ts";
+import { songPath } from "@shared/catalog";
+
+const user = decodeURIComponent(Astro.params.user ?? "").toLocaleLowerCase("tr-TR");
+const slug = decodeURIComponent(Astro.params.slug ?? "").toLowerCase();
+const rep = user && slug ? await findPublicRepertoire(user, slug) : null;
+if (!rep) return Astro.rewrite("/404/");
+const byId = catalog().byId;
+const songs = rep.songIds.map((id) => byId.get(id)).filter((s) => s !== undefined);
+const base = siteUrl(Astro.site);
+const path = `/repertuar/${encodeURIComponent(rep.ownerUsername)}/${encodeURIComponent(rep.slug)}/`;
+const title = `${rep.name} – @${rep.ownerUsername} repertuarı`;
+const description = `@${rep.ownerUsername} kullanıcısının "${rep.name}" repertuarı: ${songs.slice(0, 5).map((s) => `${s.artist} – ${s.songName}`).join(", ")}${songs.length > 5 ? " ve diğerleri" : ""}. Gitar akorlarıyla.`;
+const jsonLd = [
+  { "@type": "ItemList", name: rep.name, url: base + path, itemListElement: songs.slice(0, 50).map((s, i) => ({ "@type": "ListItem", position: i + 1, name: `${s.artist} – ${s.songName}`, url: base + songPath(s) })) },
+  breadcrumbJsonLd(base, [{ name: "Ana sayfa", path: "/" }, { name: "Editörün seçimleri", path: "/editorun-secimleri/" }, { name: rep.name }]),
+];
+Astro.response.headers.set("Cache-Control", "public, max-age=300, s-maxage=600");
+---
+<Base title={title} description={description} canonicalPath={path} noindex={songs.length < 3} jsonLd={jsonLd}>
+  <div class="rp-head">
+    <h1>{rep.name}</h1>
+    <p class="muted small rp-head-note">@{rep.ownerUsername} · {songs.length} şarkı</p>
+  </div>
+  <ListSection title="Şarkılar" color="#ea494d" open>
+    <SongList songs={songs} />
+    {songs.length === 0 && <p class="muted small rp-empty">Bu repertuarda henüz şarkı yok.</p>}
+  </ListSection>
+  <ListSection title="Öne Çıkanlar" color="#0a84ff" href="/editorun-secimleri/" />
+  <ListSection title="Repertuarlarım" icon="star" color="#f0a800" href="/repertuarlarim/" />
+</Base>

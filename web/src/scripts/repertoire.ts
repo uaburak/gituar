@@ -1,5 +1,6 @@
 import { firebaseReady, getRepertoire, currentUser } from "../lib/firebase-client.ts";
 import { songsByIds, rowHtml } from "../lib/search-client.ts";
+import { repertoirePath } from "../lib/repertoire-path.ts";
 
 const status = document.getElementById("rep-status")!;
 (async () => {
@@ -9,6 +10,8 @@ const status = document.getElementById("rep-status")!;
   const user = await currentUser();
   const rep = await getRepertoire(id, user?.uid);
   if (!rep) { status.textContent = "Repertuar bulunamadı ya da gizli."; return; }
+  // Adresi olan herkese açık repertuar kalıcı adresine taşınır (/repertuar/kullanici/slug/)
+  if (rep.isPublic && rep.ownerUsername && rep.slug) { location.replace(repertoirePath(rep)); return; }
   document.getElementById("rep-title")!.textContent = rep.name;
   document.title = `${rep.name} · Gituar`;
   const entries = await songsByIds(rep.songIds);

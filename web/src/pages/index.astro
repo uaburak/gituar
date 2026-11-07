@@ -6,6 +6,7 @@ import ListSection from "../components/ListSection.astro";
 import { catalog, newestSongs, topArtists } from "../lib/catalog.ts";
 import { siteUrl, homeJsonLd } from "../lib/seo.ts";
 import { buildEditorPicks } from "../lib/editor-picks-build.ts";
+import { repertoirePath } from "../lib/repertoire-path.ts";
 
 // Popüler: gerçek popülerlik puanı (kişi başına görüntülenme/favori/repertuar); puan yoksa en yeniler.
 // "Tümü" olan listeler 19 öğe gösterir; 20. hücre "Tümü" satırıdır.
@@ -35,7 +36,7 @@ const description = "Türkçe şarkıların gitar akorları: topluluğun paylaş
   <ListSection title="Öne Çıkanlar" color="#0a84ff" id="featured" all="/editorun-secimleri/">
     <ul class="rp-list" id="editor-picks">
       {picks.map((p) => (
-        <li><a class="row" href={`/repertuar/?id=${p.id}`} title={p.name}><span class="rp-badge rp-badge-list" aria-hidden="true">R</span><span class="rp-text"><span class="row-title">{p.name}</span><span class="row-note"> · {p.count} şarkı</span></span></a></li>
+        <li><a class="row" href={repertoirePath(p)} title={p.name}><span class="rp-badge rp-badge-list" aria-hidden="true">R</span><span class="rp-text"><span class="row-title">{p.name}</span><span class="row-note"> · {p.count} şarkı</span></span></a></li>
       ))}
     </ul>
     {picks.length === 0 && <p class="muted small rp-empty" id="editor-status">Yükleniyor…</p>}

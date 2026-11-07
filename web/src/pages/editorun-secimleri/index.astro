@@ -4,6 +4,7 @@ import Base from "../../layouts/Base.astro";
 import SongList from "../../components/SongList.astro";
 import { catalog } from "../../lib/catalog.ts";
 import { buildEditorPicks } from "../../lib/editor-picks-build.ts";
+import { repertoirePath } from "../../lib/repertoire-path.ts";
 import { siteUrl, breadcrumbJsonLd } from "../../lib/seo.ts";
 import { songPath } from "@shared/catalog";
 
@@ -30,7 +31,7 @@ const jsonLd = [
   <div class="rp-content"><p id="editor-meta">Gituar ekibinin hazırladığı repertuarlar.</p></div>
   {picks.length > 0 ? (
     picks.map((p, i) => (
-      <ListSection title={p.name} color="#ea494d" open={i === 0} id={`liste-${p.id}`} all={`/repertuar/?id=${p.id}`}>
+      <ListSection title={p.name} color="#ea494d" open={i === 0} id={`liste-${p.id}`} all={repertoirePath(p)}>
         <SongList songs={p.songs.slice(0, SHOW)} />
       </ListSection>
     ))

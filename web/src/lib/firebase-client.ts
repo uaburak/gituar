@@ -1,5 +1,6 @@
 // Tarayıcı tarafı Firebase erişimi. SDK yalnızca gerektiğinde (giriş, repertuar, Plus) yüklenir.
 import { FIREBASE_CONFIG } from "./site.ts";
+import { uniqueSlug } from "./repertoire-path.ts";
 import type { User } from "firebase/auth";
 
 export const firebaseReady = Boolean(FIREBASE_CONFIG.apiKey && FIREBASE_CONFIG.appId);
@@ -89,6 +90,9 @@ export interface RepertoireDoc {
   isPublic: boolean;
   createdAt?: Date;
   sourceId?: string;
+  /** Herkese açık repertuarlarda adres parçaları: /repertuar/{ownerUsername}/{slug}/ */
+  ownerUsername?: string;
+  slug?: string;
 }
 
 // iOS ile aynı veri modeli: özel repertuarlar users/{uid}/repertoires, herkese açık olanlar public-repertoires.
@@ -102,6 +106,8 @@ function toRep(id: string, data: Record<string, unknown>, isPublic: boolean): Re
     isPublic: typeof data.isPublic === "boolean" ? data.isPublic : isPublic,
     createdAt: created?.toDate?.(),
     sourceId: typeof data.sourceId === "string" ? data.sourceId : undefined,
+    ownerUsername: typeof data.ownerUsername === "string" ? data.ownerUsername : undefined,
+    slug: typeof data.slug === "string" ? data.slug : undefined,
   };
 }
 
@@ -113,8 +119,32 @@ export async function listMyRepertoires(uid: string): Promise<RepertoireDoc[]> {
     f.fsMod.getDocs(f.fsMod.collection(f.db, "users", uid, "repertoires")),
     f.fsMod.getDocs(f.fsMod.query(f.fsMod.collection(f.db, "public-repertoires"), f.fsMod.where("ownerId", "==", uid))),
   ]);
-  const all = [...priv.docs.map((d) => toRep(d.id, d.data(), false)), ...pub.docs.map((d) => toRep(d.id, d.data(), true))];
+  const pubReps = pub.docs.map((d) => toRep(d.id, d.data(), true));
+  await ensurePublicSlugs(f, uid, pubReps).catch(() => {});
+  const all = [...priv.docs.map((d) => toRep(d.id, d.data(), false)), ...pubReps];
   return all.sort((a, b) => (b.createdAt?.getTime() ?? 0) - (a.createdAt?.getTime() ?? 0));
+}
+
+/**
+ * Herkese açık repertuarlarına adres alanları (ownerUsername, slug) yoksa ekler. Eski kayıtlar ve
+ * uygulamanın eski sürümleri bu alanları yazmadığı için sahibi siteye girince tamamlanır.
+ * Verilen dizideki kayıtlar da yerinde güncellenir.
+ */
+async function ensurePublicSlugs(f: Fb, uid: string, reps: RepertoireDoc[]): Promise<void> {
+  const missing = reps.filter((r) => !r.slug || !r.ownerUsername);
+  if (!missing.length) return;
+  const profile = await f.fsMod.getDoc(f.fsMod.doc(f.db, "users", uid));
+  const username = String(profile.data()?.username ?? "").trim().toLocaleLowerCase("tr-TR");
+  if (!username) return;
+  const taken = new Set(reps.filter((r) => r.slug).map((r) => r.slug!));
+  // Eskiden yenige: ilk yayınlanan "sahne", sonraki "sahne-2" olur
+  const ordered = [...missing].sort((a, b) => (a.createdAt?.getTime() ?? 0) - (b.createdAt?.getTime() ?? 0));
+  for (const r of ordered) {
+    const slug = r.slug ?? uniqueSlug(r.name, taken);
+    await f.fsMod.updateDoc(f.fsMod.doc(f.db, "public-repertoires", r.id), { ownerUsername: username, slug });
+    r.slug = slug;
+    r.ownerUsername = username;
+  }
 }
 
 export async function createRepertoire(uid: string, name: string): Promise<string> {

@@ -1,5 +1,6 @@
 // Ana sayfa "Repertuarlarım": açılınca giriş yapmış kullanıcının repertuarlarını listeler (Firebase yalnızca açılınca yüklenir).
 import { esc } from "../lib/search-client.ts";
+import { repertoirePath } from "../lib/repertoire-path.ts";
 
 const section = document.getElementById("my-reps") as HTMLDetailsElement | null;
 const list = document.getElementById("my-reps-list");
@@ -16,7 +17,7 @@ async function load() {
     if (!user) { status.innerHTML = 'Repertuarlarını görmek için <a href="/giris/?next=/">giriş yap</a>.'; return; }
     const reps = await listMyRepertoires(user.uid);
     list.innerHTML = reps
-      .map((r) => `<li><a class="row" href="/repertuar/?id=${esc(r.id)}" title="${esc(r.name)}"><span class="rp-badge rp-badge-list" aria-hidden="true">R</span><span class="rp-text"><span class="row-title">${esc(r.name)}</span><span class="row-note"> · ${r.songIds.length} şarkı</span></span></a></li>`)
+      .map((r) => `<li><a class="row" href="${esc(repertoirePath(r))}" title="${esc(r.name)}"><span class="rp-badge rp-badge-list" aria-hidden="true">R</span><span class="rp-text"><span class="row-title">${esc(r.name)}</span><span class="row-note"> · ${r.songIds.length} şarkı</span></span></a></li>`)
       .join("");
     status.hidden = reps.length > 0;
     status.textContent = "Henüz repertuarın yok. Şarkı sayfasındaki \"Repertuara Ekle\" ile oluşturabilirsin.";

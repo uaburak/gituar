@@ -1,8 +1,9 @@
 // Editörün seçimleri: admin hesapların herkese açık repertuarları (iOS ile aynı kaynak: metadata/admins + public-repertoires).
 // Firebase SDK yüklemeden Firestore REST ile okunur; iki doküman da herkese açık.
 import { FIREBASE_CONFIG } from "./site.ts";
+import { repertoirePath } from "./repertoire-path.ts";
 
-export interface EditorPick { id: string; name: string; count: number; createdAt: string }
+export interface EditorPick { id: string; name: string; count: number; createdAt: string; ownerUsername?: string; slug?: string }
 
 const BASE = `https://firestore.googleapis.com/v1/projects/${FIREBASE_CONFIG.projectId}/databases/(default)/documents`;
 type Fields = Record<string, { stringValue?: string; booleanValue?: boolean; timestampValue?: string; arrayValue?: { values?: { stringValue?: string }[] } }>;
@@ -16,7 +17,7 @@ export function editorPicks(): Promise<EditorPick[]> {
   if (cache) return cache;
   cache = (async () => {
     try {
-      const sessionKey = "gituar-editor-picks";
+      const sessionKey = "gituar-editor-picks-2";
       try {
         const raw = sessionStorage.getItem(sessionKey);
         if (raw) { const c = JSON.parse(raw) as { t: number; picks: EditorPick[] }; if (Date.now() - c.t < 10 * 60 * 1000) return c.picks; }
@@ -38,7 +39,7 @@ export function editorPicks(): Promise<EditorPick[]> {
         .filter((r) => r.document)
         .map((r) => {
           const f = r.document!.fields ?? {};
-          return { id: r.document!.name.split("/").pop()!, name: str(f, "name"), count: arr(f, "songIds").length, createdAt: f.createdAt?.timestampValue ?? "" };
+          return { id: r.document!.name.split("/").pop()!, name: str(f, "name"), count: arr(f, "songIds").length, createdAt: f.createdAt?.timestampValue ?? "", ownerUsername: str(f, "ownerUsername") || undefined, slug: str(f, "slug") || undefined };
         })
         .filter((p) => p.name && p.count > 0)
         .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
@@ -53,5 +54,5 @@ export function editorPicks(): Promise<EditorPick[]> {
 }
 
 export function pickCardHtml(p: EditorPick, esc: (s: string) => string): string {
-  return `<li><a class="row" href="/repertuar/?id=${esc(p.id)}" title="${esc(p.name)}"><span class="rp-badge rp-badge-list" aria-hidden="true">R</span><span class="rp-text"><span class="row-title">${esc(p.name)}</span><span class="row-note"> · ${p.count} şarkı</span></span></a></li>`;
+  return `<li><a class="row" href="${esc(repertoirePath(p))}" title="${esc(p.name)}"><span class="rp-badge rp-badge-list" aria-hidden="true">R</span><span class="rp-text"><span class="row-title">${esc(p.name)}</span><span class="row-note"> · ${p.count} şarkı</span></span></a></li>`;
 }

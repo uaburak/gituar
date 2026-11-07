@@ -393,6 +393,7 @@ class ChordViewModel: ObservableObject {
         var successCount = 0
         var failedCount = 0
         let total = entries.count
+        var taken = takenPublicSlugs(ownerId: uid)
 
         for (index, entry) in entries.enumerated() {
             let repId = UUID().uuidString
@@ -404,9 +405,10 @@ class ChordViewModel: ObservableObject {
                 createdAt: Date().addingTimeInterval(TimeInterval(-index)), // sıra korunsun
                 isPublic: true
             )
+            let addressed = withPublicAddress(repertoire, taken: &taken)
 
             do {
-                try db.collection(collectionPublicRepertoires).document(repId).setData(from: repertoire)
+                try db.collection(collectionPublicRepertoires).document(repId).setData(from: addressed)
                 successCount += 1
             } catch {
                 print("❌ bulkImportRepertoires: '\(entry.name)' yazılamadı: \(error)")
@@ -528,6 +530,30 @@ class ChordViewModel: ObservableObject {
         }
     }
 
+    /// Yayınlanan repertuara web adresi alanlarını verir (yoksa). Slug, sahibin diğer herkese açık
+    /// repertuarlarıyla çakışmayacak şekilde "-2", "-3" … eklenerek seçilir. `taken` güncellenir.
+    private func withPublicAddress(_ repertoire: Repertoire, taken: inout Set<String>) -> Repertoire {
+        var rep = repertoire
+        let username = (UserService.shared.currentUserProfile?.username ?? "")
+            .trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !username.isEmpty else { return rep }
+        if rep.slug == nil || (rep.slug ?? "").isEmpty {
+            let base = rep.name.slugified
+            var slug = base
+            var n = 2
+            while taken.contains(slug) { slug = "\(base)-\(n)"; n += 1 }
+            rep.slug = slug
+        }
+        taken.insert(rep.slug!)
+        rep.ownerUsername = username
+        return rep
+    }
+
+    /// Kullanıcının şu an herkese açık repertuarlarında kullanılan slug'lar.
+    private func takenPublicSlugs(ownerId: String, excluding id: String? = nil) -> Set<String> {
+        Set(publicRepertoires.filter { $0.ownerId == ownerId && $0.id != id }.compactMap { $0.slug })
+    }
+
     func setRepertoirePublic(_ repertoire: Repertoire, isPublic: Bool) {
         guard let uid = currentUserId, let repId = repertoire.id else { return }
         guard repertoire.ownerId == uid else { return }
@@ -539,6 +565,10 @@ class ChordViewModel: ObservableObject {
 
         var updatedRepertoire = repertoire
         updatedRepertoire.isPublic = isPublic
+        if isPublic {
+            var taken = takenPublicSlugs(ownerId: uid, excluding: repId)
+            updatedRepertoire = withPublicAddress(updatedRepertoire, taken: &taken)
+        }
 
         // Yeni collection'a yaz + eskisinden sil — tek batch: biri başarısız olursa
         // repertuar ne kaybolur ne de iki yerde birden kalır.

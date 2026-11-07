@@ -1,5 +1,6 @@
 import { firebaseReady, currentUser, listMyRepertoires, createRepertoire } from "../lib/firebase-client.ts";
 import { esc } from "../lib/search-client.ts";
+import { repertoirePath } from "../lib/repertoire-path.ts";
 
 const status = document.getElementById("rep-status")!;
 const meta = document.getElementById("rep-meta")!;
@@ -20,7 +21,7 @@ const newBtn = document.getElementById("rep-new-btn") as HTMLButtonElement;
     grid.innerHTML = reps
       .map((r) => {
         const sub = `${r.songIds.length} şarkı${r.isPublic ? " · herkese açık" : ""}`;
-        return `<li><a class="row" href="/repertuar/?id=${esc(r.id)}"><span class="rp-badge rp-badge-list" aria-hidden="true">R</span><span class="rp-text"><span class="row-title">${esc(r.name)}</span><span class="row-note"> · ${sub}</span></span></a></li>`;
+        return `<li><a class="row" href="${esc(repertoirePath(r))}"><span class="rp-badge rp-badge-list" aria-hidden="true">R</span><span class="rp-text"><span class="row-title">${esc(r.name)}</span><span class="row-note"> · ${sub}</span></span></a></li>`;
       })
       .join("");
     meta.textContent = `${reps.length} repertuar · iPhone'daki Gituar ile eşitlenir`;

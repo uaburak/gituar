@@ -2,15 +2,18 @@
 // Ağ yoksa boş döner; sayfa o durumda tarayıcıda yükler ve dizine girmez.
 import { FIREBASE_CONFIG } from "./site.ts";
 
-export interface BuildPick { id: string; name: string; songIds: string[]; createdAt: string }
+export interface BuildPick { id: string; name: string; songIds: string[]; createdAt: string; ownerUsername?: string; slug?: string }
 
 type Fields = Record<string, { stringValue?: string; timestampValue?: string; arrayValue?: { values?: { stringValue?: string }[] } }>;
 const arr = (f: Fields, k: string) => (f[k]?.arrayValue?.values ?? []).map((v) => v.stringValue ?? "").filter(Boolean);
 
 let cache: Promise<BuildPick[]> | null = null;
+let cachedAt = 0;
+const TTL = 10 * 60 * 1000; // sunucuda 10 dakikada bir tazelenir (yeni liste ya da adres alanları)
 
 export function buildEditorPicks(): Promise<BuildPick[]> {
-  if (cache) return cache;
+  if (cache && Date.now() - cachedAt < TTL) return cache;
+  cachedAt = Date.now();
   cache = (async () => {
     const key = FIREBASE_CONFIG.apiKey;
     if (!key) return [];
@@ -34,7 +37,7 @@ export function buildEditorPicks(): Promise<BuildPick[]> {
         .filter((r) => r.document)
         .map((r) => {
           const f = r.document!.fields ?? {};
-          return { id: r.document!.name.split("/").pop()!, name: f.name?.stringValue ?? "", songIds: arr(f, "songIds"), createdAt: f.createdAt?.timestampValue ?? "" };
+          return { id: r.document!.name.split("/").pop()!, name: f.name?.stringValue ?? "", songIds: arr(f, "songIds"), createdAt: f.createdAt?.timestampValue ?? "", ownerUsername: f.ownerUsername?.stringValue, slug: f.slug?.stringValue };
         })
         .filter((p) => p.name && p.songIds.length > 0)
         .sort((a, b) => b.createdAt.localeCompare(a.createdAt));

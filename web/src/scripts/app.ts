@@ -134,3 +134,13 @@ function placeAllRows() {
   });
 }
 placeAllRows();
+
+// Akor diyagramına tıklayınca akor sesi (ses kodu ve kayıtlar yalnızca ilk tıklamada yüklenir)
+document.addEventListener("click", (e) => {
+  const btn = (e.target as HTMLElement).closest<HTMLElement>("[data-frets]");
+  if (!btn) return;
+  const frets = (btn.dataset.frets ?? "").split(",").map(Number);
+  btn.classList.add("cd-playing");
+  setTimeout(() => btn.classList.remove("cd-playing"), 600);
+  void import("../lib/chord-audio.ts").then((m) => m.playFrets(frets));
+});

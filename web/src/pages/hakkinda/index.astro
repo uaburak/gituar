@@ -17,6 +17,8 @@ const jsonLd = { "@context": "https://schema.org", "@type": "FAQPage", mainEntit
   <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
   <p><strong>Gituar</strong>, Türkçe şarkıların gitar akorlarını bir araya getiren ücretsiz bir akor sitesi ve iPhone uygulamasıdır. Akorları kullanıcılar ekler, editörler onayladıktan sonra yayımlanır. Akorları kendi tonuna transpoze edebilir, kapo hesabı yapabilir, otomatik kaydırmayla çalabilir ve şarkılarını repertuarlarda toplayabilirsin.</p>
   <p>Öneri, görüş ve şikayetlerini <a href="mailto:iletisim@gituar.com">iletisim@gituar.com</a> adresine yazabilirsin.</p>
+  <h2>Ses kayıtları</h2>
+  <p>Akorlara tıklayınca çalan gitar sesleri, University of Iowa Electronic Music Studios kayıtlarının <a href="https://github.com/nbrosowsky/tonejs-instruments" rel="noopener">tonejs-instruments</a> projesinde düzenlenmiş hâlidir; <a href="https://creativecommons.org/licenses/by/3.0/" rel="noopener license">CC BY 3.0</a> lisansıyla kullanılır. Kayıtları kısalttık ve küçük dosyalara dönüştürdük.</p>
   <ListSection title="Sık sorulan sorular" icon="none" open>
     <ul class="rp-info rp-faq">{faq.map(([q, a]) => <li><b>{q}</b><span>{a}</span></li>)}</ul>
   </ListSection>

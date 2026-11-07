@@ -1,5 +1,5 @@
 ---
-// Gitar akor diyagramı (SVG): 6 tel, 5 perde; açık/çalınmayan tel işaretleri, barre çubuğu, başlangıç perdesi.
+// Gitar akor diyagramı (SVG; tıklayınca akor çalar, app.ts → chord-audio.ts): 6 tel, 5 perde; açık/çalınmayan tel işaretleri, barre çubuğu, başlangıç perdesi.
 import type { Shape } from "../lib/chord-theory.ts";
 interface Props { shape: Shape; label: string; size?: "sm" | "lg"; href?: string; caption?: string }
 const { shape, label, size = "sm", href, caption } = Astro.props;
@@ -13,10 +13,10 @@ const y = (f: number) => top + (f - start + 0.5) * sy;
 const barre = shape.barre && shape.barre >= start ? shape.barre : undefined;
 const barreStrings = barre ? shape.frets.map((f, i) => (f === barre ? i : -1)).filter((i) => i >= 0) : [];
 const title = `${label} akoru${shape.name ? `, ${shape.name.toLocaleLowerCase("tr-TR")}` : ""}`;
-const Tag = href ? "a" : "div";
 ---
-<Tag class={`chord-diagram ${size}`} href={href} title={title}>
-  <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={title}>
+<div class={`chord-diagram ${size}`}>
+  <button type="button" class="cd-play" data-frets={shape.frets.join(",")} title={`${title} · dinle`} aria-label={`${label} akorunu dinle`}>
+  <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-hidden="true">
     {start === 1 ? <rect x={x(0)} y={top - 3} width={x(5) - x(0)} height="3" class="cd-nut" /> : <text x={left - 4} y={y(start) + 4} class="cd-fret" text-anchor="end">{start}</text>}
     {[0, 1, 2, 3, 4, 5].map((i) => <line x1={x(0)} x2={x(5)} y1={top + i * sy} y2={top + i * sy} class="cd-line" />)}
     {[0, 1, 2, 3, 4, 5].map((s) => <line x1={x(s)} x2={x(s)} y1={top} y2={top + 5 * sy} class="cd-line" />)}
@@ -30,6 +30,7 @@ const Tag = href ? "a" : "div";
       : <circle cx={x(s)} cy={y(f)} r="5" class="cd-dot" />
     )}
   </svg>
-  <span class="cd-label">{label}</span>
+  </button>
+  {href ? <a class="cd-label" href={href} title={title}>{label}</a> : <span class="cd-label">{label}</span>}
   {caption && <span class="cd-caption">{caption}</span>}
-</Tag>
+</div>

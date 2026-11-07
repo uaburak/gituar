@@ -1,0 +1,5 @@
+Akustik gitar nota kayıtları (E2–D5, yarım ses aralıkla)
+Kaynak: University of Iowa Electronic Music Studios kayıtları, tonejs-instruments projesinde düzenlenmiş hâli
+https://github.com/nbrosowsky/tonejs-instruments (samples/guitar-acoustic)
+Lisans: CC BY 3.0 — https://creativecommons.org/licenses/by/3.0/
+Gituar'da: ilk 3 sn'ye kısaltıldı, sona 0,7 sn kısılma eklendi, 64 kbps AAC (m4a) olarak kodlandı.

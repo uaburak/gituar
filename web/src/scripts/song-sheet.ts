@@ -151,6 +151,19 @@ function init(root: HTMLElement) {
   });
   window.addEventListener("scroll", () => { if (!pop.hidden) { pop.hidden = true; popFor = null; } }, { passive: true });
 
+  // ---- Akora tıklayınca sesi: kâğıtta yazan tutuş, kapo takılıysa kapolu gerçek perdeden ----
+  pre.addEventListener("click", (e) => {
+    const el = (e.target as HTMLElement).closest<HTMLElement>(".chord");
+    if (!el) return;
+    const c = simplifyChord(el.textContent ?? "");
+    const shape = c ? chordShapes(c.root, c.quality)[0] : undefined;
+    if (!shape) return;
+    const capoNow = Number(document.getElementById("capo-val")?.textContent ?? 0) || 0;
+    el.classList.add("cd-playing");
+    setTimeout(() => el.classList.remove("cd-playing"), 600);
+    void import("../lib/chord-audio.ts").then((m) => m.playFrets(shape.frets, capoNow));
+  });
+
   // ---- Sayfayı oynat (otomatik kaydırma) ----
   // Yalnızca akor bölgesini kaydırır: akorların üstünden başlar, akorların altı görününce durur.
   // Akorlar ekrana sığıyorsa buton hiç gösterilmez.

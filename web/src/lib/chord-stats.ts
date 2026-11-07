@@ -1,6 +1,5 @@
-// Katalog genelinde akor analizi (build zamanı, bir kez hesaplanır):
+// Katalog genelinde akor analizi (dizin her değiştiğinde yeniden hesaplanır; şarkı metni gerekmez, dizindeki akor listesi yeter):
 // şarkı başına sadeleştirilmiş akorlar, zorluk, kapo ile kolay çalma; akor başına şarkılar ve asıl yazım.
-import { parse, chordSpans } from "@shared/chords";
 import { catalog, catalogVersion, type CatalogSong } from "./catalog.ts";
 import { minChordSongs } from "./catalog-rules.mjs";
 import { simplifyChord, chordClass, chordSlug, isOpenChord, shiftedName, chordShapes, pitchClass } from "./chord-theory.ts";
@@ -35,14 +34,10 @@ interface Stats {
 let cache: Stats | null = null;
 let cacheVersion = -1;
 
-function songChordNames(content: string): string[] {
-  const seen = new Set<string>();
-  const out: string[] = [];
-  for (const line of parse(content)) {
-    if (!line.isChordLine) continue;
-    for (const sp of chordSpans(line.text)) if (!seen.has(sp.chord)) { seen.add(sp.chord); out.push(sp.chord); }
-  }
-  return out;
+/** Dizindeki akor listesi (API kâğıttan türetir: akor satırlarındaki akorlar, ilk görülme sırasıyla, tekrar yok). */
+function songChordNames(song: CatalogSong): string[] {
+  const list = (song as CatalogSong & { chords?: string }).chords ?? "";
+  return list ? list.split(" ") : [];
 }
 
 
@@ -57,7 +52,7 @@ export function chordStats(): Stats {
   for (const song of catalog().songs) {
     const seen = new Set<string>();
     const chords: SongChords["chords"] = [];
-    for (const token of songChordNames(song.content)) {
+    for (const token of songChordNames(song)) {
       const c = simplifyChord(token);
       if (!c) continue;
       const cls = chordClass(c.root, c.quality);

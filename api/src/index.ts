@@ -3,6 +3,7 @@
 // Silme satırı gerçekten siler. Popülerlik: kişi × şarkı × işlem başına tek kayıt (song_actions).
 import { createRemoteJWKSet, jwtVerify } from "jose";
 import { slugify, turkeyNormalized } from "../../shared/src/turkish.ts";
+import { parse, chordSpans } from "../../shared/src/chords.ts";
 
 interface Env {
   DB: D1Database;
@@ -20,6 +21,54 @@ const MAX_LIMIT = 100;
 const TRENDING_DAYS = 30;
 
 // ---------- Yardımcılar ----------
+
+/**
+ * Dizin satırı (web sitesi ve uygulamanın bellekte tuttuğu hafif kayıt): içerik yok, yerine içerikten türeyenler var.
+ *  chords: kâğıttaki akorlar (ilk görülme sırasıyla, tekrar yok, boşlukla ayrık) → akor/ton/kolay/kapo sayfaları
+ *  ch:     sadeleştirilmiş içeriğin özeti → kopya şarkı tespiti (canonical)
+ * İçerik yalnızca şarkı sayfası açılınca, o şarkı için ayrıca istenir.
+ */
+function derived(content: string): { chords: string; ch: string } {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const line of parse(content ?? "")) {
+    if (!line.isChordLine) continue;
+    for (const sp of chordSpans(line.text)) if (!seen.has(sp.chord)) { seen.add(sp.chord); out.push(sp.chord); }
+  }
+  const norm = (content ?? "").replace(/\r/g, "").replace(/[ \t]+/g, " ").replace(/\n{2,}/g, "\n").trim();
+  return { chords: out.join(" "), ch: norm.length >= 40 ? fnv(norm) : "" };
+}
+
+/** FNV-1a (64 bit, iki 32 bitlik yarı): hızlı, kopya tespiti için yeterli özet. */
+function fnv(text: string): string {
+  let h1 = 0x811c9dc5, h2 = 0x01000193 ^ text.length;
+  for (let i = 0; i < text.length; i++) {
+    const c = text.charCodeAt(i);
+    h1 = Math.imul(h1 ^ c, 0x01000193);
+    h2 = Math.imul(h2 ^ c, 0x5bd1e995);
+  }
+  return (h1 >>> 0).toString(16).padStart(8, "0") + (h2 >>> 0).toString(16).padStart(8, "0");
+}
+
+function toIndexRow(row: Record<string, unknown>) {
+  return {
+    ...toSong(row),
+    addedBy: (row.added_by as string | null) ?? null,
+    ...derived(row.content as string),
+  };
+}
+
+/** Katalog sürümü: yayındaki en son değişiklik zamanı + şarkı sayısı. Ekleme/düzenleme/onay/silme her biri bunu değiştirir. */
+async function catalogVersion(env: Env): Promise<{ v: string; max: number; count: number }> {
+  const r = await env.DB.prepare("SELECT MAX(updated_at) AS m, COUNT(*) AS n FROM songs WHERE status = 'approved'").first<{ m: number | null; n: number }>();
+  const max = r?.m ?? 0, count = r?.n ?? 0;
+  return { v: `${max}-${count}`, max, count };
+}
+
+/** Adres sürüm (v=) taşıyorsa içerik hiç değişmez: Cloudflare ve tarayıcı bir yıl saklayabilir. */
+function versioned(url: URL, fallbackSeconds: number): number {
+  return url.searchParams.has("v") ? 31_536_000 : fallbackSeconds;
+}
 
 class HttpError extends Error {
   constructor(public status: number, message: string) {
@@ -254,20 +303,64 @@ async function route(req: Request, env: Env, url: URL): Promise<Response> {
     return json({ songs: results.map((r) => toSong(r)) }, {}, 60);
   }
 
+  // Katalog sürümü: istemciler yalnızca bu değişince değişiklikleri ister (çok ucuz, 15 sn önbellek)
+  if (method === "GET" && path === "/v1/version") {
+    return json(await catalogVersion(env), {}, 15);
+  }
+
+  // Hafif dizin: içeriksiz satırlar + türetilmiş akorlar/özet, sayfalı. ?v=<sürüm> ile çağrılınca kalıcı önbelleklenir.
+  if (method === "GET" && path === "/v1/index") {
+    const limit = intParam(url, "limit", 2000, 5000);
+    const offset = intParam(url, "offset", 0, 10_000_000);
+    const { results } = await env.DB.prepare(`SELECT ${FULL_FIELDS} FROM songs WHERE status = 'approved' ORDER BY created_at, id LIMIT ? OFFSET ?`)
+      .bind(limit, offset).all();
+    return json({ songs: results.map(toIndexRow) }, {}, versioned(url, 60));
+  }
+
+  // Fark: since (ms) sonrasında değişen bütün satırlar (her durumda; yayından kalkanlar status ile gelir, istemci çıkarır).
+  // Silinen satırlar burada görünmez: istemci şarkı sayısı tutmazsa /v1/ids ile karşılaştırır.
+  if (method === "GET" && path === "/v1/changes") {
+    const since = Number(url.searchParams.get("since"));
+    if (!Number.isFinite(since) || since < 0) throw new HttpError(400, "since gerekli");
+    const limit = intParam(url, "limit", 500, 1000);
+    const { results } = await env.DB.prepare(`SELECT ${FULL_FIELDS} FROM songs WHERE updated_at > ? ORDER BY updated_at LIMIT ?`)
+      .bind(since, limit + 1).all();
+    const more = results.length > limit;
+    // content=1: satırlar şarkı metniyle gelir (uygulamanın çevrim dışı kopyası için)
+    const withContent = url.searchParams.get("content") === "1";
+    const rows = results.slice(0, limit).map((r) => (withContent ? { ...toIndexRow(r), content: r.content as string, ...parseRhythm(r.rhythm) } : toIndexRow(r)));
+    return json({ songs: rows, more, version: await catalogVersion(env) }, {}, versioned(url, 0));
+  }
+
+  // Yayındaki bütün şarkı numaraları (silinenleri bulmak için)
+  if (method === "GET" && path === "/v1/ids") {
+    const { results } = await env.DB.prepare("SELECT id FROM songs WHERE status = 'approved'").all<{ id: string }>();
+    return json({ ids: results.map((r) => r.id) }, {}, versioned(url, 30));
+  }
+
+  // Popülerlik puanları (puanı olan şarkılar). Puan değişimi sürümü değiştirmez; istemci bunu ayrıca, seyrek çeker.
+  if (method === "GET" && path === "/v1/scores") {
+    const { results } = await env.DB.prepare("SELECT id, score FROM songs WHERE status = 'approved' AND score > 0").all<{ id: string; score: number }>();
+    return json({ scores: results.map((r) => [r.id, r.score]) }, {}, 300);
+  }
+
   // Web derlemesi: yayındaki bütün şarkılar, içerikleriyle, sayfalı
   if (method === "GET" && path === "/v1/export") {
     const limit = intParam(url, "limit", 500, 1000);
     const offset = intParam(url, "offset", 0, 10_000_000);
     const { results } = await env.DB.prepare(`SELECT ${FULL_FIELDS} FROM songs WHERE status = 'approved' ORDER BY created_at, id LIMIT ? OFFSET ?`)
       .bind(limit, offset).all();
-    return json({ songs: results.map((r) => toSong(r, true)) });
+    // ?v=<sürüm>: çevrim dışı tam indirme; aynı sürüm Cloudflare önbelleğinden gelir
+    return json({ songs: results.map((r) => toSong(r, true)) }, {}, versioned(url, 0));
   }
 
   if (method === "GET" && (match = m(/^\/v1\/songs\/by-slug\/([^/]+)\/([^/]+)$/))) {
     const row = await env.DB.prepare(`SELECT ${FULL_FIELDS} FROM songs WHERE artist_slug = ? AND slug = ? AND status = 'approved'`)
       .bind(decodeURIComponent(match[1]), decodeURIComponent(match[2])).first<Record<string, unknown>>();
     if (!row) throw new HttpError(404, "Şarkı bulunamadı");
-    return json({ song: toSong(row, true) }, {}, 60);
+    // ?v=<updatedAt>: o sürümün içeriği değişmez, kalıcı önbelleklenebilir (sürüm tutmazsa kısa süre)
+    const v = url.searchParams.get("v");
+    return json({ song: toSong(row, true) }, {}, v && v === String(row.updated_at) ? 31_536_000 : 60);
   }
 
   if ((match = m(/^\/v1\/songs\/([^/]+)$/))) {
@@ -452,6 +545,21 @@ async function route(req: Request, env: Env, url: URL): Promise<Response> {
   throw new HttpError(404, "Bulunamadı");
 }
 
+/**
+ * GET yanıtlarına içerik özeti (ETag) eklenir. İstemci aynı özeti If-None-Match ile gönderirse gövde yerine
+ * 304 döner: veri değişmediyse tekrar indirilmez (uygulama ve web aynı yolu kullanır).
+ */
+async function withEtag(req: Request, res: Response): Promise<Response> {
+  if (req.method !== "GET" || res.status !== 200) return res;
+  const text = await res.text();
+  const tag = `W/"${fnv(text)}"`;
+  const headers = new Headers(res.headers);
+  headers.set("ETag", tag);
+  const inm = req.headers.get("If-None-Match");
+  if (inm && inm.split(",").map((s) => s.trim()).includes(tag)) return new Response(null, { status: 304, headers });
+  return new Response(text, { status: 200, headers });
+}
+
 function cors(req: Request, env: Env, res: Response): Response {
   const origin = req.headers.get("Origin");
   if (!origin) return res;
@@ -473,7 +581,7 @@ export default {
     const url = new URL(req.url);
     if (req.method === "OPTIONS") return cors(req, env, new Response(null, { status: 204 }));
     try {
-      return cors(req, env, await route(req, env, url));
+      return cors(req, env, await withEtag(req, await route(req, env, url)));
     } catch (e) {
       if (e instanceof HttpError) return cors(req, env, json({ error: e.message }, { status: e.status }));
       console.error(e);

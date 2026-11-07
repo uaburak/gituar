@@ -12,10 +12,6 @@ const MIN_THIN_ARTIST = 2;
 let rules;
 let rulesVersion = -1;
 
-function normalizeContent(text) {
-  return (text ?? "").replace(/\r/g, "").replace(/[ \t]+/g, " ").replace(/\n{2,}/g, "\n").trim();
-}
-
 /** "G#m" → "G#m", "Abm" → "G#m": eşsesli tonların ortak anahtarı. Ton değilse null. */
 export function keyClass(key) {
   const m = /^([A-G])(#|b)?(m)?$/.exec((key ?? "").trim());
@@ -40,15 +36,15 @@ function load() {
   const songPath = (s) => `/akor/${s.artistSlug}/${s.slug}/`;
 
   // Kopyalar
+  // ch: API'nin sadeleştirilmiş içerikten çıkardığı özet (kısa içerikte boş)
   const byContent = new Map();
   for (const s of [...songs].sort((a, b) => a.seq - b.seq)) {
-    const k = normalizeContent(s.content);
-    if (k.length < 40) continue;
-    if (!byContent.has(k)) byContent.set(k, s);
+    if (!s.ch) continue;
+    if (!byContent.has(s.ch)) byContent.set(s.ch, s);
   }
   const canonicalOf = new Map();
   for (const s of songs) {
-    const primary = byContent.get(normalizeContent(s.content));
+    const primary = s.ch ? byContent.get(s.ch) : undefined;
     if (primary && primary.id !== s.id) canonicalOf.set(songPath(s), songPath(primary));
   }
 

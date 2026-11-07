@@ -9,13 +9,14 @@ import AdSlot from "../../../components/AdSlot.astro";
 import ChordDiagram from "../../../components/ChordDiagram.astro";
 import { songChords, chordHref, LEVEL_LABEL } from "../../../lib/chord-stats.ts";
 import { chordShapes } from "../../../lib/chord-theory.ts";
-import { catalog, sameKeySongs, artistPath, songBySlug, newestSongs, type CatalogSong } from "../../../lib/catalog.ts";
+import { catalog, sameKeySongs, artistPath, songBySlug, newestSongs, songWithContent, type ApiSong } from "../../../lib/catalog.ts";
 import { siteUrl, songTitleParts, songDescription, songJsonLd, usedChords } from "../../../lib/seo.ts";
 
 // İstek anında: adres veritabanında yoksa 404
 const found = songBySlug(Astro.params.artist ?? "", Astro.params.song ?? "");
 if (!found) return Astro.rewrite("/404/");
-const song: CatalogSong = found;
+// Dizinde metin yok; yalnızca bu şarkının metni istenir (sürüm adresli, önbellekten)
+const song: ApiSong = await songWithContent(found);
 const artist = catalog().artistBySlug.get(song.artistSlug);
 const others = (artist?.songs ?? []).filter((s) => s.id !== song.id);
 const similar = sameKeySongs(song, 10);

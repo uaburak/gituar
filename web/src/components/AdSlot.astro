@@ -9,29 +9,52 @@ const format = size === "side" ? "vertical" : size === "rect" ? "rectangle" : si
 // AdSense birimi (data-ad-slot) yer türüne göre .env'den gelir; `unit` yalnızca ölçüm/etiket içindir.
 // 728×90 için ayrı birim yoksa duyarlı liste içi birimi kullanılır.
 const slot = ADSENSE_SLOTS[size] || (size === "leaderboard" ? ADSENSE_SLOTS.inline : "");
-// Yerelde (astro dev) AdSense reklam basmaz; reklamların sayfada nasıl duracağını görmek için gerçek ölçüde örnek reklam çizilir.
+// Yerelde (astro dev) AdSense reklam basmaz (onaylı alan adı ve birim ister). Bunun yerine Google'ın
+// herkese açık örnek reklam ağından (Google Publisher Tag, /6355419/Travel/Europe) gerçek test reklamları çekilir.
 // Canlıda hiçbir zaman çizilmez (import.meta.env.DEV yalnızca dev sunucusunda true).
 const demo = import.meta.env.DEV;
 const live = !demo && Boolean(ADSENSE_CLIENT && slot);
-const demoText = {
-  side: { t: "Gitar kursu", d: "Online derslerle akorları hızla öğren.", c: "Hemen başla" },
-  leaderboard: { t: "Yeni akustik gitarlar", d: "Yeni başlayanlar için seçilmiş modeller, ücretsiz kargo.", c: "İncele" },
-  rect: { t: "Tel seti %20 indirimli", d: "Bronz ve nikel teller, tüm markalar.", c: "Satın al" },
-  inline: { t: "Müzik uygulaması", d: "Akort cihazı ve metronom tek uygulamada.", c: "İndir" },
-  sticky: { t: "Gitar pena seti", d: "12'li karışık set.", c: "Al" },
-}[size];
+const testSizes: Record<typeof size, string> = { side: "160x600", leaderboard: "728x90", rect: "300x250", inline: "728x90", sticky: "320x50" };
 // AdSense'te sabit boyutlu oluşturulan birimler (yan 160×600, mobil alt 320×50); diğerleri duyarlı
 const fixed = size === "side" ? { w: 160, h: 600 } : size === "sticky" ? { w: 320, h: 50 } : null;
 ---
 {demo && (
-  <div class:list={["ad-slot", `ad-${size}`, "ad-demo", className]} data-unit={unit} aria-label="Örnek reklam (yalnızca yerelde)">
-    <div class="ad-demo-box">
-      <span class="ad-demo-tag">Test reklamı · {labels[size]}</span>
-      <span class="ad-demo-img" aria-hidden="true"></span>
-      <span class="ad-demo-text"><b>{demoText.t}</b><span>{demoText.d}</span></span>
-      <span class="ad-demo-cta">{demoText.c}</span>
-    </div>
+  <div class:list={["ad-slot", `ad-${size}`, "ad-test", className]} data-unit={unit} aria-label="Google test reklamı (yalnızca yerelde)">
+    <div class="gpt-test" data-gpt-size={testSizes[size]}></div>
+    <span class="ad-test-label">Test reklamı · {labels[size]}</span>
   </div>
+)}
+{demo && (
+  <script is:inline>
+    // Google Publisher Tag'i bir kez yükle; sayfadaki test yerlerini Google'ın herkese açık örnek ağından doldur.
+    // Örnek ağ aynı sayfaya bir boyuttan çoğu zaman tek reklam verir; boş dönen yer ölçülü test kutusu olarak kalır.
+    if (!window.__gptTest) {
+      window.__gptTest = true;
+      window.googletag = window.googletag || { cmd: [] };
+      const s = document.createElement("script");
+      s.src = "https://securepubads.g.doubleclick.net/tag/js/gpt.js";
+      s.async = true;
+      document.head.appendChild(s);
+      const units = ["/6355419/Travel/Europe", "/6355419/Travel/Asia", "/6355419/Travel/Europe/France", "/6355419/Travel/Europe/Germany"];
+      const fill = () => googletag.cmd.push(() => {
+        let n = 0;
+        document.querySelectorAll(".gpt-test:not([id])").forEach((el) => {
+          const box = el.closest(".ad-slot");
+          if (getComputedStyle(box).display === "none" || (el.closest(".side-ad") && !el.closest(".side-ad").offsetWidth)) return;
+          const [w, h] = el.dataset.gptSize.split("x").map(Number);
+          el.id = "gpt-test-" + n;
+          googletag.defineSlot(units[n++ % units.length], [w, h], el.id)?.addService(googletag.pubads());
+        });
+        googletag.pubads().addEventListener("slotRenderEnded", (e) => {
+          if (e.isEmpty) document.getElementById(e.slot.getSlotElementId())?.closest(".ad-slot")?.classList.add("ad-test-empty");
+        });
+        googletag.pubads().enableSingleRequest();
+        googletag.enableServices();
+        document.querySelectorAll(".gpt-test[id]").forEach((el) => googletag.display(el.id));
+      });
+      if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", fill); else fill();
+    }
+  </script>
 )}
 {!demo && (live || !ADSENSE_CLIENT) && (
   <div class:list={["ad-slot", `ad-${size}`, className]} data-unit={unit} aria-label="Reklam">

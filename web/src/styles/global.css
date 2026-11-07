@@ -552,6 +552,19 @@ ins.adsbygoogle[data-ad-status="unfilled"] { display: none !important; }
 @media (max-width: 900px) { body { padding-bottom: 60px; } }
 html.plus .ad-slot, html.plus .side-ad { display: none !important; }
 /* Yerel örnek reklamlar (AdSlot.astro, yalnızca astro dev): gerçek ölçülerde, reklam gibi görünen kutular */
+/* Yerel Google test reklamları (AdSlot, yalnızca astro dev) */
+.ad-test { display: grid; place-items: center; }
+@media (min-width: 901px) { .ad-sticky.ad-test { display: none; } }
+.ad-side.ad-test { width: 160px; height: 600px; }
+.ad-rect.ad-test { height: 250px; }
+.ad-leaderboard.ad-test, .ad-inline.ad-test { height: 90px; }
+.ad-sticky.ad-test { height: 50px; }
+.gpt-test { line-height: 0; }
+.ad-test { position: relative; }
+.ad-test-label { display: none; }
+.ad-test-empty { border: 1px dashed var(--strong); border-radius: 12px; background: var(--ad); }
+.ad-test-empty .gpt-test { display: none; }
+.ad-test-empty .ad-test-label { display: block; font-size: 11px; font-weight: 600; letter-spacing: .04em; color: var(--text-3); }
 .ad-demo { display: block; }
 @media (min-width: 901px) { .ad-sticky.ad-demo { display: none; } }
 .ad-side.ad-demo { width: 160px; height: 600px; }

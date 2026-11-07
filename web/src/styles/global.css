@@ -990,3 +990,6 @@ details.rp-section[open] > .rp-title .rp-chev { transform: rotate(-135deg); }
 .rp-seo p { margin: 0 0 10px; }
 .rp-more-btn { width: 100%; border: 0; background: none; text-align: left; color: var(--accent-text); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
 .rp-more-btn:hover { background: var(--row-hover-soft); }
+.rp-group { margin: 0; padding: 14px var(--card-pad) 10px; font-size: 13px; font-weight: 600; color: var(--text-2); border-top: 1px solid var(--rp-line); }
+#editor-songs > .rp-group:first-child { border-top: 0; }
+#editor-songs { margin: 0; }

@@ -16,7 +16,7 @@ const artists = topArtists(20);
 const newestArtists = [...catalog().artists].sort((a, b) => Math.max(...b.songs.map((s) => s.seq)) - Math.max(...a.songs.map((s) => s.seq))).slice(0, 20);
 // Öne Çıkanlar: editörün seçimleri (admin hesapların herkese açık repertuarları); sunucuda alınamazsa tarayıcı yükler
 const byId = catalog().byId;
-const picks = (await buildEditorPicks()).map((p) => ({ ...p, count: p.songIds.filter((id) => byId.has(id)).length })).filter((p) => p.count > 0);
+const picks = (await buildEditorPicks()).map((p) => ({ ...p, songs: p.songIds.map((id) => byId.get(id)).filter((x) => x !== undefined) })).filter((p) => p.songs.length > 0);
 const title = "Gitar Akorları – Türkçe Şarkı Akorları, Transpoze ve Kapo";
 const description = "Türkçe şarkıların gitar akorları: topluluğun paylaştığı akorları transpoze, kapo ve otomatik kaydırma ile çal, repertuar oluştur. iPhone uygulamasıyla aynı akorlar.";
 ---
@@ -31,13 +31,15 @@ const description = "Türkçe şarkıların gitar akorları: topluluğun paylaş
     <button type="button" class="rp-more rp-more-btn" id="random-refresh">Başka şarkılar getir</button>
   </ListSection>
   <ListSection title="Öne Çıkanlar" color="#f0a800" id="featured">
-    <ul class="rp-list" id="editor-picks">
+    <div id="editor-songs">
       {picks.map((p) => (
-        <li><a class="row" href={`/repertuar/?id=${p.id}`} title={p.name}><span class="rp-badge rp-badge-list" aria-hidden="true">R</span><span class="rp-text"><span class="row-title">{p.name}</span><span class="row-note"> · {p.count} şarkı</span></span></a></li>
+        <>
+          {picks.length > 1 && <h3 class="rp-group">{p.name}</h3>}
+          <SongList songs={p.songs} />
+        </>
       ))}
-    </ul>
+    </div>
     {picks.length === 0 && <p class="muted small rp-empty" id="editor-status">Yükleniyor…</p>}
-    <a class="rp-more" href="/editorun-secimleri/">Editörün seçimleri ›</a>
   </ListSection>
   <ListSection title="Yeni Akorlar" color="#ff9500">
     <SongList songs={newest} cols={1} />
@@ -69,5 +71,5 @@ const description = "Türkçe şarkıların gitar akorları: topluluğun paylaş
   </section>
   <script src="../scripts/random.ts"></script>
   <script src="../scripts/recent.ts"></script>
-  {picks.length === 0 && <script src="../scripts/editor-picks.ts"></script>}
+  {picks.length === 0 && <script src="../scripts/featured.ts"></script>}
 </Base>

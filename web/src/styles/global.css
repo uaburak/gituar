@@ -1003,11 +1003,3 @@ button.rp-all { width: 100%; border: 0; background: none; font: inherit; text-al
 .rp-icon-letter { font-size: 12px; font-weight: 700; line-height: 1; }
 .page-card .rp-flush { margin-left: calc(-1 * var(--card-pad)); margin-right: calc(-1 * var(--card-pad)); }
 .rp-article { padding-top: 20px; }
-/* Başlık satırındaki küçük arama kutusu (sanatçı sayfası): okun solunda, ikonlarla aynı 24 px yükseklik */
-.rp-title-search { flex: 0 1 260px; height: 24px; margin-left: auto; display: flex; align-items: center; gap: 6px; padding: 0 8px; border-radius: 6px; background: var(--page); border: 1px solid var(--hairline); color: var(--text-3); cursor: text; }
-.rp-title-search .icon { width: 13px; height: 13px; flex: none; }
-.rp-title-search input { flex: 1; min-width: 0; height: 22px; border: 0; padding: 0; background: none; color: var(--text); font: inherit; font-size: 12px; outline: none; }
-.rp-title-search input::-webkit-search-cancel-button { display: none; }
-.rp-title-search:focus-within { border-color: var(--accent); }
-.rp-title .rp-title-search + .rp-chev { margin-left: 12px; }
-@media (max-width: 600px) { .rp-title-search { flex-basis: 140px; } }

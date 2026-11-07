@@ -4,7 +4,6 @@ import Base from "../../layouts/Base.astro";
 import SongList from "../../components/SongList.astro";
 import ListSection from "../../components/ListSection.astro";
 import ArtistRow from "../../components/ArtistRow.astro";
-import Icon from "../../components/Icon.astro";
 import { catalog, topArtists, type ArtistGroup } from "../../lib/catalog.ts";
 import { siteUrl, artistTitle, artistDescription, artistJsonLd } from "../../lib/seo.ts";
 import { isThinArtist, featuredSongIds } from "../../lib/catalog-rules.mjs";
@@ -41,14 +40,7 @@ const easyNotes = Object.fromEntries(easiest.map((s) => [s.id, songChords(s).cho
 ---
 <Base noindex={thin} title={artistTitle(artist)} description={artistDescription(artist)} ogType="profile" jsonLd={artistJsonLd(artist, base)}>
   <ListSection title={`${artist.name} akorları`} heading="h1" letter="S" color="#54779a" open>
-    {n >= 8 && (
-      <form slot="tools" class="rp-title-search" role="search" onsubmit="return false">
-        <Icon name="search" />
-        <input type="search" id="song-filter" placeholder={`${artist.name} şarkılarında ara`} autocomplete="off" aria-label="Şarkılarda ara" />
-      </form>
-    )}
     <SongList songs={artist.songs} cols={1} id="artist-songs" />
-    <p class="muted small rp-empty" id="filter-empty" hidden>Bu aramayla eşleşen şarkı yok.</p>
   </ListSection>
   {otherArtists.length > 0 && (
     <ListSection title="Benzer Sanatçılar" icon="none" open all="/sanatcilar/">
@@ -77,7 +69,6 @@ const easyNotes = Object.fromEntries(easiest.map((s) => [s.id, songChords(s).cho
   )}
   <ListSection title="Bütün sanatçılar" icon="none" href="/sanatcilar/" />
   <ListSection title="Şarkı öner" icon="quote" color="#c077db" href="/iletisim/" />
-  <script src="../../scripts/song-filter.ts"></script>
   <SeoText title={`${artist.name} gitar akorları`}>
     <p>{artistDescription(artist)}</p>
   </SeoText>

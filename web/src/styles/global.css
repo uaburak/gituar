@@ -807,7 +807,7 @@ a.chord-diagram:hover { background: var(--muted); text-decoration: none; }
   display: flex; align-items: center; gap: 10px; min-height: 74px; padding: 0 var(--card-pad); width: 100%;
   color: var(--text); cursor: pointer; list-style: none; background: none; border: 0; font: inherit; text-align: left;
 }
-a.rp-section.rp-title, button.rp-section.rp-title { width: auto; }
+a.rp-section.rp-title, button.rp-section.rp-title { width: calc(100% + 2 * var(--card-pad)); box-sizing: border-box; border-radius: 0; }
 .rp-title::-webkit-details-marker { display: none; }
 .rp-title:hover { background: var(--row-hover-soft); text-decoration: none; }
 .rp-title h1, .rp-title h2 { flex: 1; min-width: 0; font-size: 16px; font-weight: 600; letter-spacing: 0; line-height: 1.15; }

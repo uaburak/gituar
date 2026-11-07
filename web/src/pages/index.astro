@@ -28,19 +28,29 @@ const description = "Türkçe şarkıların gitar akorları: topluluğun paylaş
     <a class="rp-more" href="/yeni-eklenenler/">Bütün yeni akorlar ›</a>
   </ListSection>
   <ListSection title="Gece Modu" icon="moon" color="var(--text)" action="theme-toggle-home" />
-  <ListSection title="Son Çaldıklarım" icon="none" id="recent">
+  <ListSection title="Son Çaldıklarım" color="#54779a" id="recent">
     <ul class="rp-list" id="recent-list"></ul>
     <p class="muted small" id="recent-empty">Açtığın şarkılar burada listelenir. Bu liste yalnızca bu tarayıcıda tutulur.</p>
   </ListSection>
-  <ListSection title="Repertuarlarım" icon="none" href="/repertuarlarim/" />
-  <ListSection title="Popüler Sanatçılar" icon="none">
+  <ListSection title="Repertuarlarım" icon="star" color="#ffcc00" href="/repertuarlarim/" />
+  <ListSection title="Popüler Sanatçılar" color="#499c9f">
     <ul class="rp-list">{artists.map((a) => <ArtistRow artist={a} />)}</ul>
   </ListSection>
-  <ListSection title="Yeni Eklenen Sanatçılar" icon="none">
+  <ListSection title="Yeni Eklenen Sanatçılar" color="#54779a">
     <ul class="rp-list">{newestArtists.map((a) => <ArtistRow artist={a} />)}</ul>
   </ListSection>
-  <ListSection title="İstek, Öneri, Şikayet" icon="none" href="/iletisim/" />
+  <ListSection title="İstek, Öneri, Şikayet" icon="quote" color="#c077db" href="/iletisim/" />
   <ListSection title="gituar.com" icon="heart" color="#ea494d" href="/hakkinda/" />
+  <section class="rp-seo" aria-labelledby="seo-title">
+    <h2 id="seo-title">Gitar akorları, transpoze ve kapo tek sayfada</h2>
+    <p>Gituar, Türkçe şarkıların gitar akorlarını bir araya getiren ücretsiz bir akor sitesidir. Şarkıların akorlarını sözlerin üstünde, orijinal tonuyla görürsün; tek dokunuşla tonu değiştirir, kapo takacağın perdeye göre akorları yeniden yazdırırsın.</p>
+    <h3>Akorları kendi sesine göre çal</h3>
+    <p>Şarkı sesine yüksek ya da alçak geliyorsa ton şeridinden istediğin tonu seç; bütün akorlar birlikte transpoze edilir. Barre akorlardan kaçınmak istiyorsan kapo ekle, sayfa tutman gereken açık akorları gösterir. Yazı boyutunu büyütebilir, sayfayı otomatik kaydırarak elini gitardan çekmeden çalabilirsin.</p>
+    <h3>Yeni başlayanlar için kolay şarkılar</h3>
+    <p>Gitara yeni başladıysan <a href="/kolay-gitar-akorlari/">kolay gitar akorları</a> sayfasından yalnızca açık akorlarla çalınan şarkılara, <a href="/kapo-ile-kolay-sarkilar/">kapo ile kolay şarkılar</a> sayfasından da kapo takınca kolaylaşan şarkılara ulaşabilirsin. Bir akorun nasıl basıldığını <a href="/akorlar/">gitar akorları tablosunda</a> diyagramıyla görürsün.</p>
+    <h3>Repertuarını oluştur</h3>
+    <p>Sevdiğin şarkıları repertuarlarında topla, sahneye ya da arkadaş ortamına hazırlıklı git. Repertuarların iPhone'daki Gituar uygulamasıyla eşitlenir; kaydettiğin tonlar her yerde aynı kalır.</p>
+  </section>
   <script src="../scripts/random.ts"></script>
   <script src="../scripts/recent.ts"></script>
 </Base>

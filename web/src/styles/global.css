@@ -807,7 +807,7 @@ a.chord-diagram:hover { background: var(--muted); text-decoration: none; }
   display: flex; align-items: center; gap: 10px; min-height: 74px; padding: 0 var(--card-pad); width: 100%;
   color: var(--text); cursor: pointer; list-style: none; background: none; border: 0; font: inherit; text-align: left;
 }
-a.rp-section.rp-title, button.rp-section.rp-title { width: calc(100% + 2 * var(--card-pad)); box-sizing: border-box; border-radius: 0; }
+a.rp-section.rp-title, button.rp-section.rp-title { width: calc(100% + 2 * var(--card-pad)); box-sizing: border-box; border-radius: 0; border-bottom: 1px solid var(--rp-line); }
 .rp-title::-webkit-details-marker { display: none; }
 .rp-title:hover { background: var(--row-hover-soft); text-decoration: none; }
 .rp-title h1, .rp-title h2 { flex: 1; min-width: 0; font-size: 16px; font-weight: 600; letter-spacing: 0; line-height: 1.15; }
@@ -988,3 +988,8 @@ details.rp-section[open] > .rp-title .rp-chev { transform: rotate(-135deg); }
 .legal-body { padding-bottom: 24px; }
 .rp-content .rp-info, .rp-content .rp-list { padding-left: 0; margin-bottom: 0; }
 .rp-content .rp-section { line-height: normal; }
+/* Ana sayfa sonundaki tanıtım metni */
+.rp-seo { padding: 28px 0 8px; font-size: 13px; line-height: 24px; color: var(--text-2); }
+.rp-seo h2 { font-size: 16px; line-height: 24px; font-weight: 600; color: var(--text); margin: 0 0 8px; }
+.rp-seo h3 { font-size: 14px; font-weight: 600; color: var(--text); margin: 18px 0 4px; }
+.rp-seo p { margin: 0 0 10px; }

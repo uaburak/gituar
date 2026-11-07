@@ -26,7 +26,7 @@ if (song && pre && playBtn && patternEl && tempoInput && tempoVal) {
   if (!d.rhythm && !d.arpeggio && note) note.textContent = "Bu şarkıya ritim eklenmemiş; en yaygın ritimle çalınır. Her akor bir ölçü çalınır.";
 
   const slots = () => (mode === "rhythm" ? rhythm : arpeggio);
-  const label = (x: Stroke | Pluck) => (mode === "rhythm" ? (x === "down" ? "↓" : x === "up" ? "↑" : "·") : x === "bass" ? "B" : x === null ? "·" : String(6 - (x as number)));
+  const label = (x: Stroke | Pluck) => (mode === "rhythm" ? (x === "down" ? "↓" : x === "up" ? "↑" : x === "mute" ? "K" : "·") : x === "bass" ? "B" : x === null ? "·" : String(6 - (x as number)));
 
   function renderPattern() {
     patternEl!.innerHTML = slots().map((x) => `<span class="rh-slot${x === null ? " is-rest" : ""}">${label(x)}</span>`).join("");
@@ -92,7 +92,10 @@ if (song && pre && playBtn && patternEl && tempoInput && tempoVal) {
       const x = pattern[slot];
       const onBeat = (slot * beats) % pattern.length === 0;
       if (chord && x !== null && x !== undefined) {
-        if (mode === "rhythm") audioMod!.strumAt(chord, nextTime, x as Stroke & string, onBeat ? 0.55 : 0.42);
+        if (mode === "rhythm") {
+          if (x === "mute") audioMod!.muteAt(chord, nextTime);
+          else audioMod!.strumAt(chord, nextTime, x as "down" | "up", onBeat ? 0.55 : 0.42);
+        }
         else audioMod!.pluckAt(chord, x as number | "bass", nextTime, onBeat ? 0.6 : 0.48);
       }
       const at = nextTime, s = slot;

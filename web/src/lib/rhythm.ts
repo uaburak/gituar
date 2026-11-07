@@ -1,7 +1,7 @@
 // Ritim ve arpej desenleri: ölçüyü eşit parçalara (vuruş yerlerine) bölen dizi.
 // Ritim: "↓ · ↓ ↑ · ↑ ↓ ↑" (ok = vuruş, · = es) ya da Repertuarım'daki gibi "A A YYAY" (A aşağı, Y yukarı, boşluk es).
 // Arpej: "B 3 2 1 2 3" (B = akorun bas teli, 1 = ince E … 6 = kalın E, · = es).
-export type Stroke = "down" | "up" | null;
+export type Stroke = "down" | "up" | "mute" | null; // mute = kesme ("K"): teller susturularak vurulur
 export type Pluck = number | "bass" | null; // 0 (kalın E) … 5 (ince E)
 
 export const DEFAULT_RHYTHM = "↓ · ↓ ↑ · ↑ ↓ ↑";
@@ -13,14 +13,21 @@ export function parseRhythm(input: string | undefined): Stroke[] {
   if (!s) return parseRhythm(DEFAULT_RHYTHM);
   // Ok / nokta yazımı: boşlukla ayrılmış simgeler
   if (/[↓↑·]/.test(s)) {
-    return s.split(/\s+/).flatMap((tok) => [...tok].map((c) => (c === "↓" ? "down" : c === "↑" ? "up" : null)));
+    return s.split(/\s+/).flatMap((tok) => [...tok].map((c): Stroke => (c === "↓" ? "down" : c === "↑" ? "up" : /[KkX×]/.test(c) ? "mute" : null)));
   }
   // Harf yazımı: A/D = aşağı, Y/U = yukarı, diğer her şey (boşluk, -, x) es
-  return [...s.toUpperCase()].map((c) => ("AD".includes(c) ? "down" : "YU".includes(c) ? "up" : null));
+  return [...s.toUpperCase()].map((c): Stroke => ("AD".includes(c) ? "down" : "YU".includes(c) ? "up" : "KX".includes(c) ? "mute" : null));
 }
 
+// PIMA (klasik gitar parmak yazımı): p = başparmak (bas tel), i = 3. tel, m = 2. tel, a = 1. tel
+const PIMA: Record<string, Pluck> = { p: "bass", i: 3, m: 4, a: 5 };
+
 export function parseArpeggio(input: string | undefined): Pluck[] {
-  const s = (input ?? "").trim() || DEFAULT_ARPEGGIO;
+  const raw = (input ?? "").trim();
+  // "pimamiam", "Pima-tuş" gibi: yalnızca p/i/m/a harfleri alınır, kalanı yok sayılır
+  const pima = raw.toLocaleLowerCase("tr-TR").split(/[^a-zçğıöşü]+/)[0] ?? "";
+  if (pima && /^[pima]+$/.test(pima)) return [...pima].map((c) => PIMA[c]);
+  const s = raw || DEFAULT_ARPEGGIO;
   return s.split(/[\s,-]+/).filter(Boolean).map((tok) => {
     if (/^b$/i.test(tok)) return "bass";
     const n = Number(tok);

@@ -65,6 +65,28 @@ export function strumAt(chord: PreparedChord, t: number, dir: "down" | "up", vel
   }
 }
 
+/** Kesme vuruşu ("K"): teller susturulmuş, kısa ve boğuk bir "tık"; çalan tellerin sesini de keser. */
+export function muteAt(chord: PreparedChord, t: number, vel = 0.35) {
+  const ac = audio();
+  let i = 0;
+  for (let s = 0; s < 6; s++) {
+    const prev = ringing[s];
+    if (prev) { prev.gain.gain.setTargetAtTime(0, t, 0.008); prev.src.stop(t + 0.1); ringing[s] = null; }
+    const p = chord[s];
+    if (!p || s < 1) continue;
+    const src = ac.createBufferSource();
+    src.buffer = p.buf;
+    src.playbackRate.value = p.rate;
+    const gain = ac.createGain();
+    gain.gain.setValueAtTime(vel, t + i * 0.006);
+    gain.gain.setTargetAtTime(0, t + i * 0.006 + 0.02, 0.012);
+    src.connect(gain).connect(ac.destination);
+    src.start(t + i * 0.006);
+    src.stop(t + i * 0.006 + 0.12);
+    i++;
+  }
+}
+
 /** Arpej notası: `string` 0 (kalın E) … 5 (ince E); "bas" için çalınan en kalın tel. */
 export function pluckAt(chord: PreparedChord, string: number | "bass", t: number, vel = 0.5) {
   const s = string === "bass" ? chord.findIndex((x) => x) : string;

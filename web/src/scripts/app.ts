@@ -106,17 +106,27 @@ if (new URLSearchParams(location.search).get("hesap") === "silindi") {
   history.replaceState(null, "", location.pathname);
 }
 
-// Açılır bölümlerdeki "Tümü" satırı listenin son öğesi olur (iki sütunda sıradaki hücreye oturur).
-// Liste sonradan doldurulsa da (repertuarlar, rastgele) en sonda kalması için izlenir.
+// Açılır bölümlerdeki "Tümü" satırı listenin son hücresi olur. İki sütunda (sütunlar önce aşağı dolar)
+// hücre sayısı tekse son satırda yalnızca sol hücre kalır; "Tümü" oraya, sol alt köşeye yerleşir.
+// Liste sonradan doldurulsa da (repertuarlar, rastgele) ve ekran genişliği değişse de yeri korunur.
+const twoCols = matchMedia("(min-width: 728px)");
 function placeAllRows() {
   document.querySelectorAll<HTMLElement>(".rp-all-holder").forEach((holder) => {
     const item = holder.querySelector<HTMLElement>(".rp-all-item");
     const list = holder.parentElement?.querySelector<HTMLElement>(".rp-list:not(.rp-all-holder)");
     if (!item || !list) return;
-    const keepLast = () => { if (list.lastElementChild !== item) list.appendChild(item); };
-    keepLast();
     holder.remove();
-    new MutationObserver(keepLast).observe(list, { childList: true });
+    const place = () => {
+      const others = [...list.children].filter((el) => el !== item && !(el as HTMLElement).hidden);
+      const total = others.length + 1;
+      // Sol sütunun sonu: ilk ceil(total/2) hücre sol sütundadır
+      const index = twoCols.matches && total % 2 === 1 ? Math.ceil(total / 2) - 1 : others.length;
+      const before = others[index] ?? null;
+      if (item.nextElementSibling !== before || item.parentElement !== list) list.insertBefore(item, before);
+    };
+    place();
+    new MutationObserver(place).observe(list, { childList: true });
+    twoCols.addEventListener("change", place);
   });
 }
 placeAllRows();

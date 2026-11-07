@@ -8,12 +8,14 @@ import { siteUrl, homeJsonLd } from "../lib/seo.ts";
 import { buildEditorPicks } from "../lib/editor-picks-build.ts";
 
 // Popüler: gerçek popülerlik puanı (kişi başına görüntülenme/favori/repertuar); puan yoksa en yeniler.
+// "Tümü" olan listeler 19 öğe gösterir; 20. hücre "Tümü" satırıdır.
+const SHOW = 19;
 const all = catalog().songs;
 const scored = [...all].filter((s) => (s.score ?? 0) > 0).sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
-const popular = (scored.length >= 20 ? scored : [...scored, ...[...all].sort((a, b) => b.seq - a.seq).filter((s) => !scored.includes(s))]).slice(0, 20);
-const newest = newestSongs(20);
-const artists = topArtists(20);
-const newestArtists = [...catalog().artists].sort((a, b) => Math.max(...b.songs.map((s) => s.seq)) - Math.max(...a.songs.map((s) => s.seq))).slice(0, 20);
+const popular = (scored.length >= 20 ? scored : [...scored, ...[...all].sort((a, b) => b.seq - a.seq).filter((s) => !scored.includes(s))]).slice(0, SHOW);
+const newest = newestSongs(SHOW);
+const artists = topArtists(SHOW);
+const newestArtists = [...catalog().artists].sort((a, b) => Math.max(...b.songs.map((s) => s.seq)) - Math.max(...a.songs.map((s) => s.seq))).slice(0, SHOW);
 // Öne Çıkanlar: editörün seçimleri (admin hesapların herkese açık repertuarları); sunucuda alınamazsa tarayıcı yükler
 const byId = catalog().byId;
 const picks = (await buildEditorPicks()).map((p) => ({ ...p, count: p.songIds.filter((id) => byId.has(id)).length })).filter((p) => p.count > 0);

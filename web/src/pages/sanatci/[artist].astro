@@ -35,7 +35,7 @@ const easiest = [...artist.songs]
   .sort((a, b) => rank[songChords(a).level] - rank[songChords(b).level] || songChords(a).chords.length - songChords(b).chords.length)
   .slice(0, 5);
 const easyCount = artist.songs.filter((s) => songChords(s).level === "kolay").length;
-const otherArtists = topArtists(21).filter((a) => a.slug !== artist.slug).slice(0, 20);
+const otherArtists = topArtists(20).filter((a) => a.slug !== artist.slug).slice(0, 19); // 20. hücre "Tümü"
 const easyNotes = Object.fromEntries(easiest.map((s) => [s.id, songChords(s).chords.map((c) => c.name).join(" ")]));
 ---
 <Base noindex={thin} title={artistTitle(artist)} description={artistDescription(artist)} ogType="profile" jsonLd={artistJsonLd(artist, base)}>

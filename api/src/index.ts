@@ -146,6 +146,17 @@ function cleanInput(input: SongInput, partial: boolean) {
   return { artist, title, originalKey: input.originalKey?.trim(), content: input.content?.replace(/\r/g, "").trim() };
 }
 
+/**
+ * Aynı slug'a sahip sanatçı zaten varsa onun yazımı kullanılır: "yolcu kuslar" → "Yolcu Kuşlar".
+ * Böylece aynı sanatçı farklı yazımlarla ikiye bölünmez (gruplama zaten slug'a göre; bu, görünen adı da birleştirir).
+ */
+async function canonicalArtist(env: Env, artistSlug: string, typed: string): Promise<string> {
+  const row = await env.DB.prepare(
+    "SELECT artist, COUNT(*) AS n FROM songs WHERE artist_slug = ? GROUP BY artist ORDER BY n DESC LIMIT 1",
+  ).bind(artistSlug).first<{ artist: string }>();
+  return row?.artist ?? typed;
+}
+
 async function uniqueSlug(env: Env, artistSlug: string, title: string, exceptId?: string): Promise<string> {
   const base = slugify(title);
   for (let n = 1; n < 500; n++) {
@@ -245,9 +256,11 @@ async function route(req: Request, env: Env, url: URL): Promise<Response> {
       if (!user.isAdmin && user.uid !== row.owner_id) throw new HttpError(403, "Bu şarkıyı düzenleyemezsin");
       const input = await body<SongInput>(req);
       const c = cleanInput(input, true);
-      const artist = c.artist ?? (row.artist as string);
+      const typedArtist = c.artist ?? (row.artist as string);
       const title = c.title ?? (row.title as string);
-      const artistSlug = slugify(artist);
+      const artistSlug = slugify(typedArtist);
+      // Başka bir sanatçıya taşınıyorsa onun yazımı kullanılır; aynı sanatçının adı düzeltiliyorsa yazılan hâli kalır
+      const artist = artistSlug !== row.artist_slug ? await canonicalArtist(env, artistSlug, typedArtist) : typedArtist;
       const slug = artistSlug === row.artist_slug && title === row.title ? (row.slug as string) : await uniqueSlug(env, artistSlug, title, id);
       const status = allowedStatus(user, input.status, row.status as Status);
       await env.DB.prepare(
@@ -274,6 +287,7 @@ async function route(req: Request, env: Env, url: URL): Promise<Response> {
     const input = await body<SongInput>(req);
     const c = cleanInput(input, false);
     const artistSlug = slugify(c.artist!);
+    c.artist = await canonicalArtist(env, artistSlug, c.artist!);
     const slug = await uniqueSlug(env, artistSlug, c.title!);
     const now = Date.now();
     const id = newId();

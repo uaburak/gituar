@@ -108,6 +108,8 @@ img, svg { display: block; }
   .shell:not(.shell-plain) { grid-template-columns: var(--side-ad) minmax(0, var(--content)) var(--side-ad); }
   .shell:not(.shell-plain) .side-ad { display: block; }
 }
+/* Pro: yan reklamlar gizli; içerik tek sütunda ortada kalsın (yoksa reklamın dar sütununa düşüyor) */
+html.pro .shell:not(.shell-plain) { grid-template-columns: minmax(0, var(--content)); }
 .page { min-width: 0; padding: 24px 0 96px; }
 
 /* ---------- Üst bar: tam genişlik, 48 px, cam (Apple nav) ---------- */

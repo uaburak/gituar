@@ -568,10 +568,10 @@ body:has(.ad-sticky) { padding-bottom: 60px; }
 /* Alt şerit açıkken oynat çubuğu ve çerez bildirimi şeridin üstünde dursun */
 body:has(.ad-sticky) .play-bar, body:has(.ad-sticky) .consent { bottom: 76px; }
 @media (min-width: 760px) { body:has(.ad-sticky) .play-bar, body:has(.ad-sticky) .consent { bottom: 116px; } }
-html.plus body .play-bar { bottom: 20px; }
-html.plus body .consent { bottom: 16px; }
-html.plus .ad-slot, html.plus .side-ad { display: none !important; }
-html.plus body { padding-bottom: 0 !important; }
+html.pro body .play-bar { bottom: 20px; }
+html.pro body .consent { bottom: 16px; }
+html.pro .ad-slot, html.pro .side-ad { display: none !important; }
+html.pro body { padding-bottom: 0 !important; }
 /* Video reklam (outstream): 16:9 kutu, bitince kapanır */
 .ad-video { position: relative; display: block; width: 100%; max-width: 640px; margin: 24px auto; overflow: hidden; transition: max-height .4s ease, margin .4s ease, opacity .3s; max-height: 420px; }
 .ad-video-box { position: relative; width: 100%; aspect-ratio: 16 / 9; background: #000; border-radius: 12px; overflow: hidden; }
@@ -599,7 +599,7 @@ html.plus body { padding-bottom: 0 !important; }
 :root[data-theme="dark"] .chord-pop { box-shadow: 0 16px 40px -8px rgba(0, 0, 0, .7), 0 0 0 1px var(--strong); }
 :root[data-theme="dark"] .search-mini, :root[data-theme="dark"] .search-big { background: var(--surface); border-color: var(--strong); }
 :root[data-theme="dark"] .btn-appstore-light { background: var(--inverse); color: var(--on-inverse); }
-html.plus body { padding-bottom: 0; }
+html.pro body { padding-bottom: 0; }
 
 /* ---------- Pro (Wecra · Pro / Desktop) ---------- */
 .pro-hero { display: grid; justify-items: center; gap: 12px; text-align: center; padding: 24px 0 32px; }
@@ -618,7 +618,7 @@ html.plus body { padding-bottom: 0; }
 .narrow-sm { max-width: 420px; padding-top: 32px; }
 .auth-card { padding: 32px; border-radius: 24px; }
 
-/* ---------- Plus ---------- */
+/* ---------- Pro ---------- */
 .price { font-size: 44px; font-weight: 700; letter-spacing: -0.02em; }
 .price small { font-size: 16px; font-weight: 500; color: var(--text-2); }
 .benefits { list-style: none; padding: 0; margin: 16px 0 24px; display: grid; gap: 10px; }
@@ -1050,3 +1050,6 @@ a.rp-owner:hover { color: var(--accent-text); text-decoration: none; }
 .rh-tempo-val { min-width: 128px; font-variant-numeric: tabular-nums; }
 .rh-note { margin: 0; }
 .chords .chord.is-now { background: var(--accent-soft); border-radius: 4px; box-shadow: 0 0 0 3px var(--accent-soft); }
+/* Yönetim · Pro üyeler */
+.admin-pro-form { display: grid; grid-template-columns: 1.2fr 1.4fr auto auto; gap: 8px; margin: 12px 0 8px; }
+@media (max-width: 700px) { .admin-pro-form { grid-template-columns: 1fr 1fr; } }

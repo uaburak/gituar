@@ -1,5 +1,5 @@
-// Her sayfada çalışır: gece modu, mobil menü, giriş durumu, Plus bayrağı, reklam yükleme.
-import { firebaseReady, onUser, refreshPlus, isAdminUser } from "../lib/firebase-client.ts";
+// Her sayfada çalışır: gece modu, mobil menü, giriş durumu, Pro bayrağı, reklam yükleme.
+import { firebaseReady, onUser, refreshPro, isAdminUser } from "../lib/firebase-client.ts";
 import { ADSENSE_CLIENT } from "../lib/site.ts";
 
 const html = document.documentElement;
@@ -43,7 +43,7 @@ document.addEventListener("click", (e) => {
 
 // "/" ve ⌘K arama panelini açar (palette.ts)
 
-// Giriş durumu → üst bar; Plus durumu → reklamlar
+// Giriş durumu → üst bar; Pro durumu → reklamlar
 let adsLoaded = false;
 const authBtns = [document.getElementById("auth-btn"), document.getElementById("auth-btn-mobile")].filter(Boolean) as HTMLAnchorElement[];
 // Daha önce giriş yapmamış ziyaretçide Firebase SDK hiç indirilmez (sayfa hızı).
@@ -56,7 +56,7 @@ if (firebaseReady && hadSession) {
       btn.href = user ? "/hesap/" : "/giris/";
     }
     setHeaderUser(user ? { n: user.displayName || user.email || "", p: user.photoURL || "" } : null);
-    if (user) refreshPlus(user.uid).then((plus) => { if (!plus) loadAds(); });
+    if (user) refreshPro(user.uid).then((pro) => { if (!pro) loadAds(); });
     else loadAds();
     // Yönetim bağlantısı yalnızca admin hesaplarda (users/{uid}.isAdmin)
     // Sayfa açılışında son bilinen durum (gituar-admin) <html class="is-admin"> olarak zaten konmuştur; burada yalnızca doğrulanır.
@@ -82,7 +82,7 @@ function setHeaderUser(u: { n: string; p: string } | null) {
 document.getElementById("header-avatar-img")?.addEventListener("error", (e) => { (e.target as HTMLImageElement).hidden = true; });
 
 function loadAds() {
-  if (adsLoaded || !ADSENSE_CLIENT || html.classList.contains("plus")) return;
+  if (adsLoaded || !ADSENSE_CLIENT || html.classList.contains("pro")) return;
   adsLoaded = true;
   const s = document.createElement("script");
   s.async = true;

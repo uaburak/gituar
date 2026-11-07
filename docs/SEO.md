@@ -18,7 +18,7 @@ sitemap `web/astro.config.mjs` + `web/sitemap-lastmod.mjs`, `web/public/robots.t
 | {sanatçı} akorları, {sanatçı} gitar akorları, {sanatçı} şarkıları akor | `/sanatci/{sanatçı}/` | title, H1 ("{Sanatçı} akorları"), description, ItemList, şarkı sayfalarından "Tüm {Sanatçı} akorları" bağlantıları |
 | sanatçı akorları, akor sanatçı listesi | `/sanatcilar/` | title, H1 ("Sanatçı akorları"), ana sayfa ve alt bilgi bağlantıları |
 | ton bazlı: "{Ton} tonunda şarkılar" | şarkı sayfası "E tonunda benzer şarkı akorları" bölümü (ayrı sayfa yok, bkz. yol haritası) | H2 |
-| reklamsız akor, Gituar Plus | `/plus/` | title, description |
+| reklamsız akor, Gituar Pro | `/pro/` | title, description |
 
 Bağlantı metinleri (anchor) her listede "{Şarkı} akorları" / "{Sanatçı} akorları" biçimindedir: `SongRow.astro` ve
 `ArtistRow.astro` ada `.row-kw` ("akorları") ekler; `.row-title` yalnızca adı taşır ki `song-filter.ts` / `artist-filter.ts`
@@ -35,7 +35,7 @@ Açıklamalar 155 karaktere sığacak biçimde isteğe bağlı parçaları (akor
 | Sanatçı | `{Sanatçı} Akorları – {N} Şarkı` → `{Sanatçı} Akorları` | `{Sanatçı} gitar akorları: {N} şarkı, orijinal ton bilgisiyle. {İlk 4 şarkı} ve daha fazlası. Transpoze ve kapo ile çal.` | `{Sanatçı} akorları` |
 | Ana sayfa | `Gitar Akorları – {N} Türkçe Şarkı Akoru` | `Gitar akorları: {N} Türkçe şarkı akoru, {M} sanatçı. Akor transpoze, kapo ve otomatik kaydırma ile çal, repertuar oluştur. iOS uygulamasıyla aynı katalog.` | `Türkçe gitar akorları` |
 | Sanatçılar | `Sanatçılar – Gitar Akorları A'dan Z'ye` | `{M} sanatçının gitar akorları alfabetik dizinde. Sanatçıyı seç, şarkı akorlarını orijinal tonuyla gör; transpoze ve kapo ile çal.` | `Sanatçı akorları` |
-| Plus | `Plus – Reklamsız gitar akorları` | fiyat ve App Store bilgisi | `Gituar Plus` |
+| Pro | `Pro – Reklamsız gitar akorları` | fiyat ve App Store bilgisi | `Gituar Pro` |
 | Ara, Giriş, Repertuarlarım, Repertuar, Yönetim, İletişim, 404 | mevcut kısa başlıklar | — | — (`noindex`) |
 
 300 şarkılık deneme derlemesinde: başlık en fazla 71 karakter (13/353 sayfa 60'ı aşar — en kısa aday bile sığmıyor,

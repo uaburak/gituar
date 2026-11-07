@@ -1,6 +1,6 @@
-// Yönetim: onay bekleyen kullanıcı şarkıları ve şikayetler (yalnızca users/{uid}.isAdmin; kurallar sunucuda da zorlar).
+// Yönetim: onay bekleyen kullanıcı şarkıları, şikayetler ve Pro üyeler (yalnızca users/{uid}.isAdmin; kurallar sunucuda da zorlar).
 import type { User } from "firebase/auth";
-import { firebaseReady, currentUser, listReports, setReportStatus } from "../lib/firebase-client.ts";
+import { firebaseReady, currentUser, listReports, setReportStatus, findUserByUsername, grantPro, revokePro, listProUsers } from "../lib/firebase-client.ts";
 import { apiIsAdmin, listPending, setSongStatus, deleteSong } from "../lib/api-admin.ts";
 import { esc, songsByIds } from "../lib/search-client.ts";
 
@@ -88,6 +88,67 @@ async function loadReports() {
   );
 }
 
+async function loadPro() {
+  const list = $("pro-list");
+  list.innerHTML = `<div class="row muted small">Yükleniyor…</div>`;
+  const users = await listProUsers();
+  $("pro-count").textContent = users.length ? `${users.filter((u) => u.isPro).length} aktif` : "";
+  const until = (d?: Date) => (d ? fmt(d) + "'e kadar" : "süresiz");
+  list.innerHTML = users.length
+    ? users.map((u) => {
+        const parts = [
+          u.gift?.active ? `Hediye · ${until(u.gift.until)}${u.gift.note ? ` · ${esc(u.gift.note)}` : ""}` : "",
+          u.subscription?.active ? `App Store · ${until(u.subscription.until)}` : "",
+        ].filter(Boolean).join(" · ");
+        return `<div class="row admin-row" data-uid="${esc(u.uid)}">
+          <div class="row-body">
+            <span class="row-title">@${esc(u.username || "?")}${u.isPro ? "" : ` <span class="muted">· süresi dolmuş</span>`}</span>
+            <span class="row-sub">${parts}</span>
+          </div>
+          <div class="admin-actions">${u.gift?.active ? `<button class="btn btn-mini btn-danger" data-act="revoke" type="button">Pro'yu geri al</button>` : ""}</div>
+        </div>`;
+      }).join("")
+    : `<div class="row muted small">Pro üye yok.</div>`;
+  list.querySelectorAll<HTMLButtonElement>("[data-act=revoke]").forEach((b) =>
+    b.addEventListener("click", async () => {
+      const row = b.closest<HTMLElement>(".admin-row")!;
+      if (!confirm("Bu kullanıcının hediye Pro'su geri alınsın mı?")) return;
+      b.disabled = true;
+      try { await revokePro(row.dataset.uid!); await loadPro(); }
+      catch (e) { b.disabled = false; alert("Kaydedilemedi: " + ((e as Error).message ?? e)); }
+    }),
+  );
+}
+
+function setupProForm() {
+  const form = $("pro-form") as HTMLFormElement;
+  const msg = $("pro-msg");
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const username = ($("pro-username") as HTMLInputElement).value;
+    const months = Number(($("pro-duration") as HTMLSelectElement).value);
+    const note = ($("pro-note") as HTMLInputElement).value.trim();
+    msg.textContent = "Aranıyor…";
+    try {
+      const u = await findUserByUsername(username);
+      if (!u) { msg.textContent = `@${username.replace(/^@/, "")} adında kullanıcı bulunamadı.`; return; }
+      let until: Date | null = null;
+      if (months > 0) {
+        // Mevcut hediye hâlâ sürüyorsa üstüne eklenir
+        const base = u.gift?.active && u.gift.until && u.gift.until > new Date() ? new Date(u.gift.until) : new Date();
+        base.setMonth(base.getMonth() + months);
+        until = base;
+      }
+      await grantPro(me.uid, u.uid, until, note);
+      msg.textContent = `@${u.username} artık Pro (${until ? fmt(until) + "'e kadar" : "süresiz"}). Uygulamada ve sitede reklamlar kapanır.`;
+      form.reset();
+      await loadPro();
+    } catch (err) {
+      msg.textContent = "Kaydedilemedi: " + ((err as Error).message ?? err);
+    }
+  });
+}
+
 (async () => {
   if (!firebaseReady) { status.textContent = "Web girişi yapılandırılmamış."; return; }
   const user = await currentUser();
@@ -98,7 +159,9 @@ async function loadReports() {
   if (!admin) { $("admin-denied").hidden = false; status.textContent = ""; return; }
   $("admin-pending").hidden = false;
   $("admin-reports").hidden = false;
+  $("admin-pro").hidden = false;
   $("admin-refresh").hidden = false;
+  setupProForm();
   status.textContent = "";
   $("report-filter").querySelectorAll<HTMLButtonElement>("[data-f]").forEach((b) =>
     b.addEventListener("click", () => {
@@ -107,7 +170,7 @@ async function loadReports() {
       loadReports();
     }),
   );
-  const refresh = () => Promise.all([loadPending(), loadReports()]).catch((e) => { status.textContent = "Yüklenemedi: " + ((e as Error).message ?? e); });
+  const refresh = () => Promise.all([loadPending(), loadReports(), loadPro()]).catch((e) => { status.textContent = "Yüklenemedi: " + ((e as Error).message ?? e); });
   $("admin-refresh").addEventListener("click", refresh);
   await refresh();
 })();

@@ -5,7 +5,7 @@ import Base from "../../layouts/Base.astro";
 <Base title="Yönetim" noindex ads={false}>
   <div class="page-head">
     <div class="title-row">
-      <div><h1>Yönetim</h1><p id="admin-meta">Onay bekleyen şarkılar ve şikayetler · iPhone uygulamasındaki yönetim ile aynı veriler</p></div>
+      <div><h1>Yönetim</h1><p id="admin-meta">Onay bekleyen şarkılar, şikayetler ve Pro üyeler · iPhone uygulamasındaki yönetim ile aynı veriler</p></div>
       <button class="btn" id="admin-refresh" type="button" hidden>Yenile</button>
     </div>
   </div>
@@ -26,6 +26,23 @@ import Base from "../../layouts/Base.astro";
       </div>
     </div>
     <div class="list" id="reports-list"></div>
+  </section>
+
+  <section class="section" id="admin-pro" hidden>
+    <div class="section-head"><h2>Pro üyeler</h2><span class="muted small" id="pro-count"></span></div>
+    <form class="admin-pro-form" id="pro-form">
+      <input class="input" id="pro-username" placeholder="Kullanıcı adı (@ olmadan)" autocomplete="off" required aria-label="Kullanıcı adı" />
+      <input class="input" id="pro-note" placeholder="Not (isteğe bağlı): ör. beta testçisi" autocomplete="off" aria-label="Not" />
+      <select class="input" id="pro-duration" aria-label="Süre">
+        <option value="1">1 ay</option>
+        <option value="3">3 ay</option>
+        <option value="12">1 yıl</option>
+        <option value="0">Süresiz</option>
+      </select>
+      <button class="btn btn-primary" type="submit">Pro ver</button>
+    </form>
+    <p class="muted small" id="pro-msg"></p>
+    <div class="list" id="pro-list"></div>
   </section>
 
   <p class="muted small" id="admin-status" style="margin-top:16px">Yükleniyor…</p>

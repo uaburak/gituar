@@ -63,12 +63,15 @@ service cloud.firestore {
       allow update, delete: if isAdmin() || owns(resource.data.ownerId);
     }
 
-    // -- Kullanıcı profilleri. isAdmin alanını yalnızca admin değiştirebilir. --
+    // -- Kullanıcı profilleri. isAdmin ve proGrant alanlarını yalnızca admin değiştirebilir. --
     match /users/{uid} {
       allow read: if signedIn();
-      allow create: if owns(uid) && request.resource.data.get('isAdmin', false) == false;
+      // isAdmin ve proGrant (hediye Pro) alanlarını kullanıcı kendisi ekleyemez/değiştiremez; yalnızca yönetici
+      allow create: if owns(uid) && request.resource.data.get('isAdmin', false) == false
+        && !('proGrant' in request.resource.data);
       allow update: if isAdmin()
-        || (owns(uid) && request.resource.data.get('isAdmin', false) == resource.data.get('isAdmin', false));
+        || (owns(uid) && request.resource.data.get('isAdmin', false) == resource.data.get('isAdmin', false)
+            && request.resource.data.get('proGrant', null) == resource.data.get('proGrant', null));
       allow delete: if owns(uid) || isAdmin();
 
       match /favorites/{id} { allow read, write: if owns(uid); }

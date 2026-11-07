@@ -7,8 +7,8 @@ struct HomeView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
 
     @State private var navigateToProfile = false
-    @State private var navigateToPlus = false
-    @ObservedObject private var plus = PlusManager.shared
+    @State private var navigateToPro = false
+    @ObservedObject private var pro = ProManager.shared
 
     // Arama — AllArtistsView ile aynı kurulum (.searchable + 500 ms debounce)
     @State private var searchText: String = ""
@@ -51,8 +51,8 @@ struct HomeView: View {
         .navigationDestination(isPresented: $navigateToProfile) {
             ProfileSettingsView()
         }
-        .navigationDestination(isPresented: $navigateToPlus) {
-            PlusView()
+        .navigationDestination(isPresented: $navigateToPro) {
+            ProView()
         }
         // gituar://song/<id> bağlantısıyla gelen şarkı
         .navigationDestination(item: $viewModel.deepLinkedSong) { song in
@@ -121,10 +121,10 @@ struct HomeView: View {
 
             // Ücretli sürüme teşvik: abone olmayanlara sağ üstte "Pro" düğmesi
             ToolbarItem(placement: .topBarTrailing) {
-                if !plus.isPlus {
+                if !pro.isPro {
                     Button {
                         UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                        navigateToPlus = true
+                        navigateToPro = true
                     } label: {
                         HStack(spacing: 5) {
                             Image(systemName: "crown.fill")

@@ -89,7 +89,7 @@ const ogImage = new URL("/og.png", Astro.site ?? "https://gituar.com").href;
             document.documentElement.classList.add("signed-in");
             if (localStorage.getItem("gituar-admin") === "1") document.documentElement.classList.add("is-admin");
           }
-          if (localStorage.getItem("gituar-plus") === "1") document.documentElement.classList.add("plus");
+          if (localStorage.getItem("gituar-pro") === "1") document.documentElement.classList.add("pro");
         } catch (e) {}
       })();
     </script>

@@ -25,8 +25,8 @@ struct GituarApp: App {
                 .environmentObject(authViewModel)
                 .onAppear {
                     AdMobManager.shared.updateConsent()
-                    // Gituar Plus (StoreKit 2) — hak durumu AdMobManager.isAdFree'yi besler
-                    PlusManager.shared.start()
+                    // Gituar Pro (StoreKit 2 + hediye Pro) — durum AdMobManager.isAdFree'yi besler
+                    ProManager.shared.start()
                     InterstitialAdManager.shared.preload()
                     AppOpenAdManager.shared.preload()
                 }

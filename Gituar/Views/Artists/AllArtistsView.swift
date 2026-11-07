@@ -79,7 +79,7 @@ struct AllArtistsView: View {
                     .onAppear {
                         if paged && index == list.count - 1 { Task { await loadMore() } }
                     }
-                    // Her 10 satırda bir yerel reklam (Plus'ta yok)
+                    // Her 10 satırda bir yerel reklam (Pro'da yok)
                     if AdPlacements.shouldShowNativeAd(afterRow: index, isAdFree: adMobManager.isAdFree) {
                         NativeAdRow()
                     }

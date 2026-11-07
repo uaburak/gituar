@@ -2,9 +2,9 @@
 export const prerender = true;
 import Base from "../../layouts/Base.astro";
 import Icon from "../../components/Icon.astro";
-import { APP_STORE_URL, PLUS_PRICE_TL } from "../../lib/site.ts";
+import { APP_STORE_URL, PRO_PRICE_TL } from "../../lib/site.ts";
 ---
-<Base title="Pro – Reklamsız gitar akorları" description={`Gituar Pro: web ve iPhone'da reklamsız gitar akorları, kesintisiz otomatik kaydırma. Ayda ${PLUS_PRICE_TL} TL, App Store üzerinden.`} ads={false} card={false}>
+<Base title="Pro – Reklamsız gitar akorları" description={`Gituar Pro: web ve iPhone'da reklamsız gitar akorları, kesintisiz otomatik kaydırma. Ayda ${PRO_PRICE_TL} TL, App Store üzerinden.`} ads={false} card={false}>
   <div class="pro-hero">
     <span class="pro-crown" aria-hidden="true"><Icon name="crown" class="icon" /></span>
     <h1>Gituar Pro</h1>
@@ -18,13 +18,13 @@ import { APP_STORE_URL, PLUS_PRICE_TL } from "../../lib/site.ts";
     </div>
     <div class="card pro-price">
       <span class="caption">Aylık</span>
-      <div class="price">₺{PLUS_PRICE_TL} <small>/ ay</small></div>
+      <div class="price">₺{PRO_PRICE_TL} <small>/ ay</small></div>
       <p class="muted small">Aylık yenilenir, istediğin zaman App Store'dan iptal edebilirsin.</p>
-      <div id="plus-active" class="alert" hidden>Pro aktif. Reklamlar bu tarayıcıda kapalı.</div>
+      <div id="pro-active" class="alert" hidden>Pro aktif. Reklamlar bu tarayıcıda kapalı.</div>
       <a class="btn btn-appstore btn-block btn-lg" href={APP_STORE_URL} rel="noopener"><Icon name="apple" class="icon-sm" />App Store'da Pro'ya geç</a>
       <p class="faint small">Satın alma iPhone uygulamasından yapılır. Aynı hesapla web'e girince Pro kendiliğinden açılır.</p>
-      <button class="btn btn-text btn-block" id="plus-refresh" type="button">Giriş yaptım, durumu yenile</button>
+      <button class="btn btn-text btn-block" id="pro-refresh" type="button">Giriş yaptım, durumu yenile</button>
     </div>
   </div>
-  <script src="../../scripts/plus-page.ts"></script>
+  <script src="../../scripts/pro-page.ts"></script>
 </Base>

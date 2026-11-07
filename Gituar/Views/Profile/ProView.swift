@@ -1,14 +1,14 @@
 import SwiftUI
 import StoreKit
 
-// MARK: - PlusView (paywall)
+// MARK: - ProView (paywall)
 
-struct PlusView: View {
-    @ObservedObject private var plus = PlusManager.shared
+struct ProView: View {
+    @ObservedObject private var pro = ProManager.shared
     @State private var showError = false
 
     private var priceText: String {
-        plus.monthlyProduct?.displayPrice ?? "₺99"
+        pro.monthlyProduct?.displayPrice ?? "₺99"
     }
 
     var body: some View {
@@ -25,13 +25,13 @@ struct PlusView: View {
         .background(Color(.systemGroupedBackground))
         .navigationTitle("Gituar Pro")
         .navigationBarTitleDisplayMode(.inline)
-        .onChange(of: plus.lastError) { _, newValue in
+        .onChange(of: pro.lastError) { _, newValue in
             showError = newValue != nil
         }
         .alert("İşlem Tamamlanamadı", isPresented: $showError) {
-            Button("Tamam") { plus.lastError = nil }
+            Button("Tamam") { pro.lastError = nil }
         } message: {
-            Text(plus.lastError ?? "")
+            Text(pro.lastError ?? "")
         }
     }
 
@@ -82,12 +82,16 @@ struct PlusView: View {
 
     private var priceCard: some View {
         VStack(spacing: 6) {
-            if plus.isPlus {
+            if pro.isPro {
                 Label("Pro aktif", systemImage: "checkmark.seal.fill")
                     .font(.system(size: 17, weight: .semibold))
                     .foregroundColor(.green)
-                if let until = plus.expirationDate {
+                if let until = pro.expirationDate {
                     Text("Yenilenme: \(until.formatted(date: .long, time: .omitted))")
+                        .font(.footnote)
+                        .foregroundColor(.secondary)
+                } else if pro.isGifted {
+                    Text(pro.giftUntil.map { "Hediye Pro · \($0.formatted(date: .long, time: .omitted)) tarihine kadar" } ?? "Hediye Pro · süresiz")
                         .font(.footnote)
                         .foregroundColor(.secondary)
                 }
@@ -112,12 +116,12 @@ struct PlusView: View {
 
     private var actions: some View {
         VStack(spacing: 12) {
-            if !plus.isPlus {
+            if !pro.isPro {
                 Button {
-                    Task { await plus.purchase() }
+                    Task { await pro.purchase() }
                 } label: {
                     HStack(spacing: 8) {
-                        if plus.isPurchasing { ProgressView().tint(.white) }
+                        if pro.isPurchasing { ProgressView().tint(.white) }
                         Text("Pro'ya Geç · \(priceText)/ay")
                             .fontWeight(.semibold)
                     }
@@ -127,11 +131,11 @@ struct PlusView: View {
                     .background(Color.accentColor)
                     .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
                 }
-                .disabled(plus.isPurchasing)
+                .disabled(pro.isPurchasing)
             }
 
             Button {
-                Task { await plus.restore() }
+                Task { await pro.restore() }
             } label: {
                 Text("Satın Alımları Geri Yükle")
                     .font(.system(size: 15, weight: .medium))
@@ -139,7 +143,7 @@ struct PlusView: View {
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 12)
             }
-            .disabled(plus.isPurchasing)
+            .disabled(pro.isPurchasing)
         }
     }
 

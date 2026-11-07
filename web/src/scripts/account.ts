@@ -1,5 +1,5 @@
 // Hesabım: bilgiler, çıkış yap, hesabı sil (yeniden doğrulama gerekiyorsa şifre ya da Google penceresi).
-import { firebaseReady, currentUser, signOutUser, deleteAccount, reauthenticate, ReauthRequired, refreshPlus } from "../lib/firebase-client.ts";
+import { firebaseReady, currentUser, signOutUser, deleteAccount, reauthenticate, ReauthRequired, refreshPro } from "../lib/firebase-client.ts";
 import { API_URL } from "../lib/site.ts";
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -13,7 +13,7 @@ const status = $("acc-status");
   $("acc-main").hidden = false;
   $("acc-name").textContent = user.displayName || "–";
   $("acc-email").textContent = user.email || "–";
-  refreshPlus(user.uid).then((pro) => { $("acc-pro").textContent = pro ? "Aktif" : "Yok"; }).catch(() => {});
+  refreshPro(user.uid).then((pro) => { $("acc-pro").textContent = pro ? "Aktif" : "Yok"; }).catch(() => {});
 
   $("btn-signout").addEventListener("click", async () => {
     await signOutUser();

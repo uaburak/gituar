@@ -1,7 +1,7 @@
 export const SITE_NAME = "Gituar";
 export const APP_STORE_ID = "6764865998";
 export const APP_STORE_URL = `https://apps.apple.com/tr/app/id${APP_STORE_ID}`;
-export const PLUS_PRICE_TL = 99;
+export const PRO_PRICE_TL = 99;
 export const FIREBASE_CONFIG = {
   apiKey: import.meta.env.PUBLIC_FIREBASE_API_KEY ?? "",
   authDomain: import.meta.env.PUBLIC_FIREBASE_AUTH_DOMAIN ?? "koc-chords.firebaseapp.com",

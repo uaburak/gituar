@@ -5,7 +5,7 @@ import FirebaseAuth
 struct ProfileSettingsView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
     @EnvironmentObject var viewModel: ChordViewModel
-    @ObservedObject private var plusManager = PlusManager.shared
+    @ObservedObject private var proManager = ProManager.shared
     @State private var showingDeleteAlert = false
     @State private var isDeletingAccount = false
     @State private var showingReauthAlert = false
@@ -73,12 +73,12 @@ struct ProfileSettingsView: View {
                 }
 
                 Section(header: Text("Gituar Pro")) {
-                    NavigationLink(destination: PlusView()) {
+                    NavigationLink(destination: ProView()) {
                         Label {
                             VStack(alignment: .leading, spacing: 2) {
-                                Text(plusManager.isPlus ? "Gituar Pro · Aktif" : "Gituar Pro")
+                                Text(proManager.isPro ? "Gituar Pro · Aktif" : "Gituar Pro")
                                     .foregroundColor(.primary)
-                                Text(plusManager.isPlus ? "Reklamsız kullanım açık" : "Reklamsız kullan · aylık 99 TL")
+                                Text(proManager.isPro ? "Reklamsız kullanım açık" : "Reklamsız kullan · aylık 99 TL")
                                     .font(.footnote)
                                     .foregroundColor(.secondary)
                             }

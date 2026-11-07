@@ -7,7 +7,7 @@ import GoogleMobileAds
 // MARK: - AdConfig
 //
 // Tüm reklam birimleri ve frekans kuralları tek yerde (docs/PLATFORM-PLAN.md §6).
-// Plus abonesi (AdMobManager.isAdFree) için hiçbir yerleşim reklam yüklemez.
+// Pro kullanıcısı (AdMobManager.isAdFree) için hiçbir yerleşim reklam yüklemez.
 
 nonisolated enum AdConfig {
     static let banner = "ca-app-pub-9748717269838207/3275621944"
@@ -59,7 +59,7 @@ struct NativeAdRow: View {
 }
 
 /// Şarkı sayfasında satır içi reklam: şarkının başında ve şarkı biter bitmez birer tane.
-/// Plus'ta hiç görünmez; yüklenene kadar yer kaplamaz.
+/// Pro'da hiç görünmez; yüklenene kadar yer kaplamaz.
 struct SongAdSlot: View {
     @ObservedObject private var adMobManager = AdMobManager.shared
 
@@ -135,7 +135,7 @@ enum FullScreenAdState {
 
 // MARK: - InterstitialAdManager
 
-/// Her 4. şarkı açılışında, en az 90 sn arayla geçiş reklamı. Plus'ta hiç.
+/// Her 4. şarkı açılışında, en az 90 sn arayla geçiş reklamı. Pro'da hiç.
 @MainActor
 final class InterstitialAdManager: NSObject, FullScreenContentDelegate {
 
@@ -208,7 +208,7 @@ final class InterstitialAdManager: NSObject, FullScreenContentDelegate {
 
 // MARK: - AppOpenAdManager
 
-/// Uygulama ön plana gelince açılış reklamı; günde en fazla 3, Plus'ta hiç.
+/// Uygulama ön plana gelince açılış reklamı; günde en fazla 3, Pro'da hiç.
 @MainActor
 final class AppOpenAdManager: NSObject, FullScreenContentDelegate {
 

@@ -318,7 +318,7 @@ struct SongDetailView: View {
                 .cornerRadius(8)
             }
             headerControlsView
-            // Reklam: biri şarkının başında, biri şarkı biter bitmez. Oynatma (odak) modunda ve Plus'ta hiçbiri.
+            // Reklam: biri şarkının başında, biri şarkı biter bitmez. Oynatma (odak) modunda ve Pro'da hiçbiri.
             if !isFocusMode { SongAdSlot() }
             songContentView
             if !isFocusMode { SongAdSlot() }
@@ -455,7 +455,7 @@ struct SongDetailView: View {
             // değişikliklerini ezme ve şarkı açılışını ikinci kez sayma
             if loadedSongId != currentSong.docId {
                 loadStateForCurrentSong()
-                // Her 4. şarkı açılışında geçiş reklamı (Plus'ta hiç)
+                // Her 4. şarkı açılışında geçiş reklamı (Pro'da hiç)
                 InterstitialAdManager.shared.registerSongOpen()
             }
             autoScroller.pixelsPerSecond = CGFloat(autoScrollSpeed)

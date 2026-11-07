@@ -1,4 +1,4 @@
-// Tarayıcı tarafı Firebase erişimi. SDK yalnızca gerektiğinde (giriş, repertuar, Plus) yüklenir.
+// Tarayıcı tarafı Firebase erişimi. SDK yalnızca gerektiğinde (giriş, repertuar, Pro) yüklenir.
 import { FIREBASE_CONFIG } from "./site.ts";
 import { uniqueSlug } from "./repertoire-path.ts";
 import type { User } from "firebase/auth";
@@ -58,28 +58,36 @@ export function onUser(cb: (u: User | null) => void): void {
   );
 }
 
-/** users/{uid}.plus alanından Plus durumunu okur; sonucu localStorage'a ve <html class="plus"> olarak yazar. */
-export async function refreshPlus(uid: string): Promise<boolean> {
+type ProField = { active?: boolean; until?: { toDate(): Date } | null } | undefined;
+/** Alan geçerli mi: active ve süresi dolmamış (until yoksa süresiz). */
+function proValid(p: ProField): boolean {
+  const until = p?.until?.toDate?.();
+  return p?.active === true && (!until || until > new Date());
+}
+
+/**
+ * Pro durumu: App Store aboneliği (`users/{uid}.pro`, uygulama yazar) ya da hediye Pro
+ * (`users/{uid}.proGrant`, yalnızca yönetici yazar). Sonuç localStorage'a ve <html class="pro"> olarak yazılır.
+ */
+export async function refreshPro(uid: string): Promise<boolean> {
   const f = await fb();
   if (!f) return false;
   let active = false;
   try {
-    const snap = await f.fsMod.getDoc(f.fsMod.doc(f.db, "users", uid));
-    const plus = snap.data()?.plus as { active?: boolean; until?: { toDate(): Date } } | undefined;
-    const until = plus?.until?.toDate?.();
-    active = plus?.active === true && (!until || until > new Date());
+    const data = (await f.fsMod.getDoc(f.fsMod.doc(f.db, "users", uid))).data();
+    active = proValid(data?.pro as ProField) || proValid(data?.proGrant as ProField);
   } catch {
-    active = localStorage.getItem("gituar-plus") === "1";
+    active = localStorage.getItem("gituar-pro") === "1";
   }
-  setPlus(active);
+  setPro(active);
   return active;
 }
 
-export function setPlus(active: boolean): void {
+export function setPro(active: boolean): void {
   try {
-    localStorage.setItem("gituar-plus", active ? "1" : "0");
+    localStorage.setItem("gituar-pro", active ? "1" : "0");
   } catch {}
-  document.documentElement.classList.toggle("plus", active);
+  document.documentElement.classList.toggle("pro", active);
 }
 
 export interface RepertoireDoc {
@@ -219,6 +227,68 @@ export async function isAdminUser(uid: string): Promise<boolean> {
 
 const toDate = (v: unknown): Date | undefined => (v as { toDate?: () => Date } | undefined)?.toDate?.();
 
+// ---------- Pro yönetimi (yalnızca yönetici; kurallar proGrant'i başkasına yazdırmaz) ----------
+
+export interface ProUser {
+  uid: string;
+  username: string;
+  email?: string;
+  /** Hediye Pro */
+  gift?: { active: boolean; until?: Date; note?: string; at?: Date };
+  /** App Store aboneliği (uygulamanın yazdığı) */
+  subscription?: { active: boolean; until?: Date };
+  isPro: boolean;
+}
+
+function toProUser(id: string, x: Record<string, unknown>): ProUser {
+  const g = x.proGrant as { active?: boolean; until?: unknown; note?: string; at?: unknown } | undefined;
+  const p = x.pro as { active?: boolean; until?: unknown } | undefined;
+  const gift = g ? { active: g.active === true, until: toDate(g.until), note: g.note, at: toDate(g.at) } : undefined;
+  const subscription = p ? { active: p.active === true, until: toDate(p.until) } : undefined;
+  const valid = (v?: { active: boolean; until?: Date }) => Boolean(v?.active && (!v.until || v.until > new Date()));
+  return { uid: id, username: String(x.username ?? ""), email: x.email as string | undefined, gift, subscription, isPro: valid(gift) || valid(subscription) };
+}
+
+/** Kullanıcı adıyla kullanıcıyı bulur (küçük harf, @ olmadan). */
+export async function findUserByUsername(username: string): Promise<ProUser | null> {
+  const f = await fb();
+  if (!f) return null;
+  const name = username.trim().replace(/^@/, "").toLocaleLowerCase("tr-TR");
+  if (!name) return null;
+  const snap = await f.fsMod.getDocs(f.fsMod.query(f.fsMod.collection(f.db, "users"), f.fsMod.where("username", "==", name), f.fsMod.limit(1)));
+  const d = snap.docs[0];
+  return d ? toProUser(d.id, d.data()) : null;
+}
+
+/** Hediye Pro verir; `until` yoksa süresiz. */
+export async function grantPro(adminUid: string, uid: string, until: Date | null, note = ""): Promise<void> {
+  const f = await fb();
+  if (!f) throw new Error("Firebase hazır değil");
+  await f.fsMod.updateDoc(f.fsMod.doc(f.db, "users", uid), {
+    proGrant: { active: true, until: until ? f.fsMod.Timestamp.fromDate(until) : null, note, by: adminUid, at: f.fsMod.Timestamp.now() },
+  });
+}
+
+/** Hediye Pro'yu geri alır (App Store aboneliğine dokunmaz). */
+export async function revokePro(uid: string): Promise<void> {
+  const f = await fb();
+  if (!f) throw new Error("Firebase hazır değil");
+  await f.fsMod.updateDoc(f.fsMod.doc(f.db, "users", uid), { proGrant: f.fsMod.deleteField() });
+}
+
+/** Hediye Pro'su ya da App Store aboneliği olan kullanıcılar. */
+export async function listProUsers(): Promise<ProUser[]> {
+  const f = await fb();
+  if (!f) return [];
+  const [gifts, subs] = await Promise.all([
+    f.fsMod.getDocs(f.fsMod.query(f.fsMod.collection(f.db, "users"), f.fsMod.where("proGrant.active", "==", true))),
+    f.fsMod.getDocs(f.fsMod.query(f.fsMod.collection(f.db, "users"), f.fsMod.where("pro.active", "==", true))),
+  ]);
+  const map = new Map<string, ProUser>();
+  for (const d of [...gifts.docs, ...subs.docs]) map.set(d.id, toProUser(d.id, d.data()));
+  return [...map.values()].sort((a, b) => a.username.localeCompare(b.username, "tr"));
+}
+
 export interface ReportDoc {
   id: string;
   songId: string;
@@ -291,7 +361,7 @@ export async function signOutUser(): Promise<void> {
   if (!f) return;
   await f.authMod.signOut(f.auth);
   try { localStorage.removeItem("gituar-auth"); localStorage.removeItem("gituar-user"); } catch {}
-  setPlus(false);
+  setPro(false);
 }
 
 // ---------- Hesap silme (App Store 5.1.1(v) ile aynı kapsam) ----------
@@ -340,6 +410,6 @@ export async function deleteAccount(user: User, apiUrl: string): Promise<void> {
   await fs.deleteDoc(fs.doc(f.db, "users", user.uid)).catch(() => {});
   await f.authMod.deleteUser(user);
   try {
-    for (const k of ["gituar-auth", "gituar-user", "gituar-plus", "gituar-admin"]) localStorage.removeItem(k);
+    for (const k of ["gituar-auth", "gituar-user", "gituar-pro", "gituar-admin"]) localStorage.removeItem(k);
   } catch {}
 }

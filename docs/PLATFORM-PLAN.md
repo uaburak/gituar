@@ -7,7 +7,7 @@ Tarih: 2026-11-04 · Branch: `feature/web-platform`
 - Tek bir arka uç (Firebase projesi `koc-chords`) hem iOS uygulamasını hem web sitesini besler.
 - Öncelik hız: web sayfaları CDN'den statik HTML olarak gelir, iOS katalog uygulamanın içinde gelir.
 - Ücretsiz kotalarda kalınır; Cloud Functions ve Cloud Storage kullanılmaz.
-- Reklam gösterimi artar (web ve iOS), "Gituar Plus" aboneliği (aylık 99 TL) reklamları kaldırır.
+- Reklam gösterimi artar (web ve iOS), "Gituar Pro" aboneliği (aylık 99 TL) reklamları kaldırır.
 - Web UX'i Repertuarım alışkanlıklarını korur (şarkı başına URL, ton şeridi, kapo, yazı boyutu, otomatik kaydırma, repertuara ekle), görsel dil iOS uygulamasının tonundadır.
 
 ## 2. Mimari
@@ -26,7 +26,7 @@ Tarih: 2026-11-04 · Branch: `feature/web-platform`
                                            │                                     │
    Web (Astro, statik) ────────────────────┘                                     │
    • build: shared/catalog/catalog.deflate → şarkı başına HTML                   │
-   • tarayıcıda: Firebase JS SDK ile giriş, repertuar, Plus durumu               │
+   • tarayıcıda: Firebase JS SDK ile giriş, repertuar, Pro durumu               │
                                                                                  │
    Yayın (Mac'te tek komut) ─────────────────────────────────────────────────────┘
    npm run publish  →  Firestore'dan delta çek → catalog.deflate güncelle → web build → firebase deploy
@@ -42,7 +42,7 @@ ve şarkıya yeni `seq` değerini verir; bu sayaç iki istemcinin de "benden son
 |---|---|---|
 | `songs/{id}` | `artist`, `songName`, `originalKey`, `content`, `artistSlug`, `slug`, `status` ("approved"), `seq` (number), `deleted` (bool), `createdAt`, `updatedAt`, `addedBy`, `ownerId` | admin (uygulama), import scripti |
 | `catalog/meta` | `seq` (number, tekil artan), `count`, `publishedAt` | admin transaction'ı, publish scripti |
-| `users/{uid}` | mevcut alanlar + `plus: { active, until, source, productId }` | kullanıcı (kendi dokümanı) |
+| `users/{uid}` | mevcut alanlar + `pro: { active, until, source, productId }` + `proGrant: { active, until?, note, by, at }` (hediye, yalnızca yönetici yazar) | kullanıcı (kendi dokümanı) |
 | `repertoires/{id}` | mevcut | sahibi |
 | `user-chords/{id}` | mevcut | sahibi / admin |
 | `public-repertoires`, `preferences`, `reports` | mevcut | mevcut kurallar |
@@ -92,7 +92,7 @@ firebase deploy --only hosting,firestore:rules
 ## 5. Web uygulaması
 
 - Stack: Astro 5 (statik çıktı), TypeScript, saf CSS (tasarım tokenları), Firebase JS SDK (yalnızca etkileşimli adalar).
-- URL yapısı: `/` · `/akor/{sanatci}/{sarki}/` · `/sanatci/{sanatci}/` · `/sanatcilar/` · `/ara/?q=` · `/repertuar/{id}/` · `/repertuarlarim/` · `/giris/` · `/plus/`
+- URL yapısı: `/` · `/akor/{sanatci}/{sarki}/` · `/sanatci/{sanatci}/` · `/sanatcilar/` · `/ara/?q=` · `/repertuar/{id}/` · `/repertuarlarim/` · `/giris/` · `/pro/`
 - Şarkı sayfası (Repertuarım alışkanlığı): başlık, kontrol çubuğu (Orijinal ton, Kapo, Akorlar aç/kapat, Repertuara ekle,
   Sayfayı oynat, Yazı boyutu +A/−A), ton şeridi C…B, akor satırları vurgulu, altında sanatçının diğer şarkıları ve benzerleri.
 - Görsel dil: Wecra "Gituar" dosyasındaki tokenlar (`global.css` :root) — sayfa #FBFBFD, yüzey #FFF, metin #1D1D1F / #6E6E73,
@@ -160,7 +160,7 @@ Web düzeni (Wecra "Gituar" dosyası, 2026-11-04 revizesi): içerik 960 px ortad
 | Listeler (ana, sanatçı) | her 10 satırda bir liste içi | Tüm Şarkılar, genel listeler ve Sanatçılar'da her 10 satırda bir yerel (native) reklam |
 | Telefon (≤ 900 px) | alt yapışkan 320×50 | — |
 | Uygulama açılışı | yok | app open reklamı günde en fazla 3 |
-| Plus | tüm slotlar DOM'dan çıkar | hiçbir reklam yüklenmez |
+| Pro | tüm slotlar DOM'dan çıkar | hiçbir reklam yüklenmez |
 
 Web'de Google AdSense (`web/src/components/AdSlot.astro` tek noktadan; yan sütunlar `layouts/Base.astro` içinde),
 iOS'ta mevcut AdMobManager + `AdPlacements`.
@@ -174,13 +174,13 @@ iOS'ta mevcut AdMobManager + `AdPlacements`.
   Doğrulama: her sayfada `google-adsense-account` meta + `ads.txt`. Reklamlar site onayından sonra çıkar.
 Repertuarım'daki gibi uzun oturumlar için şarkı sayfasında reklam 60 sn'de bir yenilenir (görünür olduğunda).
 
-## 7. Gituar Plus — aylık 99 TL
+## 7. Gituar Pro — aylık 99 TL
 
-- iOS: StoreKit 2 otomatik yenilenen abonelik, ürün kimliği `com.gituar.plus.monthly`, App Store Connect'te 99 TL.
-  `PlusManager` `Transaction.currentEntitlements` ile durumu izler, `users/{uid}.plus` alanını Firestore'a yazar.
-- Web: kullanıcı giriş yaptığında `users/{uid}.plus.until > now` ise reklamlar yüklenmez. Web'de satış ikinci fazdadır:
+- iOS: StoreKit 2 otomatik yenilenen abonelik, ürün kimliği `com.gituar.pro.monthly`, App Store Connect'te 99 TL.
+  `ProManager` `Transaction.currentEntitlements` ile durumu izler, `users/{uid}.pro` alanını Firestore'a yazar.
+- Web: kullanıcı giriş yaptığında `users/{uid}.pro` ya da `users/{uid}.proGrant` geçerliyse ise reklamlar yüklenmez. Web'de satış ikinci fazdadır:
   Türkiye'de Stripe yayıncı hesabı açılamadığından iyzico/PayTR gerekir ve bu da sunucu tarafı webhook ister.
-- Sunucusuz doğrulama sınırı: Firestore'daki `plus` alanını kullanıcı kendi yazar; sahtecilik riski reklamsızlık kadar düşüktür.
+- Sunucusuz doğrulama sınırı: Firestore'daki `pro` alanını kullanıcı kendi yazar (`proGrant` ise yalnızca yöneticinin); sahtecilik riski reklamsızlık kadar düşüktür.
   Hacim büyürse RevenueCat (aylık 2.500 $ gelire kadar ücretsiz) ile makbuz doğrulaması eklenir.
 
 ## 8. Maliyet (Blaze sıfır maliyet kotaları)
@@ -197,7 +197,7 @@ Hosting trafiği aşılırsa aynı `web/dist` Cloudflare Pages'e sınırsız tra
 ## 9. Fazlar
 
 1. **Bu branch:** plan, `shared/` (şema, kurallar, scriptler, chords.ts), `web/` (tasarım sistemi, sayfalar, arama, reklam alanları,
-   Plus kapısı), iOS `ChordsStorageManager` → seed + delta, `PlusManager`, `AdPlacements`.
+   Pro kapısı), iOS `ChordsStorageManager` → seed + delta, `ProManager`, `AdPlacements`.
 2. Firestore'a import, App Store Connect'te abonelik ürünü, AdSense başvurusu, Hosting'e ilk deploy.
 3. Web'de repertuar düzenleme, versiyon/ritim gibi Repertuarım özellikleri, web ödeme (iyzico) için küçük bir sunucu.
 
@@ -210,7 +210,7 @@ Hosting trafiği aşılırsa aynı `web/dist` Cloudflare Pages'e sınırsız tra
    `GOOGLE_APPLICATION_CREDENTIALS=anahtar.json npm run catalog:import`. 13.713 yazma, günlük 20k ücretsiz kotanın içinde, bir kez.
 3. **Web Firebase uygulaması:** Console → Project settings → Add app → Web. Değerleri `web/.env` dosyasına
    (`web/.env.example` şablon). Authentication → Settings → Authorized domains'e Hosting alanını ekleyin.
-4. **Abonelik:** App Store Connect → Subscriptions → grup "Gituar Plus", ürün `com.gituar.plus.monthly`, 99 TL/ay.
+4. **Abonelik:** App Store Connect → Subscriptions → grup "Gituar Pro", ürün `com.gituar.pro.monthly`, 99 TL/ay.
 5. **AdMob:** geçiş (interstitial) ve uygulama açılış (app open) birimlerini oluşturup `AdPlacements.swift` içindeki
    `REPLACE_*` kimliklerini değiştirin. Release derlemede bu iki format kimlik girilene kadar gösterilmez.
 6. **AdSense:** site yayına girince başvurun, yayıncı kimliğini `PUBLIC_ADSENSE_CLIENT` olarak girin; slot kimlikleri `AdSlot` bileşeninde.

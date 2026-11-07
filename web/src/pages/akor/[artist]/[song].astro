@@ -55,13 +55,13 @@ const diagrams = analysis.chords.slice(0, 12).map((c) => ({ ...c, shape: chordSh
       </ListSection>
       <ListSection title={`${song.artist} akorları`} icon="music" color="#f0a800" href={artistPath(song.artistSlug)} />
       {suggested.length > 0 && (
-        <ListSection title="Önerilen akorlar" icon="none" open>
+        <ListSection title="Önerilen akorlar" icon="none" open all={artistPath(song.artistSlug)}>
           <SongList songs={suggested} />
         </ListSection>
       )}
       <AdSlot size="video" unit="song-video" />
       {keyHref && <ListSection title={`${song.originalKey} tonundaki şarkılar`} icon="none" href={keyHref} />}
-      <ListSection title="Yeni Akorlar" color="#ff9500">
+      <ListSection title="Yeni Akorlar" color="#ff9500" all="/yeni-eklenenler/">
         <SongList songs={newest} />
       </ListSection>
       <ListSection title="Bilgiler" icon="none">

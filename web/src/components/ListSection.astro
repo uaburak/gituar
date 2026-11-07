@@ -12,8 +12,10 @@ interface Props {
   id?: string;
   heading?: "h1" | "h2";
   note?: string;
+  /** Açılır bölümün altında "Tümü ›" bağlantısı: bölümün kendi sayfası. */
+  all?: string;
 }
-const { title, icon: iconProp, color: colorProp, open = false, href, action, id, heading = "h2", note } = Astro.props;
+const { title, icon: iconProp, color: colorProp, open = false, href, action, id, heading = "h2", note, all } = Astro.props;
 
 // Hat ikonları (24'lük kutu; s = çizgi, f = dolgu). Renk currentColor → bölümün rengi.
 const S = 'fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"';
@@ -93,6 +95,6 @@ const H = heading;
       <H>{title}</H>{note && <span class="rp-note">{note}</span>}
       <span class="rp-chev" aria-hidden="true"></span>
     </summary>
-    <div class="rp-body"><slot /></div>
+    <div class="rp-body"><slot />{all && <a class="rp-more rp-all" href={all}>Tümü<span aria-hidden="true"> ›</span></a>}</div>
   </details>
 )}

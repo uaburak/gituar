@@ -24,7 +24,7 @@ const jsonLd = [
   <div class="rp-content">
     <p>Gitarda en çok kullanılan akorlar Am, G, C, Em, Dm ve F'dir; Türkçe şarkıların üçte birinden fazlasında geçerler. Aşağıda her akorun diyagramı, nasıl basıldığı ve o akorla çalınan şarkılar var. Yeni başlıyorsan önce açık akorları öğren, sonra <a href="/kolay-gitar-akorlari/">kolay şarkılarla</a> pratik yap.</p>
   </div>
-  <ListSection title="Temel açık akorlar" color="#ea494d" open>
+  <ListSection title="Temel açık akorlar" color="#ea494d" open all="/kolay-gitar-akorlari/">
     <div class="chord-grid">
       {basics.map((c) => <ChordDiagram shape={chordShapes(c.root, c.quality)[0]} label={c.name} href={`/akorlar/${c.slug}/`} />)}
     </div>

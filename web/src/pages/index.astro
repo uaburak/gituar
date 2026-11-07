@@ -22,7 +22,7 @@ const description = "Türkçe şarkıların gitar akorları: topluluğun paylaş
 ---
 <Base title={title} description={description} jsonLd={homeJsonLd(siteUrl(Astro.site))}>
   <h1 class="visually-hidden">Türkçe gitar akorları</h1>
-  <ListSection title="Popüler Akorlar" icon="bolt" color="#ea494d">
+  <ListSection title="Popüler Akorlar" icon="bolt" color="#ea494d" all="/populer-akorlar/">
     <SongList songs={popular} cols={1} />
   </ListSection>
   <ListSection title="Rastgele" color="#c077db" id="random">
@@ -30,7 +30,7 @@ const description = "Türkçe şarkıların gitar akorları: topluluğun paylaş
     <p class="muted small rp-empty" id="random-status">Yükleniyor…</p>
     <button type="button" class="rp-more rp-more-btn" id="random-refresh">Başka şarkılar getir</button>
   </ListSection>
-  <ListSection title="Öne Çıkanlar" color="#f0a800" id="featured">
+  <ListSection title="Öne Çıkanlar" color="#f0a800" id="featured" all="/editorun-secimleri/">
     <ul class="rp-list" id="editor-picks">
       {picks.map((p) => (
         <li><a class="row" href={`/repertuar/?id=${p.id}`} title={p.name}><span class="rp-badge rp-badge-list" aria-hidden="true">R</span><span class="rp-text"><span class="row-title">{p.name}</span><span class="row-note"> · {p.count} şarkı</span></span></a></li>
@@ -38,24 +38,22 @@ const description = "Türkçe şarkıların gitar akorları: topluluğun paylaş
     </ul>
     {picks.length === 0 && <p class="muted small rp-empty" id="editor-status">Yükleniyor…</p>}
   </ListSection>
-  <ListSection title="Yeni Akorlar" color="#ff9500">
+  <ListSection title="Yeni Akorlar" color="#ff9500" all="/yeni-eklenenler/">
     <SongList songs={newest} cols={1} />
-    <a class="rp-more" href="/yeni-eklenenler/">Bütün yeni akorlar ›</a>
   </ListSection>
   <ListSection title="Gece Modu" icon="moon" color="#5e5ce6" action="theme-toggle-home" />
   <ListSection title="Son Çaldıklarım" color="#54779a" id="recent">
     <ul class="rp-list" id="recent-list"></ul>
     <p class="muted small" id="recent-empty">Açtığın şarkılar burada listelenir. Bu liste yalnızca bu tarayıcıda tutulur.</p>
   </ListSection>
-  <ListSection title="Repertuarlarım" icon="star" color="#f0a800" id="my-reps">
+  <ListSection title="Repertuarlarım" icon="star" color="#f0a800" id="my-reps" all="/repertuarlarim/">
     <ul class="rp-list" id="my-reps-list"></ul>
     <p class="muted small rp-empty" id="my-reps-status">Yükleniyor…</p>
-    <a class="rp-more" href="/repertuarlarim/">Repertuarlarını yönet ›</a>
   </ListSection>
-  <ListSection title="Popüler Sanatçılar" color="#499c9f">
+  <ListSection title="Popüler Sanatçılar" color="#499c9f" all="/sanatcilar/">
     <ul class="rp-list">{artists.map((a) => <ArtistRow artist={a} />)}</ul>
   </ListSection>
-  <ListSection title="Yeni Eklenen Sanatçılar" color="#54779a">
+  <ListSection title="Yeni Eklenen Sanatçılar" color="#54779a" all="/sanatcilar/">
     <ul class="rp-list">{newestArtists.map((a) => <ArtistRow artist={a} />)}</ul>
   </ListSection>
   <ListSection title="İstek, Öneri, Şikayet" icon="quote" color="#c077db" href="/iletisim/" />

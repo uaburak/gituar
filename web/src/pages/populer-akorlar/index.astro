@@ -1,0 +1,27 @@
+---
+import ListSection from "../../components/ListSection.astro";
+import Base from "../../layouts/Base.astro";
+import SongList from "../../components/SongList.astro";
+import { catalog } from "../../lib/catalog.ts";
+import { siteUrl, breadcrumbJsonLd } from "../../lib/seo.ts";
+import { songPath } from "@shared/catalog";
+
+// Ana sayfadaki "Popüler Akorlar" ile aynı sıralama (API puanı: görüntülenme 1, favori 4, repertuar 5); puan yoksa en yeniler.
+const all = catalog().songs;
+const scored = [...all].filter((s) => (s.score ?? 0) > 0).sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
+const songs = (scored.length >= 100 ? scored : [...scored, ...[...all].sort((a, b) => b.seq - a.seq).filter((s) => !scored.includes(s))]).slice(0, 100);
+const base = siteUrl(Astro.site);
+const description = "En çok çalınan ve repertuara eklenen Türkçe şarkıların gitar akorları. Popüler akorları transpoze, kapo ve otomatik kaydırma ile çal.";
+const jsonLd = [
+  { "@type": "CollectionPage", name: "Popüler akorlar", url: `${base}/populer-akorlar/`, description, inLanguage: "tr" },
+  { "@type": "ItemList", name: "Popüler akorlar", itemListElement: songs.slice(0, 20).map((s, i) => ({ "@type": "ListItem", position: i + 1, name: `${s.artist} – ${s.songName}`, url: base + songPath(s) })) },
+  breadcrumbJsonLd(base, [{ name: "Ana sayfa", path: "/" }, { name: "Popüler akorlar" }]),
+];
+---
+<Base title="Popüler Gitar Akorları – En Çok Çalınan Şarkılar" description={description} jsonLd={jsonLd}>
+  <ListSection title="Popüler Akorlar" heading="h1" icon="bolt" color="#ea494d" open>
+    <SongList songs={songs} />
+  </ListSection>
+  <ListSection title="Yeni Akorlar" color="#ff9500" href="/yeni-eklenenler/" />
+  <ListSection title="Öne Çıkanlar" color="#f0a800" href="/editorun-secimleri/" />
+</Base>

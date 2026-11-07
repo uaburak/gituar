@@ -9,7 +9,7 @@ import { songPath, artistPath } from "./paths.ts";
 export const SITEMAP_CHUNK = 5000;
 
 const STATIC = [
-  "/", "/sanatcilar/", "/akorlar/", "/kolay-gitar-akorlari/", "/kapo-ile-kolay-sarkilar/", "/ton/", "/yeni-eklenenler/",
+  "/", "/sanatcilar/", "/akorlar/", "/kolay-gitar-akorlari/", "/kapo-ile-kolay-sarkilar/", "/ton/", "/yeni-eklenenler/", "/populer-akorlar/",
   "/editorun-secimleri/", "/rehber/", "/rehber/akor-transpoze/", "/rehber/kapo/", "/rehber/ukulele-akorlari/",
   "/rehber/en-cok-kullanilan-akorlar/", "/pro/", "/hakkinda/", "/iletisim/", "/kullanim-sartlari/", "/gizlilik/",
 ];

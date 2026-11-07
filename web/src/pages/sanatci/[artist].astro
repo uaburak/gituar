@@ -50,12 +50,12 @@ const easyNotes = Object.fromEntries(easiest.map((s) => [s.id, songChords(s).cho
     <p class="muted small rp-empty" id="filter-empty" hidden>Bu aramayla eşleşen şarkı yok.</p>
   </ListSection>
   {otherArtists.length > 0 && (
-    <ListSection title="Benzer Sanatçılar" icon="none" open>
+    <ListSection title="Benzer Sanatçılar" icon="none" open all="/sanatcilar/">
       <ul class="rp-list">{otherArtists.map((a) => <ArtistRow artist={a} />)}</ul>
     </ListSection>
   )}
   {n >= 5 && easiest.length >= 3 && (
-    <ListSection title={`En kolay ${artist.name} şarkıları`} icon="none">
+    <ListSection title={`En kolay ${artist.name} şarkıları`} icon="none" all="/kolay-gitar-akorlari/">
       <SongList songs={easiest} cols={1} notes={easyNotes} />
     </ListSection>
   )}

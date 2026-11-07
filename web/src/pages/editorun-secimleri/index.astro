@@ -30,14 +30,14 @@ const jsonLd = [
   <div class="rp-content"><p id="editor-meta">Gituar ekibinin hazırladığı repertuarlar.</p></div>
   {picks.length > 0 ? (
     picks.map((p, i) => (
-      <ListSection title={p.name} icon={i === 0 ? "bolt" : "none"} color="#ea494d" open={i === 0} id={`liste-${p.id}`}>
+      <ListSection title={p.name} color="#ea494d" open={i === 0} id={`liste-${p.id}`}>
         <SongList songs={p.songs.slice(0, SHOW)} />
         <a class="rp-more" href={`/repertuar/?id=${p.id}`}>Tüm liste ({p.songs.length}) ›</a>
       </ListSection>
     ))
   ) : (
     <>
-      <ListSection title="Repertuarlar" icon="bolt" color="#ea494d" open>
+      <ListSection title="Repertuarlar" color="#ea494d" open>
         <ul class="rp-list" id="editor-picks"></ul>
         <p class="muted small rp-empty" id="editor-status">Yükleniyor…</p>
       </ListSection>

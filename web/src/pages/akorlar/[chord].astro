@@ -51,7 +51,7 @@ void SHARPS; void chordSlug;
     <p>{answer}</p>
     {!open && <p class="muted">Barre zor geliyorsa kapo kullanabilirsin: <a href="/rehber/kapo/">kapo rehberi</a> ve <a href="/kapo-ile-kolay-sarkilar/">kapo ile kolay çalınan şarkılar</a>.</p>}
   </div>
-  <ListSection title={`${name} akoru`} icon="bolt" color="#ea494d" open>
+  <ListSection title={`${name} akoru`} color="#ea494d" open>
     <div class="chord-shapes">
       {shapes.map((s, i) => <ChordDiagram shape={s} label={name} size={i === 0 ? "lg" : "sm"} caption={s.name} />)}
     </div>

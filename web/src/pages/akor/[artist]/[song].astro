@@ -49,7 +49,7 @@ const diagrams = analysis.chords.slice(0, 12).map((c) => ({ ...c, shape: chordSh
     </Fragment>
     <Fragment slot="after">
       <ListSection title="Rastgele" color="#c077db" action="btn-random" />
-      <ListSection title={`${song.artist} akorları`} color="#ffcc00" href={artistPath(song.artistSlug)} />
+      <ListSection title={`${song.artist} akorları`} icon="music" color="#ffcc00" href={artistPath(song.artistSlug)} />
       {suggested.length > 0 && (
         <ListSection title="Önerilen akorlar" icon="none" open>
           <SongList songs={suggested} />
@@ -77,7 +77,7 @@ const diagrams = analysis.chords.slice(0, 12).map((c) => ({ ...c, shape: chordSh
           </li>
         </ul>
       </ListSection>
-      <ListSection title="Bu içerik için hata bildir" icon="quote" color="#c077db" action="report-open-2" />
+      <ListSection title="Bu içerik için hata bildir" color="#c077db" action="report-open-2" />
       <ListSection title="gituar.com" icon="heart" color="#ea494d" href="/" />
     </Fragment>
   </SongSheet>

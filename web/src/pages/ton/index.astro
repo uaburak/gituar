@@ -16,7 +16,7 @@ const description = "Gitar akorlarını tona göre bul: majör ve minör tonlard
   <div class="rp-content">
     <p>Hangi tonda çalmak istiyorsan o tondaki şarkıları listele. Ton sayfasının başında o tonun sık kullanılan akorları yazar.</p>
   </div>
-  <ListSection title="Tonlar" icon="bolt" color="#ea494d" open>
+  <ListSection title="Tonlar" color="#ea494d" open>
     <ul class="rp-list rp-split">
       {keys.map(([label, n, k]) => (
         <li><a class="row" href={`/ton/${keySlug(k)}/`} title={`${label} tonunda şarkı akorları`}><span class="rp-badge rp-badge-key" aria-hidden="true">{k}</span><span class="rp-text"><span class="row-title">{label} tonu</span><span class="row-note"> · {keyTurkish(k)}</span></span></a></li>

@@ -26,7 +26,7 @@ const jsonLd = [
   <div class="rp-content">
     <p>Bu listedeki şarkılar yalnızca {n} açık akorla çalınıyor ve hiç barre gerektirmiyor. Satırda şarkının akorları yazar; akorları bilmiyorsan <a href="/akorlar/">akor tablosuna</a> bak.</p>
   </div>
-  <ListSection title={`${n} akorlu şarkılar`} icon="bolt" color="#ea494d" open>
+  <ListSection title={`${n} akorlu şarkılar`} color="#ea494d" open>
     <SongList songs={songs.slice(0, LIMIT)} notes={notes} />
   </ListSection>
   <ListSection title="Kolay gitar akorları" color="#ffcc00" href="/kolay-gitar-akorlari/" />

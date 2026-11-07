@@ -34,7 +34,7 @@ const jsonLd = [
   <div class="rp-content">
     <p>Kolay gitar akorları, barre gerektirmeyen açık akorlardır: Am, C, D, Em, G, A, Dm ve E. Aşağıda akorların diyagramları ve en az akorlu şarkılardan başlayan liste var.</p>
   </div>
-  <ListSection title="Temel açık akorlar" icon="bolt" color="#ea494d" open>
+  <ListSection title="Temel açık akorlar" color="#ea494d" open>
     <div class="chord-grid">
       {basics.map(([r, q]) => <ChordDiagram shape={chordShapes(r, q)[0]} label={r + q} href={chordHref(r, q)} />)}
     </div>

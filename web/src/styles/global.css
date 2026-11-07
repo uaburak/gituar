@@ -815,7 +815,8 @@ a.rp-section.rp-title, button.rp-section.rp-title { width: calc(100% + 2 * var(-
 .rp-chev { width: 8px; height: 8px; border-right: 2px solid var(--text-3); border-bottom: 2px solid var(--text-3); transform: rotate(-45deg); margin-right: 4px; transition: transform .2s ease; flex: none; }
 details.rp-section > .rp-title .rp-chev { transform: rotate(45deg); }
 details.rp-section[open] > .rp-title .rp-chev { transform: rotate(-135deg); }
-.rp-icon { width: 15px; height: 16px; flex: none; display: grid; place-items: center; color: var(--c); }
+.rp-icon { width: 18px; height: 18px; flex: none; display: grid; place-items: center; color: var(--c); }
+.rp-icon svg { width: 18px; height: 18px; display: block; }
 .rp-icon-dot::before { content: ""; width: 11px; height: 11px; border-radius: 50%; background: var(--c); }
 .rp-icon-bolt::before { content: ""; width: 10px; height: 16px; background: var(--c); clip-path: polygon(55% 0, 0 58%, 42% 58%, 30% 100%, 100% 38%, 56% 38%, 75% 0); }
 .rp-icon-moon::before { content: ""; width: 12px; height: 12px; border-radius: 50%; box-shadow: inset -4px -2px 0 0 var(--c); transform: rotate(-20deg); }

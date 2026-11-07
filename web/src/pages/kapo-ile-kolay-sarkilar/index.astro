@@ -23,7 +23,7 @@ const jsonLd = [
     <p>Bu şarkılar orijinal tonda barre akor içeriyor ama kapo takınca yalnızca açık akorlarla çalınıyor. Her satırda kapoyu takacağın perde ve tutacağın akorlar yazıyor; ses orijinaliyle aynı kalır. Kapo nasıl kullanılır, <a href="/rehber/kapo/">kapo rehberinde</a> anlatıyoruz.</p>
   </div>
   {groups.map((g, i) => (
-    <ListSection title={`Kapo ${g.f}. perdede kolaylaşan şarkılar`} icon={i === 0 ? "bolt" : "none"} color="#ea494d" open={i === 0} id={`kapo-${g.f}`}>
+    <ListSection title={`Kapo ${g.f}. perdede kolaylaşan şarkılar`} color="#ea494d" open={i === 0} id={`kapo-${g.f}`}>
       <SongList songs={g.songs.slice(0, PER)} notes={notes} />
     </ListSection>
   ))}

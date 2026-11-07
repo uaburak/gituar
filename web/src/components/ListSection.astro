@@ -95,6 +95,6 @@ const H = heading;
       <H>{title}</H>{note && <span class="rp-note">{note}</span>}
       <span class="rp-chev" aria-hidden="true"></span>
     </summary>
-    <div class="rp-body"><slot />{all && <a class="row rp-all" href={all}><span class="rp-badge rp-badge-all" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span><span class="rp-text"><span class="row-title">Tümü</span></span></a>}</div>
+    <div class="rp-body"><slot />{all && <ul class="rp-list rp-all-holder"><li class="rp-all-item"><a class="row rp-all" href={all}><span class="rp-badge rp-badge-all" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span><span class="rp-text"><span class="row-title">Tümü</span></span></a></li></ul>}</div>
   </details>
 )}

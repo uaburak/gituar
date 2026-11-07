@@ -992,7 +992,7 @@ details.rp-section[open] > .rp-title .rp-chev { transform: rotate(-135deg); marg
 .rp-more-btn { width: 100%; border: 0; background: none; text-align: left; color: var(--accent-text); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
 .rp-more-btn:hover { background: var(--row-hover-soft); }
 /* "Tümü" satırı: liste satırlarıyla aynı görünüm (rozet + metin) */
-.rp-all { display: flex; align-items: center; min-height: 55px; padding: 0 var(--card-pad); color: var(--text); font-size: 13px; }
+.rp-all { gap: 0; }
 .rp-all:hover { background: var(--row-hover); text-decoration: none; }
 .rp-badge-all { background: #8e8e93; }
 .rp-badge-all svg { width: 13px; height: 13px; }

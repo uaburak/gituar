@@ -105,3 +105,18 @@ if (new URLSearchParams(location.search).get("hesap") === "silindi") {
   document.querySelector("main")?.prepend(note);
   history.replaceState(null, "", location.pathname);
 }
+
+// Açılır bölümlerdeki "Tümü" satırı listenin son öğesi olur (iki sütunda sıradaki hücreye oturur).
+// Liste sonradan doldurulsa da (repertuarlar, rastgele) en sonda kalması için izlenir.
+function placeAllRows() {
+  document.querySelectorAll<HTMLElement>(".rp-all-holder").forEach((holder) => {
+    const item = holder.querySelector<HTMLElement>(".rp-all-item");
+    const list = holder.parentElement?.querySelector<HTMLElement>(".rp-list:not(.rp-all-holder)");
+    if (!item || !list) return;
+    const keepLast = () => { if (list.lastElementChild !== item) list.appendChild(item); };
+    keepLast();
+    holder.remove();
+    new MutationObserver(keepLast).observe(list, { childList: true });
+  });
+}
+placeAllRows();

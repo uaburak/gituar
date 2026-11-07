@@ -8,14 +8,17 @@ const { song } = Astro.props;
 const originalRoot = rootNote(song.originalKey);
 // Tonun kök dışındaki kısmı (C#m → "m"); seçicide her kök bu ekle gösterilir.
 const keySuffix = (song.originalKey ?? "").trim().slice(originalRoot.length);
+// Ritim / arpej / tempo (şarkıda varsa; yoksa çalarken yaygın bir ritim kullanılır)
+const extra = song as CatalogSong & { rhythm?: string; arpeggio?: string; tempo?: number; meter?: string };
 ---
-<article id="song" class="rp-song" data-id={song.id} data-key={song.originalKey} data-root={originalRoot} data-title={`${song.artist} - ${song.songName}`} data-name={song.songName} data-artist={song.artist}>
+<article id="song" class="rp-song" data-id={song.id} data-key={song.originalKey} data-root={originalRoot} data-title={`${song.artist} - ${song.songName}`} data-name={song.songName} data-artist={song.artist} data-rhythm={extra.rhythm || undefined} data-arpeggio={extra.arpeggio || undefined} data-tempo={extra.tempo || undefined} data-meter={extra.meter || undefined}>
   <ul class="rp-menu" role="toolbar" aria-label="Akor araçları">
     <li><button type="button" id="menu-keys" aria-expanded="true" aria-controls="key-strip">Orijinal Ton: <b id="key-label">{originalRoot + keySuffix}</b><span class="rp-caret" aria-hidden="true"></span></button></li>
     <li class="rp-capo"><span>Kapo:</span>
       <button type="button" id="capo-dec" aria-label="Kapo azalt">−</button><b id="capo-val">0</b><button type="button" id="capo-inc" aria-label="Kapo artır">+</button>
     </li>
     <li><button type="button" id="menu-diagrams" aria-expanded="false" aria-controls="diagram-panel">Akorlar</button></li>
+    <li><button type="button" id="menu-rhythm" aria-expanded="false" aria-controls="rhythm-panel">Ritim</button></li>
     <li><button type="button" id="btn-rep">Repertuara Ekle</button></li>
     <li><button type="button" id="btn-play" aria-pressed="false">Sayfayı Oynat</button></li>
     <li><button type="button" id="btn-chords" aria-pressed="true">Akorları Kapat</button></li>
@@ -28,6 +31,26 @@ const keySuffix = (song.originalKey ?? "").trim().slice(originalRoot.length);
     {selectableKeys.map((k) => <button type="button" data-k={k} aria-pressed={k === originalRoot ? "true" : "false"} class:list={[{ original: k === originalRoot }]}>{k}</button>)}
   </div>
   <div class="rp-diagrams" id="diagram-panel" hidden><slot name="diagrams" /></div>
+  <div class="rp-rhythm" id="rhythm-panel" hidden>
+    <div class="rh-row">
+      <div class="rh-mode" role="group" aria-label="Çalış biçimi">
+        <button type="button" data-mode="rhythm" aria-pressed="true">Ritim</button>
+        <button type="button" data-mode="arpeggio" aria-pressed="false">Arpej</button>
+      </div>
+      <div class="rh-pattern" id="rh-pattern" aria-label="Desen"></div>
+    </div>
+    <div class="rh-row">
+      <button type="button" class="rh-play" id="rh-play" aria-pressed="false">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path class="rh-icon-play" d="M8 5v14l11-7z"/><path class="rh-icon-pause" d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>
+        <span>Çal</span>
+      </button>
+      <label class="rh-tempo">
+        <span class="rh-tempo-val" id="rh-tempo-val">90 BPM · Orta</span>
+        <input type="range" id="rh-tempo" min="40" max="200" step="2" value="90" aria-label="Tempo" />
+      </label>
+    </div>
+    <p class="muted small rh-note" id="rh-note">Her akor bir ölçü çalınır; çalan akor kâğıtta işaretlenir.</p>
+  </div>
   <div class="rp-font" aria-label="Yazı boyutu">
     <button type="button" id="font-inc" aria-label="Yazıyı büyüt">+A</button>
     <button type="button" id="font-dec" aria-label="Yazıyı küçült">-A</button>
@@ -77,3 +100,4 @@ const keySuffix = (song.originalKey ?? "").trim().slice(originalRoot.length);
   </dialog>
 </article>
 <script src="../scripts/song-sheet.ts"></script>
+<script src="../scripts/song-player.ts"></script>

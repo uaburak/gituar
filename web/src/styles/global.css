@@ -1029,3 +1029,24 @@ a.cd-label:hover { color: var(--accent-text); text-decoration: none; }
 .rp-save[hidden] { display: none; }
 .rp-section.rp-rep-head { border-bottom: 0; }
 a.rp-owner:hover { color: var(--accent-text); text-decoration: none; }
+/* Ritim / arpej oynatıcısı (şarkı sayfası "Ritim" sekmesi) */
+.rp-rhythm { margin: 0 calc(-1 * var(--card-pad)); padding: 14px var(--card-pad) 12px; border-bottom: 1px solid var(--hairline); display: grid; gap: 12px; }
+.rp-rhythm[hidden] { display: none; }
+.rh-row { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.rh-mode { display: inline-flex; padding: 2px; border-radius: 999px; background: var(--muted); }
+.rh-mode button { height: 28px; padding: 0 14px; border: 0; border-radius: 999px; background: none; color: var(--text-2); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.rh-mode button[aria-pressed="true"] { background: var(--surface); color: var(--text); box-shadow: 0 1px 3px rgba(0, 0, 0, .12); }
+.rh-pattern { display: flex; gap: 4px; flex-wrap: wrap; }
+.rh-slot { min-width: 28px; height: 32px; display: grid; place-items: center; border-radius: 8px; background: var(--zebra); color: var(--text); font-size: 18px; font-weight: 700; line-height: 1; transition: background-color .08s, color .08s; }
+.rh-slot.is-rest { color: var(--text-3); }
+.rh-slot.is-now { background: var(--accent); color: var(--on-accent, #fff); }
+.rh-play { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 16px 0 12px; border: 0; border-radius: 999px; background: var(--accent); color: var(--on-accent, #fff); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+.rh-play svg { width: 16px; height: 16px; }
+.rh-play .rh-icon-pause, .rh-play[aria-pressed="true"] .rh-icon-play { display: none; }
+.rh-play[aria-pressed="true"] .rh-icon-pause { display: inline; }
+.rh-play:disabled { opacity: .6; cursor: progress; }
+.rh-tempo { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 220px; font-size: 13px; color: var(--text-2); }
+.rh-tempo input { flex: 1; accent-color: var(--accent); }
+.rh-tempo-val { min-width: 128px; font-variant-numeric: tabular-nums; }
+.rh-note { margin: 0; }
+.chords .chord.is-now { background: var(--accent-soft); border-radius: 4px; box-shadow: 0 0 0 3px var(--accent-soft); }

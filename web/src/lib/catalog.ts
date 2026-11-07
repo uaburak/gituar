@@ -6,7 +6,7 @@ import type { CatalogSong } from "@shared/types";
 import { API_URL } from "./site.ts";
 
 /** API'den gelen şarkı: katalog alanlarına ek olarak popülerlik puanı ve güncellenme zamanı. */
-export type ApiSong = CatalogSong & { score?: number; updatedAt?: string; ownerId?: string };
+export type ApiSong = CatalogSong & { score?: number; updatedAt?: string; ownerId?: string; rhythm?: string; arpeggio?: string; tempo?: number; meter?: string };
 
 interface Catalog {
   songs: ApiSong[];
@@ -43,6 +43,11 @@ async function fetchAll(): Promise<ApiSong[]> {
         score: s.score as number,
         ...(s.addedBy ? { addedBy: s.addedBy as string } : {}),
         ...(s.ownerId ? { ownerId: s.ownerId as string } : {}),
+        // Ritim bilgisi (API'de rhythm sütunu uygulandığında gelir; yoksa çalarken varsayılan desen)
+        ...(s.rhythm ? { rhythm: s.rhythm as string } : {}),
+        ...(s.arpeggio ? { arpeggio: s.arpeggio as string } : {}),
+        ...(s.tempo ? { tempo: s.tempo as number } : {}),
+        ...(s.meter ? { meter: s.meter as string } : {}),
       });
     }
     if (page.songs.length < 1000) break;

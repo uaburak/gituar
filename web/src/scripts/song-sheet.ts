@@ -95,7 +95,7 @@ function init(root: HTMLElement) {
 
   for (const b of keyButtons) b.addEventListener("click", () => { selected = b.dataset.k!; render(); });
   // Menü: ton şeridini ve akor diyagramlarını aç/kapat
-  for (const [btnId, panelId] of [["menu-keys", "key-strip"], ["menu-diagrams", "diagram-panel"]] as const) {
+  for (const [btnId, panelId] of [["menu-keys", "key-strip"], ["menu-diagrams", "diagram-panel"], ["menu-rhythm", "rhythm-panel"]] as const) {
     const btn = $(btnId), panel = $(panelId);
     btn.addEventListener("click", () => { panel.hidden = !panel.hidden; btn.setAttribute("aria-expanded", String(!panel.hidden)); });
   }

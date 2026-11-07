@@ -15,7 +15,7 @@ type Action = "view" | "favorite" | "repertoire";
 
 const WEIGHTS: Record<Action, number> = { view: 1, favorite: 4, repertoire: 5 };
 const LIST_FIELDS = "id, artist, artist_slug, title, slug, original_key, status, created_at, updated_at, score, owner_id";
-const FULL_FIELDS = `${LIST_FIELDS}, content, added_by`;
+const FULL_FIELDS = `${LIST_FIELDS}, content, added_by, rhythm`; // rhythm: migrations/0002_rhythm.sql
 const MAX_LIMIT = 100;
 const TRENDING_DAYS = 30;
 
@@ -50,7 +50,23 @@ function toSong(row: Record<string, unknown>, full = false) {
     ownerId: (row.owner_id as string | null) ?? null,
   };
   if (!full) return base;
-  return { ...base, content: row.content as string, addedBy: (row.added_by as string | null) ?? null };
+  return { ...base, content: row.content as string, addedBy: (row.added_by as string | null) ?? null, ...parseRhythm(row.rhythm) };
+}
+
+/** rhythm sütunu (JSON) → { rhythm, arpeggio, tempo, meter } (olmayan alanlar yazılmaz) */
+function parseRhythm(raw: unknown): { rhythm?: string; arpeggio?: string; tempo?: number; meter?: string } {
+  if (typeof raw !== "string" || !raw) return {};
+  try {
+    const r = JSON.parse(raw) as { pattern?: string; arpeggio?: string; tempo?: number; meter?: string };
+    return {
+      ...(r.pattern ? { rhythm: r.pattern } : {}),
+      ...(r.arpeggio ? { arpeggio: r.arpeggio } : {}),
+      ...(r.tempo ? { tempo: r.tempo } : {}),
+      ...(r.meter ? { meter: r.meter } : {}),
+    };
+  } catch {
+    return {};
+  }
 }
 
 function intParam(url: URL, name: string, def: number, max = MAX_LIMIT): number {
@@ -133,6 +149,14 @@ interface SongInput {
   content?: string;
   status?: Status;
   addedBy?: string;
+  /** Ritim deseni: "↓ · ↓ ↑ · ↑ ↓ ↑" ya da "A A YYAY" */
+  rhythm?: string;
+  /** Arpej deseni: "B 3 2 1 2 3" */
+  arpeggio?: string;
+  /** BPM */
+  tempo?: number;
+  /** "4/4", "3/4", "6/8" */
+  meter?: string;
 }
 
 function cleanInput(input: SongInput, partial: boolean) {
@@ -143,7 +167,15 @@ function cleanInput(input: SongInput, partial: boolean) {
   if ((artist?.length ?? 0) > 120 || (title?.length ?? 0) > 160) throw new HttpError(400, "Ad çok uzun");
   if ((input.content?.length ?? 0) > 20000) throw new HttpError(400, "İçerik çok uzun");
   if (objectionable(artist ?? "", title ?? "", input.content ?? "")) throw new HttpError(422, "İçerik uygunsuz ifade içeriyor");
-  return { artist, title, originalKey: input.originalKey?.trim(), content: input.content?.replace(/\r/g, "").trim() };
+  const rhythm = input.rhythm?.trim(), arpeggio = input.arpeggio?.trim(), meter = input.meter?.trim();
+  if ((rhythm?.length ?? 0) > 100 || (arpeggio?.length ?? 0) > 100) throw new HttpError(400, "Ritim deseni çok uzun");
+  if (input.tempo !== undefined && !(Number(input.tempo) >= 30 && Number(input.tempo) <= 300)) throw new HttpError(400, "Tempo 30–300 arası olmalı");
+  if (meter && !/^\d{1,2}\/\d{1,2}$/.test(meter)) throw new HttpError(400, "Tartım 4/4 gibi yazılmalı");
+  const hasRhythm = Boolean(rhythm || arpeggio || input.tempo || meter);
+  return {
+    artist, title, originalKey: input.originalKey?.trim(), content: input.content?.replace(/\r/g, "").trim(),
+    rhythm: hasRhythm ? { pattern: rhythm || undefined, arpeggio: arpeggio || undefined, tempo: input.tempo ? Number(input.tempo) : undefined, meter: meter || undefined } : undefined,
+  };
 }
 
 /**
@@ -264,9 +296,9 @@ async function route(req: Request, env: Env, url: URL): Promise<Response> {
       const slug = artistSlug === row.artist_slug && title === row.title ? (row.slug as string) : await uniqueSlug(env, artistSlug, title, id);
       const status = allowedStatus(user, input.status, row.status as Status);
       await env.DB.prepare(
-        `UPDATE songs SET artist = ?, artist_slug = ?, title = ?, slug = ?, original_key = ?, content = ?, status = ?, updated_at = ?, search = ? WHERE id = ?`,
+        `UPDATE songs SET artist = ?, artist_slug = ?, title = ?, slug = ?, original_key = ?, content = ?, status = ?, updated_at = ?, search = ?, rhythm = ? WHERE id = ?`,
       ).bind(artist, artistSlug, title, slug, c.originalKey ?? row.original_key, c.content ?? row.content, status, Date.now(),
-        turkeyNormalized(`${artist} ${title}`), id).run();
+        turkeyNormalized(`${artist} ${title}`), c.rhythm ? JSON.stringify({ ...JSON.parse((row.rhythm as string) || "{}"), ...c.rhythm }) : (row.rhythm ?? null), id).run();
       return json({ song: toSong(await loadSong(env, id), true) });
     }
     if (method === "DELETE") {
@@ -293,10 +325,11 @@ async function route(req: Request, env: Env, url: URL): Promise<Response> {
     const id = newId();
     const status = allowedStatus(user, input.status ?? "pending");
     await env.DB.prepare(
-      `INSERT INTO songs (id, artist, artist_slug, title, slug, original_key, content, status, owner_id, added_by, created_at, updated_at, search)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO songs (id, artist, artist_slug, title, slug, original_key, content, status, owner_id, added_by, created_at, updated_at, search, rhythm)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     ).bind(id, c.artist, artistSlug, c.title, slug, c.originalKey ?? "", c.content ?? "", status, user.uid,
-      input.addedBy?.trim() || user.name || null, now, now, turkeyNormalized(`${c.artist} ${c.title}`)).run();
+      input.addedBy?.trim() || user.name || null, now, now, turkeyNormalized(`${c.artist} ${c.title}`),
+      c.rhythm ? JSON.stringify(c.rhythm) : null).run();
     return json({ song: toSong(await loadSong(env, id), true) }, { status: 201 });
   }
 

@@ -32,7 +32,7 @@ const description = "Türkçe şarkıların gitar akorları: topluluğun paylaş
     <p class="muted small rp-empty" id="random-status">Yükleniyor…</p>
     <ul class="rp-list rp-all-holder"><li class="rp-all-item"><button type="button" class="row rp-all" id="random-refresh"><span class="rp-badge rp-badge-all" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 0 1 13.7-5.7L20 8.5M20 4v4.5h-4.5M20 12a8 8 0 0 1-13.7 5.7L4 15.5M4 20v-4.5h4.5"/></svg></span><span class="rp-text"><span class="row-title">Başka şarkılar getir</span></span></button></li></ul>
   </ListSection>
-  <ListSection title="Öne Çıkanlar" color="#f0a800" id="featured" all="/editorun-secimleri/">
+  <ListSection title="Öne Çıkanlar" color="#0a84ff" id="featured" all="/editorun-secimleri/">
     <ul class="rp-list" id="editor-picks">
       {picks.map((p) => (
         <li><a class="row" href={`/repertuar/?id=${p.id}`} title={p.name}><span class="rp-badge rp-badge-list" aria-hidden="true">R</span><span class="rp-text"><span class="row-title">{p.name}</span><span class="row-note"> · {p.count} şarkı</span></span></a></li>

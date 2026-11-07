@@ -871,8 +871,7 @@ details.rp-section[open] > .rp-title .rp-chev { transform: rotate(-135deg); marg
 .page-card > .rp-list, .page-card > .rp-pills { margin-left: calc(-1 * var(--card-pad)); margin-right: calc(-1 * var(--card-pad)); }
 /* Rozetli liste satırında ikinci rozet türleri */
 .rp-badge-key { background: #54779a; width: auto; min-width: 24px; padding: 0 6px; font-family: var(--mono); font-size: 11px; }
-.rp-badge-list { background: #1c1c1e; }
-:root[data-theme="dark"] .rp-badge-list { background: #3a3a3c; }
+.rp-badge-list { background: #0a84ff; }
 .rp-badge-guide { background: #ff9500; }
 /* Akor diyagramları bölüm içinde */
 .rp-body > .chord-grid { padding: 16px var(--card-pad); margin: 0; box-shadow: none; background: transparent; }

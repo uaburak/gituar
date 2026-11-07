@@ -33,7 +33,7 @@ Astro.response.headers.set("Cache-Control", "public, max-age=300, s-maxage=600")
 <Base title={title} description={description} canonicalPath={path} noindex={songs.length < 3} jsonLd={jsonLd}>
   <div class="rp-section rp-static rp-rep-head" id="rep" data-id={rep.id} data-name={rep.name} data-owner={rep.ownerId} data-songs={rep.songIds.join(",")}>
     <div class="rp-title">
-      <span class="rp-icon" style="--c:#0a84ff" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg></span>
+      <span class="rp-icon rp-icon-letter" style="--c:#0a84ff" aria-hidden="true">R</span>
       <h1>{rep.name}</h1>
       <span class="rp-owner">@{rep.ownerUsername}</span>
       <button type="button" class="rp-save" id="rep-save">

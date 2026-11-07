@@ -14,3 +14,8 @@ if (input && list) {
     if (empty) empty.hidden = visible > 0;
   });
 }
+
+// Arama kutusu bölüm başlığının (summary) içinde: tıklamak bölümü açıp kapatmasın
+const filterForm = input?.closest<HTMLElement>(".rp-title-search");
+filterForm?.addEventListener("click", (e) => { e.preventDefault(); input?.focus(); });
+filterForm?.addEventListener("keyup", (e) => { if (e.key === " " || e.key === "Enter") e.preventDefault(); });

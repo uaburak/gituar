@@ -40,9 +40,9 @@ const otherArtists = topArtists(20).filter((a) => a.slug !== artist.slug).slice(
 const easyNotes = Object.fromEntries(easiest.map((s) => [s.id, songChords(s).chords.map((c) => c.name).join(" ")]));
 ---
 <Base noindex={thin} title={artistTitle(artist)} description={artistDescription(artist)} ogType="profile" jsonLd={artistJsonLd(artist, base)}>
-  <ListSection title={`${artist.name} akorları`} heading="h1" icon="music" open>
+  <ListSection title={`${artist.name} akorları`} heading="h1" letter="S" color="#54779a" open>
     {n >= 8 && (
-      <form class="search-inline rp-filter" role="search" onsubmit="return false">
+      <form slot="tools" class="rp-title-search" role="search" onsubmit="return false">
         <Icon name="search" />
         <input type="search" id="song-filter" placeholder={`${artist.name} şarkılarında ara`} autocomplete="off" aria-label="Şarkılarda ara" />
       </form>

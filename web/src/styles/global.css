@@ -828,7 +828,10 @@ details.rp-section[open] > .rp-title .rp-chev { transform: rotate(-135deg); marg
 /* Bütün listeler geniş ekranda iki sütun (önce aşağı, sonra yan sütuna akar); telefonda tek sütun */
 @media (min-width: 728px) { .rp-list { column-count: 2; column-gap: 0; } }
 .rp-list li { break-inside: avoid; min-width: 0; }
-.rp-list li:nth-child(odd), .rp-artists > .row:nth-child(odd), .rp-info > li:nth-child(odd) { background: var(--zebra); }
+/* Gri / beyaz sıra satıra göre: listenin zemininde 55 px'lik şeritler (iki sütunda aynı satır aynı renk);
+   satırlar ve düğmeler şeffaf. Bilgi satırları (yüksekliği değişken) tek tek renklenir. */
+.rp-list:not(.rp-all-holder) { background: repeating-linear-gradient(to bottom, var(--zebra) 0 55px, transparent 55px 110px); }
+.rp-artists > .row:nth-child(odd), .rp-info > li:nth-child(odd) { background: var(--zebra); }
 .rp-list .row, .page-card .list .row { display: flex; align-items: center; gap: 0; min-height: 55px; padding: 0 var(--card-pad); border: 0; color: var(--text); font-size: 13px; }
 .rp-list li:hover, .rp-list .row:hover, .page-card .list .row:hover { background: var(--row-hover); text-decoration: none; }
 .rp-list .row:hover .row-title { color: inherit; }

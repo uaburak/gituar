@@ -1,13 +1,13 @@
 // Herkese açık repertuar sayfası: "Repertuara kaydet" — iOS'taki gibi kullanıcının kendi listelerine kopyalar.
 const head = document.getElementById("rep");
 const btn = document.getElementById("rep-save") as HTMLButtonElement | null;
-const label = btn?.querySelector("span");
 
 function setSaved() {
-  if (!btn || !label) return;
+  if (!btn) return;
   btn.disabled = true;
   btn.classList.add("is-saved");
-  label.textContent = "Kaydedildi";
+  btn.title = "Kaydedildi";
+  btn.setAttribute("aria-label", "Kaydedildi");
   const svg = btn.querySelector("svg");
   if (svg) svg.setAttribute("fill", "currentColor"); // kayıtlı: yer imi dolu
 }
@@ -35,7 +35,7 @@ if (head && btn) {
       setSaved();
     } catch {
       btn.disabled = false;
-      if (label) label.textContent = "Kaydedilemedi, tekrar dene";
+      btn.title = "Kaydedilemedi, tekrar dene";
     }
   });
 }

@@ -818,9 +818,9 @@ details.rp-section[open] > .rp-title .rp-chev { transform: rotate(-135deg); marg
 .rp-icon { width: 24px; height: 24px; flex: none; display: grid; place-items: center; border-radius: 6px; background: var(--c); color: #fff; }
 .rp-icon svg { width: 14px; height: 14px; display: block; }
 .rp-body { border-top: 0; }
-.rp-body > :not(.rp-list):not(.list):not(.rp-info):not(.rp-pills):not(.chord-grid):not(.chord-shapes):not(.rp-more) { margin-left: var(--card-pad); margin-right: var(--card-pad); }
+.rp-body > :not(.rp-list):not(.list):not(.rp-info):not(.rp-pills):not(.chord-grid):not(.chord-shapes):not(.rp-more):not(.rp-all) { margin-left: var(--card-pad); margin-right: var(--card-pad); }
 .rp-body > p:first-child, .rp-body > .rp-info:first-child { margin-top: 16px; }
-.rp-body > :last-child:not(.rp-list):not(.list):not(.rp-info):not(.rp-pills):not(.chord-grid):not(.chord-shapes):not(.rp-more) { margin-bottom: 20px; }
+.rp-body > :last-child:not(.rp-list):not(.list):not(.rp-info):not(.rp-pills):not(.chord-grid):not(.chord-shapes):not(.rp-more):not(.rp-all) { margin-bottom: 20px; }
 
 /* Satırlar (Repertuarım ölçüleri): 55 px, 20 px iç boşluk, sırayla açık gri / beyaz, çizgisiz.
    İki sütunlu listelerde sıra önce aşağı, sonra yan sütuna akar (CSS sütunları). */
@@ -991,4 +991,8 @@ details.rp-section[open] > .rp-title .rp-chev { transform: rotate(-135deg); marg
 .rp-seo p { margin: 0 0 10px; }
 .rp-more-btn { width: 100%; border: 0; background: none; text-align: left; color: var(--accent-text); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
 .rp-more-btn:hover { background: var(--row-hover-soft); }
-.rp-all:hover { background: var(--row-hover-soft); text-decoration: none; }
+/* "Tümü" satırı: liste satırlarıyla aynı görünüm (rozet + metin) */
+.rp-all { display: flex; align-items: center; min-height: 55px; padding: 0 var(--card-pad); color: var(--text); font-size: 13px; }
+.rp-all:hover { background: var(--row-hover); text-decoration: none; }
+.rp-badge-all { background: #8e8e93; }
+.rp-badge-all svg { width: 13px; height: 13px; }

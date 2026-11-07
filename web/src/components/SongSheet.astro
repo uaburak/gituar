@@ -29,9 +29,9 @@ const keySuffix = (song.originalKey ?? "").trim().slice(originalRoot.length);
   </div>
   <div class="rp-diagrams" id="diagram-panel" hidden><slot name="diagrams" /></div>
   <div class="rp-font" aria-label="Yazı boyutu">
-    <button type="button" id="font-dec" aria-label="Yazıyı küçült">-A</button>
     <button type="button" id="font-inc" aria-label="Yazıyı büyüt">+A</button>
-    <span class="visually-hidden">Yazı boyutu <span id="font-val">15</span></span>
+    <button type="button" id="font-dec" aria-label="Yazıyı küçült">-A</button>
+    <span class="visually-hidden">Yazı boyutu <span id="font-val">13</span></span>
   </div>
   <div class="sheet is-original" id="sheet">
     <pre class="chords" id="chords" set:html={sheetHtml(song.content)} />

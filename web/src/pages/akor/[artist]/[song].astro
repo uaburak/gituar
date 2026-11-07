@@ -37,7 +37,6 @@ const diagrams = analysis.chords.slice(0, 12).map((c) => ({ ...c, shape: chordSh
     <meta property="music:musician" content={artistUrl} />
   </Fragment>
   <div class="rp-head">
-    <nav class="crumbs" aria-label="Sayfa yolu"><a href="/">Ana sayfa</a><span>/</span><a href="/sanatcilar/">Sanatçılar</a><span>/</span><a href={artistPath(song.artistSlug)}>{song.artist}</a><span>/</span>{song.songName}</nav>
     <h1><a href={artistPath(song.artistSlug)}>{song.artist}</a> - {song.songName} - Akor</h1>
   </div>
   <SongSheet song={song}>
@@ -48,36 +47,36 @@ const diagrams = analysis.chords.slice(0, 12).map((c) => ({ ...c, shape: chordSh
       <p class="muted small rp-diagram-note">Diyagramlar orijinal tondaki akorları gösterir. Kâğıttaki bir akorun üstüne gelince de diyagramı açılır. <a href="/akorlar/">Bütün akorlar</a></p>
     </Fragment>
     <Fragment slot="after">
-      <ListSection title="Rastgele" color="#af52de" action="btn-random" />
-      <ListSection title={`${song.artist} akorları`} icon="none" href={artistPath(song.artistSlug)} note={`${artist?.songs.length ?? 0} şarkı`} />
+      <ListSection title="Rastgele" color="#c077db" action="btn-random" />
+      <ListSection title={`${song.artist} akorları`} color="#ffcc00" href={artistPath(song.artistSlug)} />
       {suggested.length > 0 && (
         <ListSection title="Önerilen akorlar" icon="none" open>
           <SongList songs={suggested} />
         </ListSection>
       )}
       {keyHref && <ListSection title={`${song.originalKey} tonundaki şarkılar`} icon="none" href={keyHref} />}
-      <ListSection title="Yeni Akorlar" icon="none">
+      <ListSection title="Yeni Akorlar" color="#ff9500">
         <SongList songs={newest} />
       </ListSection>
       <ListSection title="Bilgiler" icon="none">
-        <dl class="rp-info">
-          <div><dt>Sanatçı</dt><dd><a href={artistPath(song.artistSlug)}>{song.artist}</a></dd></div>
-          {song.originalKey && <div><dt>Orijinal ton</dt><dd>{keyHref ? <a href={keyHref}>{song.originalKey}</a> : song.originalKey}</dd></div>}
-          {analysis.chords.length > 0 && <div><dt>Zorluk</dt><dd><span class={`row-level level-${analysis.level}`}>{LEVEL_LABEL[analysis.level]}</span></dd></div>}
-          {chords.length > 0 && <div><dt>Akorlar</dt><dd>{chords.join(", ")}</dd></div>}
-          {analysis.capo && <div><dt>Kapo ile kolay</dt><dd>{analysis.capo.fret}. perde · {analysis.capo.shapes.join(", ")}</dd></div>}
-        </dl>
-        <p class="song-intro">
-          {song.songName}, <a href={artistPath(song.artistSlug)}>{song.artist}</a> tarafından seslendirilen şarkının gitar akorları.
-          {song.originalKey && chords.length > 0 && <>Orijinal ton {song.originalKey}; kullanılan akorlar: {chords.join(", ")}.</>}
-          {song.originalKey && chords.length === 0 && <>Orijinal ton {song.originalKey}.</>}
-          {!song.originalKey && chords.length > 0 && <>Kullanılan akorlar: {chords.join(", ")}.</>}
-          {analysis.level === "kolay" && <>Barre gerektirmez, yalnızca açık akorlarla çalınır. </>}
-          Tonu değiştirebilir, kapo ekleyebilir, otomatik kaydırma ile çalabilirsin.
-        </p>
+        <ul class="rp-info">
+          <li><span>Sanatçı: </span><a href={artistPath(song.artistSlug)}>{song.artist}</a></li>
+          {song.originalKey && <li><span>Orijinal ton: </span>{keyHref ? <a href={keyHref}>{song.originalKey}</a> : <b>{song.originalKey}</b>}</li>}
+          {analysis.chords.length > 0 && <li><span>Zorluk: </span><b>{LEVEL_LABEL[analysis.level]}</b></li>}
+          {chords.length > 0 && <li><span>Akorlar: </span><b>{chords.join(", ")}</b></li>}
+          {analysis.capo && <li><span>Kapo ile kolay: </span><b>{analysis.capo.fret}. perde · {analysis.capo.shapes.join(", ")}</b></li>}
+          <li class="song-intro">
+            {song.songName}, {song.artist} tarafından seslendirilen şarkının gitar akorları.
+            {song.originalKey && chords.length > 0 && <>Orijinal ton {song.originalKey}; kullanılan akorlar: {chords.join(", ")}.</>}
+            {song.originalKey && chords.length === 0 && <>Orijinal ton {song.originalKey}.</>}
+            {!song.originalKey && chords.length > 0 && <>Kullanılan akorlar: {chords.join(", ")}.</>}
+            {analysis.level === "kolay" && <>Barre gerektirmez, yalnızca açık akorlarla çalınır. </>}
+            Tonu değiştirebilir, kapo ekleyebilir, otomatik kaydırma ile çalabilirsin.
+          </li>
+        </ul>
       </ListSection>
-      <ListSection title="Bu içerik için hata bildir" icon="none" action="report-open-2" />
-      <ListSection title="gituar.com" icon="none" href="/" />
+      <ListSection title="Bu içerik için hata bildir" icon="quote" color="#c077db" action="report-open-2" />
+      <ListSection title="gituar.com" icon="heart" color="#ea494d" href="/" />
     </Fragment>
   </SongSheet>
   <script src="../../../scripts/random.ts"></script>

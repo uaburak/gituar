@@ -105,8 +105,8 @@ const close = size === "sticky";
       document.head.appendChild(s);
       const wide = () => innerWidth >= 1000, mid = () => innerWidth >= 760;
       const kinds = {
-        leaderboard: { unit: "/6355419/Travel/Asia", sizes: () => wide() ? [[970, 250], [970, 90], [728, 90]] : mid() ? [[728, 90]] : [[320, 100], [320, 50], [300, 250]] },
-        incontent: { unit: "/6355419/Travel/Europe/France", sizes: () => wide() ? [[970, 250], [970, 90], [728, 90], [300, 250]] : [[336, 280], [300, 250]] },
+        leaderboard: { unit: "/6355419/Travel/Asia", sizes: () => mid() ? [[970, 250], [970, 90], [728, 90]] : [[320, 100], [320, 50], [300, 250]] },
+        incontent: { unit: "/6355419/Travel/Europe/France", sizes: () => mid() ? [[970, 250], [970, 90], [728, 90]] : [[336, 280], [300, 250]] },
         inline: { unit: "/6355419/Travel/Europe/Germany", sizes: () => mid() ? [[728, 90], [300, 250]] : [[300, 250], [320, 100]] },
         rect: { unit: "/6355419/Travel/Europe/Germany", sizes: () => [[300, 250]] },
         side: { unit: "/6355419/Travel/Europe", sizes: () => [[160, 600]] },
@@ -124,10 +124,23 @@ const close = size === "sticky";
         // Sayfa geçişinde tam ekran reklam (interstitial): site içi bir bağlantıya tıklanınca açılır
         const inter = googletag.defineOutOfPageSlot("/6355419/Travel/Europe/France/Paris", googletag.enums.OutOfPageFormat.INTERSTITIAL);
         if (inter) inter.addService(googletag.pubads());
+        // Geniş yerlerde (üst, kâğıt altı, liste içi) gelen reklam yerin genişliğine büyütülür:
+        // canlıda AdSense'in duyarlı birimi alanı enine doldurur; test ağı yalnızca sabit boyut verdiği için burada ölçeklenir.
+        const stretch = (el) => {
+          const [w, h] = (el.dataset.adSize || "").split("x").map(Number);
+          if (!w || !["leaderboard", "incontent", "inline"].includes(el.dataset.gptKind)) return;
+          const box = el.closest(".ad-slot");
+          const k = box.clientWidth / w;
+          el.style.width = w + "px"; el.style.height = h + "px";
+          el.style.transform = `scale(${k})`;
+          box.style.height = h * k + "px";
+        };
         googletag.pubads().addEventListener("slotRenderEnded", (e) => {
-          const box = document.getElementById(e.slot.getSlotElementId())?.closest(".ad-slot");
-          box?.classList.toggle("ad-test-empty", e.isEmpty);
+          const el = document.getElementById(e.slot.getSlotElementId());
+          el?.closest(".ad-slot")?.classList.toggle("ad-test-empty", e.isEmpty);
+          if (el && !e.isEmpty && e.size) { el.dataset.adSize = e.size.join("x"); stretch(el); }
         });
+        addEventListener("resize", () => document.querySelectorAll(".gpt-test[data-ad-size]").forEach(stretch));
         googletag.pubads().enableSingleRequest();
         googletag.enableServices();
         document.querySelectorAll(".gpt-test[id]").forEach((el) => googletag.display(el.id));

@@ -54,7 +54,7 @@ function init(root: HTMLElement) {
   try { saved = JSON.parse(localStorage.getItem(prefKey) ?? "null"); } catch {}
   let selected = saved?.key ?? originalRoot;
   let capo = saved?.capo ?? 0;
-  let fontSize = Number(localStorage.getItem("gituar-font") ?? 15) || 15;
+  let fontSize = Number(localStorage.getItem("gituar-font") ?? 13) || 13;
 
   function highlight(text: string): string {
     let html = "";

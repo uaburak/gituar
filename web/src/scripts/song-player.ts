@@ -2,7 +2,7 @@
 // Ses zamanlaması Web Audio saatine göre önceden planlanır (kaymaz); çalan akor ve vuruş ekranda işaretlenir.
 // Ritim/arpej/tempo şarkıda yoksa yaygın bir desen kullanılır. Ton ve kapo hesaba katılır.
 import { simplifyChord, chordShapes } from "../lib/chord-theory.ts";
-import { parseRhythm, parseArpeggio, beatsPerBar, tempoLabel, DEFAULT_TEMPO, type Stroke, type Pluck } from "../lib/rhythm.ts";
+import { parseRhythm, parseArpeggio, beatsPerBar, tempoLabel, chordTimeline, DEFAULT_TEMPO, type Stroke, type Pluck, type TimedChord } from "../lib/rhythm.ts";
 
 type Audio = typeof import("../lib/chord-audio.ts");
 type Prepared = import("../lib/chord-audio.ts").PreparedChord;
@@ -23,7 +23,7 @@ if (song && pre && playBtn && patternEl && tempoInput && tempoVal) {
   const beats = beatsPerBar(d.meter);
   let mode: "rhythm" | "arpeggio" = !d.rhythm && d.arpeggio ? "arpeggio" : "rhythm";
   let tempo = Number(d.tempo) || DEFAULT_TEMPO;
-  if (!d.rhythm && !d.arpeggio && note) note.textContent = "Bu şarkıya ritim eklenmemiş; en yaygın ritimle çalınır. Her akor bir ölçü çalınır.";
+  if (!d.rhythm && !d.arpeggio && note) note.textContent = "Bu şarkıya ritim eklenmemiş; en yaygın ritimle çalınır. Akor süreleri kâğıttaki yerlerinden tahmin edilir.";
 
   const slots = () => (mode === "rhythm" ? rhythm : arpeggio);
   const label = (x: Stroke | Pluck) => (mode === "rhythm" ? (x === "down" ? "↓" : x === "up" ? "↑" : x === "mute" ? "K" : "·") : x === "bass" ? "B" : x === null ? "·" : String(6 - (x as number)));
@@ -46,7 +46,9 @@ if (song && pre && playBtn && patternEl && tempoInput && tempoVal) {
   const prepared = new Map<string, Promise<Prepared | null>>();
   let timer = 0;
   let playing = false;
-  let nextTime = 0, bar = 0, slot = 0;
+  // Zaman çizelgesi: her akorun başladığı vuruş ve süresi (kâğıttaki yerinden tahmin). Desen akor değişse de kesintisiz sürer.
+  let timeline: TimedChord[] = [];
+  let nextTime = 0, step = 0;
   let current: HTMLElement | null = null;
 
   const capo = () => Number(document.getElementById("capo-val")?.textContent ?? 0) || 0;
@@ -82,27 +84,30 @@ if (song && pre && playBtn && patternEl && tempoInput && tempoVal) {
 
   function schedule() {
     const ac = audioMod!.audio();
-    const list = chordEls();
+    const pattern = slots();
+    const per = pattern.length / beats; // vuruş başına desen adımı
+    const totalSteps = Math.round((timeline.at(-1)!.start + timeline.at(-1)!.beats) * per);
     while (playing && nextTime < ac.currentTime + 0.15) {
-      if (bar >= list.length) { stop(); return; }
-      const el = list[bar];
-      const chord = ready.get(`${el.textContent ?? ""}|${capo()}`);
-      if (chord === undefined) void prep(el.textContent ?? "").then((p) => ready.set(`${el.textContent ?? ""}|${capo()}`, p)); // ton/kapo değiştiyse sonraki ölçüye hazır
-      const pattern = slots();
-      const x = pattern[slot];
-      const onBeat = (slot * beats) % pattern.length === 0;
+      if (step >= totalSteps) { stop(); return; }
+      const beatPos = step / per;
+      const t = timeline.find((x) => beatPos >= x.start && beatPos < x.start + x.beats) ?? timeline.at(-1)!;
+      const el = t.el;
+      const key = `${el.textContent ?? ""}|${capo()}`;
+      const chord = ready.get(key);
+      if (chord === undefined) void prep(el.textContent ?? "").then((p) => ready.set(key, p)); // ton/kapo değiştiyse sonraki adıma hazır
+      const i = step % pattern.length;
+      const x = pattern[i];
+      const onBeat = Number.isInteger(beatPos);
       if (chord && x !== null && x !== undefined) {
         if (mode === "rhythm") {
           if (x === "mute") audioMod!.muteAt(chord, nextTime);
           else audioMod!.strumAt(chord, nextTime, x as "down" | "up", onBeat ? 0.55 : 0.42);
-        }
-        else audioMod!.pluckAt(chord, x as number | "bass", nextTime, onBeat ? 0.6 : 0.48);
+        } else audioMod!.pluckAt(chord, x as number | "bass", nextTime, onBeat ? 0.6 : 0.48);
       }
-      const at = nextTime, s = slot;
-      setTimeout(() => { if (playing) mark(el, s); }, Math.max(0, (at - ac.currentTime) * 1000));
-      nextTime += (beats * 60) / tempo / pattern.length;
-      slot++;
-      if (slot >= pattern.length) { slot = 0; bar++; }
+      const at = nextTime;
+      setTimeout(() => { if (playing) mark(el, i); }, Math.max(0, (at - ac.currentTime) * 1000));
+      nextTime += 60 / tempo / per;
+      step++;
     }
   }
 
@@ -113,11 +118,11 @@ if (song && pre && playBtn && patternEl && tempoInput && tempoVal) {
     const ac = audioMod.audio();
     await prepAll();
     playing = true;
+    timeline = chordTimeline(pre!, beats);
     // Ekranda görünen akordan başla (kullanıcı kâğıdın ortasındaysa oradan devam)
-    const list = chordEls();
-    const firstVisible = list.findIndex((el) => el.getBoundingClientRect().top > 80);
-    bar = firstVisible > 0 && list[firstVisible].getBoundingClientRect().top < innerHeight ? firstVisible : 0;
-    slot = 0;
+    const firstVisible = timeline.findIndex((x) => x.el.getBoundingClientRect().top > 80);
+    const from = firstVisible > 0 && timeline[firstVisible].el.getBoundingClientRect().top < innerHeight ? timeline[firstVisible].start : 0;
+    step = Math.round(from * (slots().length / beats));
     nextTime = ac.currentTime + 0.12;
     playBtn!.disabled = false;
     playBtn!.setAttribute("aria-pressed", "true");

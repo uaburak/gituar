@@ -4,7 +4,8 @@ import { esc } from "../lib/search-client.ts";
 const grid = document.getElementById("editor-picks");
 const status = document.getElementById("editor-status");
 const meta = document.getElementById("editor-meta");
-editorPicks().then((picks) => {
+// Liste sunucuda dolduysa (ana sayfa, editörün seçimleri) tarayıcıda yeniden yüklenmez.
+if (grid && !grid.querySelector("li:not(.rp-all-item)")) editorPicks().then((picks) => {
   if (!grid) return;
   grid.innerHTML = picks.map((p) => pickCardHtml(p, esc)).join("");
   if (meta) meta.textContent = "Gituar ekibinin hazırladığı repertuarlar.";

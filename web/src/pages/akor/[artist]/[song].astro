@@ -52,7 +52,7 @@ const diagrams = analysis.chords.slice(0, 12).map((c) => ({ ...c, shape: chordSh
       <ListSection title="Rastgele" color="#c077db" id="random">
         <ul class="rp-list" id="random-list" data-total={catalog().songs.length}></ul>
         <p class="muted small rp-empty" id="random-status">Yükleniyor…</p>
-        <button type="button" class="rp-more rp-more-btn" id="random-refresh">Başka şarkılar getir</button>
+        <ul class="rp-list rp-all-holder"><li class="rp-all-item"><button type="button" class="row rp-all" id="random-refresh"><span class="rp-badge rp-badge-all" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 0 1 13.7-5.7L20 8.5M20 4v4.5h-4.5M20 12a8 8 0 0 1-13.7 5.7L4 15.5M4 20v-4.5h4.5"/></svg></span><span class="rp-text"><span class="row-title">Başka şarkılar getir</span></span></button></li></ul>
       </ListSection>
       <ListSection title={`${song.artist} akorları`} icon="music" color="#f0a800" href={artistPath(song.artistSlug)} />
       {suggested.length > 0 && (

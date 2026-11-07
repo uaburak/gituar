@@ -1,4 +1,4 @@
-// Rastgele bölümü: açılınca kataloğun rastgele yerlerinden 20 şarkı getirir (iki sütun), "Başka şarkılar getir" yeniler.
+// Rastgele bölümü: açılınca kataloğun rastgele yerlerinden 19 şarkı getirir (iki sütun), "Başka şarkılar getir" yeniler.
 // API'de rastgele sıralama yok; alfabetik listeden rastgele iki yerden 100'er şarkı alınıp içlerinden 20'si seçilir.
 import { API_URL } from "../lib/site.ts";
 import { toEntry, rowHtml, type SongEntry } from "../lib/search-client.ts";
@@ -7,7 +7,7 @@ const section = document.getElementById("random") as HTMLDetailsElement | null;
 const list = document.getElementById("random-list");
 const status = document.getElementById("random-status");
 const refresh = document.getElementById("random-refresh");
-const COUNT = 20;
+const COUNT = 19; // 20. hücre "Başka şarkılar getir"
 const CHUNK = 100;
 
 async function chunk(offset: number): Promise<SongEntry[]> {
@@ -33,7 +33,8 @@ async function load() {
     const pool = (await Promise.all(offsets.map(chunk))).flat();
     const seen = new Set<string>();
     const picks = shuffle(pool.filter((e) => !seen.has(e.i) && seen.add(e.i))).slice(0, COUNT);
-    list.innerHTML = picks.map(rowHtml).join("");
+    list.querySelectorAll("li:not(.rp-all-item)").forEach((li) => li.remove());
+    list.insertAdjacentHTML("afterbegin", picks.map(rowHtml).join(""));
     if (status) status.hidden = picks.length > 0;
     if (status && !picks.length) status.textContent = "Şu an şarkı getirilemedi.";
   } catch {
@@ -43,5 +44,5 @@ async function load() {
   }
 }
 
-section?.addEventListener("toggle", () => { if (section.open && !list?.children.length) load(); });
+section?.addEventListener("toggle", () => { if (section.open && !list?.querySelector("li:not(.rp-all-item)")) load(); });
 refresh?.addEventListener("click", load);

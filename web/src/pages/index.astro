@@ -47,7 +47,11 @@ const description = "Türkçe şarkıların gitar akorları: topluluğun paylaş
     <ul class="rp-list" id="recent-list"></ul>
     <p class="muted small" id="recent-empty">Açtığın şarkılar burada listelenir. Bu liste yalnızca bu tarayıcıda tutulur.</p>
   </ListSection>
-  <ListSection title="Repertuarlarım" icon="star" color="#f0a800" href="/repertuarlarim/" />
+  <ListSection title="Repertuarlarım" icon="star" color="#f0a800" id="my-reps">
+    <ul class="rp-list" id="my-reps-list"></ul>
+    <p class="muted small rp-empty" id="my-reps-status">Yükleniyor…</p>
+    <a class="rp-more" href="/repertuarlarim/">Repertuarlarını yönet ›</a>
+  </ListSection>
   <ListSection title="Popüler Sanatçılar" color="#499c9f">
     <ul class="rp-list">{artists.map((a) => <ArtistRow artist={a} />)}</ul>
   </ListSection>
@@ -68,5 +72,6 @@ const description = "Türkçe şarkıların gitar akorları: topluluğun paylaş
   </section>
   <script src="../scripts/random.ts"></script>
   <script src="../scripts/recent.ts"></script>
+  <script src="../scripts/home-reps.ts"></script>
   {picks.length === 0 && <script src="../scripts/editor-picks.ts"></script>}
 </Base>

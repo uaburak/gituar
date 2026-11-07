@@ -1,6 +1,7 @@
 ---
 // Herkese açık repertuar: /repertuar/{kullanıcı adı}/{repertuar slug'ı}/ — sunucuda şarkılarıyla üretilir.
 import ListSection from "../../../components/ListSection.astro";
+import SeoText from "../../../components/SeoText.astro";
 import Base from "../../../layouts/Base.astro";
 import SongList from "../../../components/SongList.astro";
 import { catalog } from "../../../lib/catalog.ts";
@@ -22,6 +23,12 @@ const jsonLd = [
   { "@type": "ItemList", name: rep.name, url: base + path, itemListElement: songs.slice(0, 50).map((s, i) => ({ "@type": "ListItem", position: i + 1, name: `${s.artist} – ${s.songName}`, url: base + songPath(s) })) },
   breadcrumbJsonLd(base, [{ name: "Ana sayfa", path: "/" }, { name: "Editörün seçimleri", path: "/editorun-secimleri/" }, { name: rep.name }]),
 ];
+// Tanıtım metni: repertuardaki sanatçılar ve en sık tonlar
+const artistNames = [...new Set(songs.map((s) => s.artist))];
+const keyCount = new Map<string, number>();
+for (const s of songs) if (s.originalKey) keyCount.set(s.originalKey, (keyCount.get(s.originalKey) ?? 0) + 1);
+const topKeys = [...keyCount.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k]) => k);
+const listText = (xs: string[]) => (xs.length > 1 ? `${xs.slice(0, -1).join(", ")} ve ${xs[xs.length - 1]}` : xs[0] ?? "");
 Astro.response.headers.set("Cache-Control", "public, max-age=300, s-maxage=600");
 ---
 <Base title={title} description={description} canonicalPath={path} noindex={songs.length < 3} jsonLd={jsonLd}>
@@ -29,6 +36,11 @@ Astro.response.headers.set("Cache-Control", "public, max-age=300, s-maxage=600")
     <SongList songs={songs} />
     {songs.length === 0 && <p class="muted small rp-empty">Bu repertuarda henüz şarkı yok.</p>}
   </ListSection>
-  <ListSection title="Öne Çıkanlar" color="#0a84ff" href="/editorun-secimleri/" />
-  <ListSection title="Repertuarlarım" icon="star" color="#f0a800" href="/repertuarlarim/" />
+  {songs.length > 0 && (
+    <SeoText title={`${rep.name} gitar akorları`}>
+      <p>"{rep.name}", @{rep.ownerUsername} tarafından hazırlanan bir Gituar repertuarı; içinde {songs.length} şarkının gitar akorları var. {artistNames.length > 5 ? `Listedeki sanatçılardan bazıları: ${listText(artistNames.slice(0, 5))}.` : `Listedeki ${artistNames.length > 1 ? "sanatçılar" : "sanatçı"}: ${listText(artistNames)}.`}</p>
+      {topKeys.length > 0 && <p>Repertuarda en sık geçen tonlar {listText(topKeys)}. Şarkıya tıklayınca akorları orijinal tonuyla açılır; tonu kendi sesine göre değiştirebilir, kapo ekleyebilir ve sayfayı otomatik kaydırarak çalabilirsin.</p>}
+      <p>Sen de çaldığın şarkıları kendi repertuarında toplayabilirsin: şarkı sayfasındaki "Repertuara Ekle" ile listeni oluştur, iPhone'daki Gituar uygulamasıyla her yerde aynı listeye ulaş.</p>
+    </SeoText>
+  )}
 </Base>

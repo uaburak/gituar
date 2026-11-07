@@ -29,3 +29,7 @@ shared/catalog/*.json
 .claude/
 web/.vercel/
 .vercel/
+
+# Toplu şarkı yükleme dosyaları (yalnızca yerelde)
+import/*
+!import/ornek.json

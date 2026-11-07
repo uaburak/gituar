@@ -1,0 +1,51 @@
+[
+  {
+    "artist": "Deniz Aksoy",
+    "title": "Eski Bahçe",
+    "key": "Am",
+    "rhythm": "↓ · ↓ ↑ · ↑ ↓ ↑",
+    "tempo": 92,
+    "meter": "4/4",
+    "content": "Giriş\nAm  G  F  E\n\nAm               G\nSabah oldu, şehir yine uyanmadı\nF                E\nBir bavul, bir şarkı, bir de sen\nAm               G\nPencereden düşen ışık seni anlatır\nF          E\nYollar uzar, gece kısalır\n\nNakarat\nC              G\nGel desen gelirim, kal desen kalırım\nAm             F\nBir sözüne bakar bu deli yürek\nC              G\nGel desen gelirim, kal desen kalırım\nF       E      Am\nBu şarkı sana gelir her gece\n\nNakarat (2x)\n\nBitiş\nAm  G  F  E  Am"
+  },
+  {
+    "artist": "Mavi Rota",
+    "title": "Sahil Yolu",
+    "key": "",
+    "rhythm": "A A YYAY",
+    "tempo": 120,
+    "content": "Giriş\nG  D/F#  Em  C\n\nG           D/F#\nRüzgâr eser kıyıdan\nEm          C\nBir şarkı kalır bizden\n\nNakarat\nC         D        G\nSahil yolu, sahil yolu\nC         D        Em\nSenden kalan son yolum\n\nSolo\nG  D/F#  Em  C  (x2)\n\nBitiş\nG  D  G"
+  },
+  {
+    "artist": "Selin Karaca",
+    "title": "Uzak Masal",
+    "arpeggio": "B 3 2 1 2 3",
+    "tempo": 72,
+    "meter": "3/4",
+    "content": "Am7          Dm7\nUzak bir masal anlatır gece\nG7             Cmaj7\nYıldızlar sayar adını tek tek\nFmaj7          Bdim\nBir kapı aralık, bir ışık yanık\nE7sus4    E7     Am\nSonunda yine sen varsın"
+  },
+  {
+    "artist": "Kuzey Yolcuları & Ece Yaman",
+    "title": "Bir Gün Daha",
+    "key": "F#m",
+    "rhythm": "↓ · ↓ ↑ · ↑ ↓ ↑",
+    "arpeggio": "B 3 2 3 1 3 2 3",
+    "tempo": 84,
+    "content": "Giriş\nF#m  D  A  E\n\nF#m              D\nBir gün daha geçti sensiz\nA                E\nSaymayı bıraktım çoktan\n\nNakarat\nBm             F#m\nDönsen de olur, dönmesen de\nC#7            F#m\nBen bu şarkıyı her gece söylerim"
+  },
+  {
+    "artist": "Taşplak",
+    "title": "Gece Treni (feat. Nehir Akın)",
+    "key": "Bb",
+    "rhythm": "↓ ↓ ↑ ↓ ↑ ↓",
+    "tempo": 100,
+    "meter": "6/8",
+    "content": "Bb          F\nSon tren kalkar, biri kalır\nGm          Eb\nPerona düşer bir ince sızı\nBb          F\nBekle beni, bekle beni\nEb     F     Bb\nSon vapura yetişirim belki"
+  },
+  {
+    "artist": "Ilgaz Ekin",
+    "title": "Kırık Saat'in Şarkısı",
+    "key": "C#m",
+    "content": "Giriş\nC#m  A  E  B\n\nC#m            A\nSaat durdu, zaman bizden yana değil\nE              B\nBir mektup yazdım, gönderemedim\n\nAra (sözsüz)\nC#m  A  E  B\n\nC#m            A\nKapı aralık, umut içeride\nE        B        C#m\nBen hâlâ aynı yerde bekliyorum"
+  }
+]

@@ -1,6 +1,5 @@
 ---
 // Herkese açık repertuar: /repertuar/{kullanıcı adı}/{repertuar slug'ı}/ — sunucuda şarkılarıyla üretilir.
-import ListSection from "../../../components/ListSection.astro";
 import SeoText from "../../../components/SeoText.astro";
 import Base from "../../../layouts/Base.astro";
 import SongList from "../../../components/SongList.astro";
@@ -32,10 +31,20 @@ const listText = (xs: string[]) => (xs.length > 1 ? `${xs.slice(0, -1).join(", "
 Astro.response.headers.set("Cache-Control", "public, max-age=300, s-maxage=600");
 ---
 <Base title={title} description={description} canonicalPath={path} noindex={songs.length < 3} jsonLd={jsonLd}>
-  <ListSection title={rep.name} heading="h1" icon="bookmark" color="#0a84ff" open note={`@${rep.ownerUsername} · ${songs.length} şarkı`}>
-    <SongList songs={songs} />
-    {songs.length === 0 && <p class="muted small rp-empty">Bu repertuarda henüz şarkı yok.</p>}
-  </ListSection>
+  <div class="rp-section rp-static rp-rep-head" id="rep" data-id={rep.id} data-name={rep.name} data-owner={rep.ownerId} data-songs={rep.songIds.join(",")}>
+    <div class="rp-title">
+      <span class="rp-icon" style="--c:#0a84ff" aria-hidden="true"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M6 3h12a1 1 0 0 1 1 1v17l-7-4.5L5 21V4a1 1 0 0 1 1-1Z"/></svg></span>
+      <h1>{rep.name}</h1>
+      <span class="rp-owner">@{rep.ownerUsername}</span>
+      <button type="button" class="rp-save" id="rep-save">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2.5"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2M14 11v6M11 14h6"/></svg>
+        <span>Repertuara kaydet</span>
+      </button>
+    </div>
+  </div>
+  <SongList songs={songs} />
+  {songs.length === 0 && <p class="muted small rp-empty">Bu repertuarda henüz şarkı yok.</p>}
+  <script src="../../../scripts/repertoire-save.ts"></script>
   {songs.length > 0 && (
     <SeoText title={`${rep.name} gitar akorları`}>
       <p>"{rep.name}", @{rep.ownerUsername} tarafından hazırlanan bir Gituar repertuarı; içinde {songs.length} şarkının gitar akorları var. {artistNames.length > 5 ? `Listedeki sanatçılardan bazıları: ${listText(artistNames.slice(0, 5))}.` : `Listedeki ${artistNames.length > 1 ? "sanatçılar" : "sanatçı"}: ${listText(artistNames)}.`}</p>

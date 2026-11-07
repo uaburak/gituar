@@ -1,7 +1,7 @@
 // Sunucu tarafı: herkese açık repertuarı adresinden bulur (Firestore REST; public-repertoires herkese açık okunur).
 import { FIREBASE_CONFIG } from "./site.ts";
 
-export interface PublicRepertoire { id: string; name: string; songIds: string[]; ownerUsername: string; slug: string; createdAt: string }
+export interface PublicRepertoire { id: string; name: string; songIds: string[]; ownerId: string; ownerUsername: string; slug: string; createdAt: string }
 
 type Fields = Record<string, { stringValue?: string; timestampValue?: string; arrayValue?: { values?: { stringValue?: string }[] } }>;
 
@@ -29,6 +29,7 @@ export async function findPublicRepertoire(username: string, slug: string): Prom
       id: doc.name.split("/").pop()!,
       name: f.name?.stringValue ?? "",
       songIds: (f.songIds?.arrayValue?.values ?? []).map((v) => v.stringValue ?? "").filter(Boolean),
+      ownerId: f.ownerId?.stringValue ?? "",
       ownerUsername: f.ownerUsername?.stringValue ?? username,
       slug: f.slug?.stringValue ?? slug,
       createdAt: f.createdAt?.timestampValue ?? "",

@@ -166,6 +166,28 @@ export async function addSongToRepertoire(uid: string, rep: Pick<RepertoireDoc, 
   await f.fsMod.updateDoc(repRef(f, uid, rep), { songIds: f.fsMod.arrayUnion(songId) });
 }
 
+/**
+ * Herkese açık bir repertuarı kullanıcının kendi (gizli) repertuarlarına kopyalar — iOS'taki "Repertuarlarıma kaydet"
+ * ile aynı: kopya `sourceId` ile kaynağına bağlanır, isPublic: false.
+ */
+export async function copyRepertoire(uid: string, source: { id: string; name: string; songIds: string[] }): Promise<string> {
+  const f = await fb();
+  if (!f) throw new Error("Firebase hazır değil");
+  const ref = f.fsMod.doc(f.fsMod.collection(f.db, "users", uid, "repertoires"));
+  await f.fsMod.setDoc(ref, {
+    name: source.name, songIds: source.songIds, ownerId: uid, createdAt: f.fsMod.Timestamp.now(), isPublic: false, sourceId: source.id,
+  });
+  return ref.id;
+}
+
+/** Bu herkese açık repertuar kullanıcının listelerine daha önce kaydedildi mi? (kopyanın sourceId'si) */
+export async function isRepertoireCopied(uid: string, sourceId: string): Promise<boolean> {
+  const f = await fb();
+  if (!f) return false;
+  const snap = await f.fsMod.getDocs(f.fsMod.query(f.fsMod.collection(f.db, "users", uid, "repertoires"), f.fsMod.where("sourceId", "==", sourceId)));
+  return !snap.empty;
+}
+
 /** Önce herkese açık, sonra (giriş yapılmışsa) kullanıcının özel repertuarına bakar. */
 export async function getRepertoire(id: string, uid?: string | null): Promise<RepertoireDoc | null> {
   const f = await fb();

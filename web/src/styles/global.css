@@ -1003,3 +1003,9 @@ button.rp-all { width: 100%; border: 0; background: none; font: inherit; text-al
 .rp-icon-letter { font-size: 12px; font-weight: 700; line-height: 1; }
 .page-card .rp-flush { margin-left: calc(-1 * var(--card-pad)); margin-right: calc(-1 * var(--card-pad)); }
 .rp-article { padding-top: 20px; }
+/* İki sütunlu bilgi satırları (sanatçı sayfası): soldan sağa dizilir, gri / beyaz sıra satıra göre */
+@media (min-width: 728px) {
+  .rp-info-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .rp-info-2 > li:nth-child(odd) { background: none; }
+  .rp-info-2 > li:nth-child(4n + 1), .rp-info-2 > li:nth-child(4n + 2) { background: var(--zebra); }
+}

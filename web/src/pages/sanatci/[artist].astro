@@ -59,7 +59,7 @@ const easyNotes = Object.fromEntries(easiest.map((s) => [s.id, songChords(s).cho
   )}
   {n >= 3 && (
     <ListSection title="Bilgiler" icon="none">
-      <ul class="rp-info">
+      <ul class="rp-info rp-info-2">
         <li><span>Şarkı sayısı: </span><b>{n}</b></li>
         {topKey && <li><span>En sık ton: </span><b>{topKey[0]}</b></li>}
         {topChords.length > 0 && <li><span>En çok kullanılan akorlar: </span>{topChords.slice(0, 4).map(([name, c], i) => { const href = chordHref(c.root, c.quality); return <>{i > 0 && ", "}{href ? <a href={href}>{name}</a> : <b>{name}</b>}</>; })}</li>}

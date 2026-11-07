@@ -25,7 +25,8 @@ let inflight: Promise<void> | null = null;
 async function fetchAll(): Promise<ApiSong[]> {
   const out: ApiSong[] = [];
   for (let offset = 0; ; offset += 1000) {
-    const res = await fetch(`${API_URL}/v1/export?limit=1000&offset=${offset}`);
+    // Cloudflare'in yerel önbelleğinde 5 dk: yeni başlayan Worker örnekleri listeyi API yerine önbellekten alır
+    const res = await fetch(`${API_URL}/v1/export?limit=1000&offset=${offset}`, { cf: { cacheTtl: 300, cacheEverything: true } } as RequestInit);
     if (!res.ok) throw new Error(`Şarkı API'si yanıt vermedi (${res.status})`);
     const page = (await res.json()) as { songs: Record<string, unknown>[] };
     for (const s of page.songs) {
@@ -66,8 +67,12 @@ function build(songs: ApiSong[]): Catalog {
   };
 }
 
-/** Bellek kopyası yoksa ya da eskidiyse API'den yeniler. API hata verirse eski kopya kullanılmaya devam eder. */
-export async function loadCatalog(): Promise<void> {
+/**
+ * Şarkı listesini hazırlar. Bellekte kopya varsa hemen döner (eskidiyse yenisi arka planda çekilir, ziyaretçi beklemez);
+ * yalnızca hiç kopya yokken (Worker'ın ilk isteği) API'yi bekler. API hata verirse eski kopya kullanılmaya devam eder.
+ * `waitUntil`: Cloudflare'de yanıt gittikten sonra da arka plan yenilemesinin bitmesini sağlar.
+ */
+export async function loadCatalog(waitUntil?: (p: Promise<unknown>) => void): Promise<void> {
   if (cache && Date.now() - loadedAt < TTL_MS) return;
   if (!inflight) {
     inflight = fetchAll()
@@ -81,6 +86,11 @@ export async function loadCatalog(): Promise<void> {
         console.warn("[catalog] yenilenemedi, eski kopya kullanılıyor:", (e as Error).message);
       })
       .finally(() => { inflight = null; });
+  }
+  if (cache) {
+    // Eski kopyayla hemen yanıt ver; yenileme arka planda
+    waitUntil?.(inflight);
+    return;
   }
   await inflight;
 }

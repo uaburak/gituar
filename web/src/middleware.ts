@@ -9,7 +9,10 @@ export const onRequest = defineMiddleware(async (context, next) => {
   }
   const path = context.url.pathname;
   // Statik dosyalar ve önceden hazırlanmış sayfalar için gerekmez
-  if (!/\.(js|css|png|jpg|jpeg|svg|ico|webp|woff2?|map)$/.test(path)) await loadCatalog();
+  if (!/\.(js|css|png|jpg|jpeg|svg|ico|webp|woff2?|map|m4a)$/.test(path)) {
+    const ctx = (context.locals as { runtime?: { ctx?: { waitUntil(p: Promise<unknown>): void } } }).runtime?.ctx;
+    await loadCatalog(ctx ? (p) => ctx.waitUntil(p) : undefined);
+  }
   const res = await next();
   res.headers.set("X-Content-Type-Options", "nosniff");
   res.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");

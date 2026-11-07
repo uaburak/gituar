@@ -22,17 +22,17 @@ const description = "Türkçe şarkıların gitar akorları: topluluğun paylaş
     <SongList songs={popular} cols={1} />
   </ListSection>
   <ListSection title="Rastgele" color="#c077db" action="btn-random" />
-  <ListSection title="Öne Çıkanlar" color="#ffcc00" href="/editorun-secimleri/" />
+  <ListSection title="Öne Çıkanlar" color="#f0a800" href="/editorun-secimleri/" />
   <ListSection title="Yeni Akorlar" color="#ff9500">
     <SongList songs={newest} cols={1} />
     <a class="rp-more" href="/yeni-eklenenler/">Bütün yeni akorlar ›</a>
   </ListSection>
-  <ListSection title="Gece Modu" icon="moon" color="var(--text)" action="theme-toggle-home" />
+  <ListSection title="Gece Modu" icon="moon" color="#5e5ce6" action="theme-toggle-home" />
   <ListSection title="Son Çaldıklarım" color="#54779a" id="recent">
     <ul class="rp-list" id="recent-list"></ul>
     <p class="muted small" id="recent-empty">Açtığın şarkılar burada listelenir. Bu liste yalnızca bu tarayıcıda tutulur.</p>
   </ListSection>
-  <ListSection title="Repertuarlarım" icon="star" color="#ffcc00" href="/repertuarlarim/" />
+  <ListSection title="Repertuarlarım" icon="star" color="#f0a800" href="/repertuarlarim/" />
   <ListSection title="Popüler Sanatçılar" color="#499c9f">
     <ul class="rp-list">{artists.map((a) => <ArtistRow artist={a} />)}</ul>
   </ListSection>

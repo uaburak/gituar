@@ -804,7 +804,7 @@ a.chord-diagram:hover { background: var(--muted); text-decoration: none; }
 /* Bölüm başlığı (Repertuarım "list-title"): tam genişlik, 74 px, altında ince çizgi */
 .rp-section { display: block; margin: 0 calc(-1 * var(--card-pad)); border-bottom: 1px solid var(--rp-line); }
 .rp-title {
-  display: flex; align-items: center; gap: 10px; min-height: 74px; padding: 0 var(--card-pad); width: 100%;
+  display: flex; align-items: center; gap: 12px; min-height: 74px; padding: 0 var(--card-pad); width: 100%;
   color: var(--text); cursor: pointer; list-style: none; background: none; border: 0; font: inherit; text-align: left;
 }
 a.rp-section.rp-title, button.rp-section.rp-title { width: calc(100% + 2 * var(--card-pad)); box-sizing: border-box; border-radius: 0; border-bottom: 1px solid var(--rp-line); }
@@ -815,15 +815,8 @@ a.rp-section.rp-title, button.rp-section.rp-title { width: calc(100% + 2 * var(-
 .rp-chev { width: 8px; height: 8px; border-right: 2px solid var(--text-3); border-bottom: 2px solid var(--text-3); transform: rotate(-45deg); margin-right: 4px; transition: transform .2s ease; flex: none; }
 details.rp-section > .rp-title .rp-chev { transform: rotate(45deg); }
 details.rp-section[open] > .rp-title .rp-chev { transform: rotate(-135deg); }
-.rp-icon { width: 18px; height: 18px; flex: none; display: grid; place-items: center; color: var(--c); }
-.rp-icon svg { width: 18px; height: 18px; display: block; }
-.rp-icon-dot::before { content: ""; width: 11px; height: 11px; border-radius: 50%; background: var(--c); }
-.rp-icon-bolt::before { content: ""; width: 10px; height: 16px; background: var(--c); clip-path: polygon(55% 0, 0 58%, 42% 58%, 30% 100%, 100% 38%, 56% 38%, 75% 0); }
-.rp-icon-moon::before { content: ""; width: 12px; height: 12px; border-radius: 50%; box-shadow: inset -4px -2px 0 0 var(--c); transform: rotate(-20deg); }
-.rp-icon-star::before { content: "★"; font-size: 13px; line-height: 1; color: var(--c); }
-.rp-icon-quote::before { content: "\201C"; font-size: 26px; font-weight: 700; line-height: 1; height: 12px; color: var(--c); font-family: Georgia, serif; }
-.rp-icon-heart::before { content: ""; width: 14px; height: 13px; background: var(--c); clip-path: path("M7 13 L1.2 7.2 A3.4 3.4 0 0 1 7 2.4 A3.4 3.4 0 0 1 12.8 7.2 Z"); }
-.rp-icon-none { display: none; }
+.rp-icon { width: 24px; height: 24px; flex: none; display: grid; place-items: center; border-radius: 6px; background: var(--c); color: #fff; }
+.rp-icon svg { width: 14px; height: 14px; display: block; }
 .rp-body { border-top: 0; }
 .rp-body > :not(.rp-list):not(.list):not(.rp-info):not(.rp-pills):not(.chord-grid):not(.chord-shapes):not(.rp-more) { margin-left: var(--card-pad); margin-right: var(--card-pad); }
 .rp-body > p:first-child, .rp-body > .rp-info:first-child { margin-top: 16px; }

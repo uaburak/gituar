@@ -70,5 +70,7 @@ void SHARPS; void chordSlug;
   <SeoText title={`${name} akoru`}>
     <p>{answer}</p>
     {!open && <p>Barre zor geliyorsa kapo kullanabilirsin: <a href="/rehber/kapo/">kapo rehberi</a> ve <a href="/kapo-ile-kolay-sarkilar/">kapo ile kolay çalınan şarkılar</a>.</p>}
+    {songs.length > 0 && <p>{name} akoruyla çalınan şarkılardan bazıları: {songs.slice(0, 5).map((x, i) => <>{i > 0 && ", "}<a href={songPath(x)}>{x.artist} - {x.songName}</a></>)}. Şarkı sayfasında akora dokununca diyagramı açılır ve sesini duyarsın.</p>}
+    {sameRoot.length > 0 && <p>{noteTurkish(root)} köklü diğer akorlar: {sameRoot.slice(0, 6).map((c, i) => <>{i > 0 && ", "}<a href={`/akorlar/${c.slug}/`}>{c.name}</a></>)}. Bütün akorlar için <a href="/akorlar/">gitar akorları tablosuna</a> bak.</p>}
   </SeoText>
 </Base>

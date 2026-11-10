@@ -7,9 +7,10 @@ import SongList from "../../../components/SongList.astro";
 import ListSection from "../../../components/ListSection.astro";
 import AdSlot from "../../../components/AdSlot.astro";
 import ChordDiagram from "../../../components/ChordDiagram.astro";
+import SeoText from "../../../components/SeoText.astro";
 import { songChords, chordHref, LEVEL_LABEL } from "../../../lib/chord-stats.ts";
 import { chordShapes } from "../../../lib/chord-theory.ts";
-import { catalog, sameKeySongs, artistPath, songBySlug, newestSongs, songWithContent, type ApiSong } from "../../../lib/catalog.ts";
+import { catalog, sameKeySongs, artistPath, songPath, songBySlug, newestSongs, songWithContent, type ApiSong } from "../../../lib/catalog.ts";
 import { siteUrl, songTitleParts, songDescription, songJsonLd, usedChords } from "../../../lib/seo.ts";
 
 // İstek anında: adres veritabanında yoksa 404
@@ -33,6 +34,19 @@ const keyHref = keyPage && keyPage.total >= minKeySongs() ? `/ton/${keySlug(keyP
 const description = songDescription(song, chords);
 const artistUrl = base + artistPath(song.artistSlug);
 const analysis = songChords(song);
+// Sayfanın altındaki özgün tanıtım metni: yalnızca bu şarkının verisinden (ton, akorlar, zorluk, kapo, ritim)
+const chordLinks = analysis.chords.slice(0, 10).map((c) => ({ name: c.name, href: chordHref(c.root, c.quality) }));
+const levelText = analysis.chords.length === 0 ? "" : analysis.level === "kolay"
+  ? "Barre gerektirmeyen, yalnızca açık akorlarla çalınan kolay bir şarkı; gitara yeni başlayanlar için uygun."
+  : analysis.level === "orta"
+    ? `Orta zorlukta bir şarkı; ${analysis.barreCount} akorda barre gerekiyor.`
+    : `İleri seviye bir şarkı; ${analysis.barreCount} akorda barre gerekiyor.`;
+const rhythmText = [
+  song.rhythm ? `ritim deseni ${song.rhythm}` : "",
+  song.meter ? `ölçü ${song.meter}` : "",
+  song.tempo ? `tempo yaklaşık ${song.tempo} BPM` : "",
+].filter(Boolean).join(", ");
+const moreBySame = others.slice(0, 3);
 const diagrams = analysis.chords.slice(0, 12).map((c) => ({ ...c, shape: chordShapes(c.root, c.quality)[0], href: chordHref(c.root, c.quality) })).filter((c) => c.shape);
 ---
 <Base title={title} bareTitle={bare} canonicalPath={canonicalPath} description={description} songId={song.id} ogType="music.song" jsonLd={songJsonLd(song, base)}>
@@ -40,7 +54,7 @@ const diagrams = analysis.chords.slice(0, 12).map((c) => ({ ...c, shape: chordSh
     <meta property="music:musician" content={artistUrl} />
   </Fragment>
   <div class="rp-head rp-head-song">
-    <h1><a href={artistPath(song.artistSlug)}>{song.artist}</a> - {song.songName} - Akor</h1>
+    <h1>{song.songName} Akor - <a href={artistPath(song.artistSlug)}>{song.artist}</a></h1>
   </div>
   <SongSheet song={song}>
     <Fragment slot="diagrams">
@@ -73,14 +87,6 @@ const diagrams = analysis.chords.slice(0, 12).map((c) => ({ ...c, shape: chordSh
           {analysis.chords.length > 0 && <li><span>Zorluk: </span><b>{LEVEL_LABEL[analysis.level]}</b></li>}
           {chords.length > 0 && <li><span>Akorlar: </span><b>{chords.join(", ")}</b></li>}
           {analysis.capo && <li><span>Kapo ile kolay: </span><b>{analysis.capo.fret}. perde · {analysis.capo.shapes.join(", ")}</b></li>}
-          <li class="song-intro">
-            {song.songName}, {song.artist} tarafından seslendirilen şarkının gitar akorları.
-            {song.originalKey && chords.length > 0 && <>Orijinal ton {song.originalKey}; kullanılan akorlar: {chords.join(", ")}.</>}
-            {song.originalKey && chords.length === 0 && <>Orijinal ton {song.originalKey}.</>}
-            {!song.originalKey && chords.length > 0 && <>Kullanılan akorlar: {chords.join(", ")}.</>}
-            {analysis.level === "kolay" && <>Barre gerektirmez, yalnızca açık akorlarla çalınır. </>}
-            Tonu değiştirebilir, kapo ekleyebilir, otomatik kaydırma ile çalabilirsin.
-          </li>
         </ul>
       </ListSection>
       <ListSection title="Bu içerik için hata bildir" color="#c077db" action="report-open-2" />
@@ -88,4 +94,22 @@ const diagrams = analysis.chords.slice(0, 12).map((c) => ({ ...c, shape: chordSh
     </Fragment>
   </SongSheet>
   <script src="../../../scripts/random.ts"></script>
+  <SeoText title={`${song.songName} akorları nasıl çalınır?`}>
+    <p>
+      <b>{song.songName}</b>, {song.artist} şarkısının gitar akorları{song.originalKey ? <> orijinal tonu <b>{song.originalKey}</b> ile</> : ""} bu sayfada.
+      {chordLinks.length > 0 && <> Şarkıda {chordLinks.length} farklı akor var: {chordLinks.map((c, i) => <>{i > 0 && ", "}{c.href ? <a href={c.href}>{c.name}</a> : c.name}</>)}.</>}
+      {levelText && <> {levelText}</>}
+    </p>
+    {analysis.capo ? (
+      <p>Barre zor geliyorsa kapoyu <b>{analysis.capo.fret}. perdeye</b> takıp {analysis.capo.shapes.join(", ")} tutuşlarıyla çalabilirsin; şarkı yine aynı tonda duyulur. Kapo hesabı için <a href="/rehber/kapo/">kapo rehberine</a> bak.</p>
+    ) : analysis.level !== "kolay" && analysis.chords.length > 0 ? (
+      <p>Ton sesine yüksek ya da alçak geliyorsa sayfadaki ton seçiciyle akorları tek dokunuşla <a href="/rehber/akor-transpoze/">transpoze</a> edebilirsin.</p>
+    ) : null}
+    {rhythmText && <p>Çalarken {rhythmText}. "Çal" düğmesiyle şarkıyı bu ritimle dinleyip eşlik edebilirsin.</p>}
+    <p>
+      Otomatik kaydırma ile elin gitardayken sözler kendiliğinden akar; yazı boyutunu büyütebilir, akorları kendi repertuarına ekleyebilirsin.
+      {moreBySame.length > 0 && <> {song.artist} şarkılarından {moreBySame.map((o, i) => <>{i > 0 && (i === moreBySame.length - 1 ? " ve " : ", ")}<a href={songPath(o)}>{o.songName}</a></>)} akorlarına da göz at ya da <a href={artistPath(song.artistSlug)}>bütün {song.artist} akorlarını</a> gör.</>}
+      {keyHref && <> Aynı tondaki diğer şarkılar için <a href={keyHref}>{song.originalKey} tonundaki şarkılara</a> bakabilirsin.</>}
+    </p>
+  </SeoText>
 </Base>

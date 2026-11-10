@@ -69,7 +69,24 @@ const easyNotes = Object.fromEntries(easiest.map((s) => [s.id, songChords(s).cho
   )}
   <ListSection title="Bütün sanatçılar" icon="none" href="/sanatcilar/" />
   <ListSection title="Şarkı öner" icon="quote" color="#c077db" href="/iletisim/" />
-  <SeoText title={`${artist.name} gitar akorları`}>
-    <p>{artistDescription(artist)}</p>
+  <SeoText title={`${artist.name} akorları ve şarkıları`}>
+    <p>
+      {artist.name} şarkılarının gitar akorları orijinal ton bilgisiyle bu sayfada.
+      {n > 1 && <> {n} şarkının akorunu bulabilir, istediğini kendi sesine göre transpoze edip kapo ile çalabilirsin.</>}
+      {topKey && n >= 3 && <> {artist.name} şarkılarında en sık kullanılan ton <b>{topKey[0]}</b>.</>}
+    </p>
+    {topChords.length > 0 && n >= 3 && (
+      <p>
+        Şarkılarda en çok geçen akorlar {topChords.slice(0, 5).map(([name, c], i) => { const href = chordHref(c.root, c.quality); return <>{i > 0 && ", "}{href ? <a href={href}>{name}</a> : name}</>; })}.
+        Bu akorları öğrenirsen {artist.name} repertuarının büyük kısmını çalabilirsin; her akorun diyagramı ve basılışı akor sayfasında.
+      </p>
+    )}
+    {easiest.length > 0 && n >= 3 && (
+      <p>
+        {easyCount > 0 ? <>{easyCount} şarkı barre gerektirmeden, yalnızca açık akorlarla çalınıyor. </> : ""}
+        Başlamak için en kolay {artist.name} şarkıları: {easiest.slice(0, 3).map((x, i) => <>{i > 0 && ", "}<a href={`/akor/${x.artistSlug}/${x.slug}/`}>{x.songName}</a></>)}.
+        Daha fazlası için <a href="/kolay-gitar-akorlari/">kolay gitar akorları</a> ve <a href="/kapo-ile-kolay-sarkilar/">kapo ile kolay şarkılar</a> sayfalarına bak.
+      </p>
+    )}
   </SeoText>
 </Base>

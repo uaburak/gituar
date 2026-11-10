@@ -157,6 +157,8 @@ final class ProManager: ObservableObject {
         let giftValid = isGifted && (giftUntil.map { $0 > Date() } ?? true)
         isPro = isSubscribed || giftValid
         AdMobManager.shared.isAdFree = isPro
+        // Çevrimdışı erişim Pro'ya özel
+        OfflineIndex.shared.setEnabled(isPro)
     }
 
     // MARK: - Hediye Pro

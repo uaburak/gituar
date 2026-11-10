@@ -210,10 +210,11 @@ struct AdNativeView: View {
     @ObservedObject private var adMobManager = AdMobManager.shared
     // Native Advanced ID: ca-app-pub-9748717269838207/4478703611
     let adUnitID: String = "ca-app-pub-9748717269838207/4478703611"
-    
+
     var body: some View {
         ZStack {
-            if viewModel.isFailed {
+            // Pro: hiç reklam yok (yüklenmiş olsa bile gizlenir, yer kaplamaz)
+            if adMobManager.isAdFree || viewModel.isFailed {
                 EmptyView()
             } else if let nativeAd = viewModel.nativeAd {
                 NativeAdViewWrapper(nativeAd: nativeAd)
@@ -224,16 +225,14 @@ struct AdNativeView: View {
                 Color.clear.frame(height: 1)
             }
         }
-        .onAppear {
-            if adMobManager.isSdkInitialized {
-                viewModel.loadAd(adUnitID: adUnitID)
-            }
-        }
-        .onChange(of: adMobManager.isSdkInitialized) { _, initialized in
-            if initialized {
-                viewModel.loadAd(adUnitID: adUnitID)
-            }
-        }
+        .onAppear { loadIfAllowed() }
+        .onChange(of: adMobManager.isSdkInitialized) { _, _ in loadIfAllowed() }
+        .onChange(of: adMobManager.isAdFree) { _, _ in loadIfAllowed() }
+    }
+
+    private func loadIfAllowed() {
+        guard adMobManager.isSdkInitialized, !adMobManager.isAdFree, viewModel.nativeAd == nil else { return }
+        viewModel.loadAd(adUnitID: adUnitID)
     }
 }
 

@@ -7,7 +7,11 @@ import Combine
 class AdMobManager: NSObject, ObservableObject {
     static let shared = AdMobManager()
     
-    @Published var isAdFree = false
+    /// Pro kullanıcıda hiçbir reklam yüklenmez/gösterilmez. Açılışta son bilinen Pro durumuyla başlar
+    /// (ProManager doğrulayana kadar Pro kullanıcıya reklam bir an bile görünmesin).
+    @Published var isAdFree = UserDefaults.standard.bool(forKey: "lastKnownPro") {
+        didSet { UserDefaults.standard.set(isAdFree, forKey: "lastKnownPro") }
+    }
     @Published var isSdkInitialized = false
     private var isMobileAdsStartCalled = false
     

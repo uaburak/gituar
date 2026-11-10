@@ -10,7 +10,9 @@ enum ScreenAwake {
 
     static func retain() {
         holders += 1
-        UIApplication.shared.isIdleTimerDisabled = true
+        // Ayarlar › Ekranı Açık Tut (varsayılan açık)
+        let enabled = UserDefaults.standard.object(forKey: "keepScreenAwake") as? Bool ?? true
+        UIApplication.shared.isIdleTimerDisabled = enabled
     }
 
     static func release() {

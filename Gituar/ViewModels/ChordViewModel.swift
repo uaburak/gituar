@@ -18,6 +18,8 @@ class ChordViewModel: ObservableObject {
 
     @Published var repertoires: [Repertoire] = []
     @Published var publicRepertoires: [Repertoire] = []
+    /// Normal üyelerin herkese açık paylaştığı repertuarlar (Keşfet). Yöneticilerinkiler editorRepertoires'ta.
+    @Published var communityRepertoires: [Repertoire] = []
     @Published var editorRepertoires: [Repertoire] = [] // Editörün seçtiği repertuarlar (yöneticilerin herkese açık repertuarları)
     @Published var songPreferences: [String: UserSongPreference] = [:] // Kullanıcıya özel şarkı ayarları
 
@@ -100,7 +102,7 @@ class ChordViewModel: ObservableObject {
         if let uid = currentUserId {
             fetchRepertoiresFromFirestore(userId: uid)
             loadBlockedUsersFromFirestore(userId: uid)
-            Task { await loadMySongs() }
+            // Şarkılarım ekranı açılınca yüklenir (girişte gereksiz indirme olmasın)
         } else {
             // Guest mode veya çıkış — listener'ları temizle
             repertoireListeners.forEach { $0.remove() }
@@ -175,6 +177,10 @@ class ChordViewModel: ObservableObject {
         ids.removeAll { $0 == song.docId }
         ids.insert(song.docId, at: 0)
         UserDefaults.standard.set(Array(ids.prefix(20)), forKey: recentPlayedKey)
+    }
+
+    func clearRecentlyPlayed() {
+        UserDefaults.standard.removeObject(forKey: recentPlayedKey)
     }
 
     func recentlyPlayedSongs() async throws -> [Song] {
@@ -331,7 +337,7 @@ class ChordViewModel: ObservableObject {
     private func fetchEditorRepertoires(from allPublic: [Repertoire]) {
         Task {
             if let cached = adminIdsCache {
-                self.editorRepertoires = allPublic.filter { cached.contains($0.ownerId) }
+                self.splitPublic(allPublic, adminIds: cached)
                 return
             }
             do {
@@ -343,11 +349,18 @@ class ChordViewModel: ObservableObject {
                     adminIds = snapshot.documents.map { $0.documentID }
                 }
                 self.adminIdsCache = adminIds
-                self.editorRepertoires = allPublic.filter { adminIds.contains($0.ownerId) }
+                self.splitPublic(allPublic, adminIds: adminIds)
             } catch {
                 print("Error fetching admins: \(error)")
             }
         }
+    }
+
+    /// Herkese açık repertuarları ikiye ayırır: yöneticilerinki Öne Çıkanlar, diğer üyelerinki Keşfet (boşlar gösterilmez).
+    private func splitPublic(_ allPublic: [Repertoire], adminIds: [String]) {
+        let admins = Set(adminIds)
+        editorRepertoires = allPublic.filter { admins.contains($0.ownerId) }
+        communityRepertoires = allPublic.filter { !admins.contains($0.ownerId) && !$0.songIds.isEmpty }
     }
 
     func addRepertoire(name: String) {
@@ -375,9 +388,46 @@ class ChordViewModel: ObservableObject {
 
     // MARK: - Admin Bulk Import
 
+    /// Toplu repertuar kaydı. Şarkılar `songIds` (ya da `songs`) içinde şu biçimlerden biriyle yazılabilir:
+    /// API kimliği ("im251107c025"), "sanatci-slug/sarki-slug" ya da "Sanatçı - Şarkı adı".
+    /// Eski katalogdaki sayısal kimlikler artık geçerli olmayabilir; bulunamayanlar raporlanır.
     struct BulkRepertoireEntry: Codable {
         let name: String
         let songIds: [String]
+
+        enum CodingKeys: String, CodingKey { case name, songIds, songs }
+
+        init(name: String, songIds: [String]) { self.name = name; self.songIds = songIds }
+
+        init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            name = try c.decode(String.self, forKey: .name)
+            songIds = try c.decodeIfPresent([String].self, forKey: .songIds) ?? c.decodeIfPresent([String].self, forKey: .songs) ?? []
+        }
+
+        func encode(to encoder: Encoder) throws {
+            var c = encoder.container(keyedBy: CodingKeys.self)
+            try c.encode(name, forKey: .name)
+            try c.encode(songIds, forKey: .songIds)
+        }
+    }
+
+    /// Bir şarkı referansını güncel API kimliğine çevirir (kimlik, "sanatci/sarki" ya da "Sanatçı - Şarkı").
+    private func resolveSongRef(_ ref: String, knownIds: Set<String>) async -> String? {
+        let trimmed = ref.trimmingCharacters(in: .whitespaces)
+        if knownIds.contains(trimmed) { return trimmed }
+        if trimmed.contains("/") {
+            let parts = trimmed.split(separator: "/").map(String.init)
+            if parts.count == 2, let s = try? await GituarAPI.shared.song(artistSlug: parts[0], slug: parts[1]) { return s.docId }
+            return nil
+        }
+        let pieces = trimmed.components(separatedBy: " - ")
+        guard pieces.count >= 2 else { return nil }
+        let artist = pieces[0].turkeyNormalized
+        let title = pieces.dropFirst().joined(separator: " - ").turkeyNormalized
+        guard let results = try? await GituarAPI.shared.search("\(pieces[0]) \(pieces.dropFirst().joined(separator: " "))", limit: 30) else { return nil }
+        return (results.songs.first { $0.artist.turkeyNormalized == artist && $0.songName.turkeyNormalized == title }
+                ?? results.songs.first { $0.songName.turkeyNormalized == title && $0.artist.turkeyNormalized.contains(artist) })?.docId
     }
 
     /// Admin kullanıcıların JSON dosyasından toplu repertuar eklemesini sağlar.
@@ -385,22 +435,35 @@ class ChordViewModel: ObservableObject {
     func bulkImportRepertoires(
         entries: [BulkRepertoireEntry],
         onProgress: @escaping (Int, Int) -> Void
-    ) async throws -> (success: Int, failed: Int) {
+    ) async throws -> (success: Int, failed: Int, unresolved: [String]) {
         guard let uid = currentUserId else {
             throw BulkImportError.notAuthenticated
         }
 
         var successCount = 0
         var failedCount = 0
+        var unresolved: [String] = []
         let total = entries.count
         var taken = takenPublicSlugs(ownerId: uid)
 
+        // Kimlik olarak verilenler tek seferde doğrulanır (yayında olmayan/eski kimlikler düşer)
+        let allRefs = entries.flatMap(\.songIds).map { $0.trimmingCharacters(in: .whitespaces) }
+        let known = Set((try? await GituarAPI.shared.songs(ids: allRefs.filter { !$0.contains(" ") && !$0.contains("/") }))?.map(\.docId) ?? [])
+
         for (index, entry) in entries.enumerated() {
+            var ids: [String] = []
+            for ref in entry.songIds {
+                if let id = await resolveSongRef(ref, knownIds: known) {
+                    if !ids.contains(id) { ids.append(id) }
+                } else {
+                    unresolved.append("\(entry.name): \(ref)")
+                }
+            }
             let repId = UUID().uuidString
             let repertoire = Repertoire(
                 id: repId,
                 name: entry.name,
-                songIds: entry.songIds,
+                songIds: ids,
                 ownerId: uid,
                 createdAt: Date().addingTimeInterval(TimeInterval(-index)), // sıra korunsun
                 isPublic: true
@@ -417,7 +480,7 @@ class ChordViewModel: ObservableObject {
             onProgress(index + 1, total)
         }
 
-        return (successCount, failedCount)
+        return (successCount, failedCount, unresolved)
     }
 
     enum BulkImportError: LocalizedError {
@@ -661,6 +724,11 @@ class ChordViewModel: ObservableObject {
 
     // MARK: - Kullanıcı şarkıları (API)
 
+    /// Uygulamadan/webden eklenen şarkı kimliği (16 karakter); içe aktarma (im…) ve eski katalog (yalnızca rakam) değil.
+    nonisolated static func isUserAdded(_ id: String) -> Bool {
+        !id.hasPrefix("im") && !id.allSatisfy(\.isNumber)
+    }
+
     func loadMySongs() async {
         guard currentUserId != nil else {
             mySongs = []
@@ -669,7 +737,8 @@ class ChordViewModel: ObservableObject {
         isLoadingMySongs = true
         defer { isLoadingMySongs = false }
         do {
-            let songs = try await GituarAPI.shared.mySongs()
+            // İçe aktarılan katalog şarkıları (im… ve eski sayısal kimlikler) yöneticinin "kendi şarkısı" değildir
+            let songs = try await GituarAPI.shared.mySongs().filter { Self.isUserAdded($0.docId) }
             mySongs = songs.sorted { ($0.updatedAt ?? .distantPast) > ($1.updatedAt ?? .distantPast) }
             mySongsError = nil
             for song in songs where song.hasContent { fullSongCache[song.docId] = song }

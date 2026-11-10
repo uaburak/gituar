@@ -16,6 +16,7 @@ struct BulkRepertoireImportView: View {
     @State private var total: Int = 0
     @State private var resultSuccess: Int = 0
     @State private var resultFailed: Int = 0
+    @State private var unresolved: [String] = []
 
     enum Phase { case idle, preview, importing, done }
 
@@ -106,7 +107,7 @@ struct BulkRepertoireImportView: View {
             Section("Beklenen Format") {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("""
-[\n  {\n    \"name\": \"Başlangıç için\",\n    \"songIds\": [\"10644\", \"1227\"]\n  },\n  {\n    \"name\": \"Hareketli Şarkılar\",\n    \"songIds\": [\"9265\", \"12820\"]\n  }\n]
+[\n  {\n    \"name\": \"Başlangıç için\",\n    \"songs\": [\"Ahmet Kaya - Ağladıkça\", \"sezen-aksu/sen-agla\"]\n  },\n  {\n    \"name\": \"Hareketli Şarkılar\",\n    \"songIds\": [\"im251107c025\"]\n  }\n]\n\nŞarkı: API kimliği, \"sanatçı-slug/şarkı-slug\" ya da \"Sanatçı - Şarkı\". Bulunamayanlar sonuçta listelenir.
 """)
                     .font(.system(.footnote, design: .monospaced))
                     .foregroundStyle(.secondary)
@@ -240,7 +241,7 @@ struct BulkRepertoireImportView: View {
                         Text(resultFailed == 0 ? "Yükleme Tamamlandı" : "Kısmen Tamamlandı")
                             .font(.title2)
                             .fontWeight(.semibold)
-                        Text("Editörün Seçimleri bölümünde görünecek.")
+                        Text("Öne Çıkanlar bölümünde görünecek.")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                             .multilineTextAlignment(.center)
@@ -276,6 +277,18 @@ struct BulkRepertoireImportView: View {
                 }
             } header: {
                 Text("Sonuç")
+            }
+
+            if !unresolved.isEmpty {
+                Section {
+                    ForEach(unresolved, id: \.self) { item in
+                        Text(item).font(.footnote).foregroundStyle(.secondary)
+                    }
+                } header: {
+                    Text("Bulunamayan şarkılar (\(unresolved.count))")
+                } footer: {
+                    Text("Bu şarkılar repertuara eklenmedi. Kimliği ya da \"Sanatçı - Şarkı\" yazımını kontrol et.")
+                }
             }
 
             Section {
@@ -336,7 +349,7 @@ struct BulkRepertoireImportView: View {
 
         Task {
             do {
-                let (success, failed) = try await viewModel.bulkImportRepertoires(
+                let (success, failed, missing) = try await viewModel.bulkImportRepertoires(
                     entries: parsedEntries
                 ) { current, _ in
                     progress = current
@@ -344,6 +357,7 @@ struct BulkRepertoireImportView: View {
                 await MainActor.run {
                     resultSuccess = success
                     resultFailed = failed
+                    unresolved = missing
                     withAnimation { phase = .done }
                 }
             } catch {

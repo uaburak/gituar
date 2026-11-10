@@ -106,6 +106,7 @@ struct MySongsView: View {
             }
         }
         .navigationTitle("Şarkılarım")
+        .task { if viewModel.mySongs.isEmpty { await viewModel.loadMySongs() } }
         .alert(
             "Bu şarkı kalıcı olarak silinsin mi?",
             isPresented: Binding(

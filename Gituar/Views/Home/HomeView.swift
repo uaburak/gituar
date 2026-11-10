@@ -155,14 +155,14 @@ struct HomeView: View {
 
                 // Editor's Choice Banner
                 if !viewModel.editorRepertoires.isEmpty {
-                    NavigationLink(destination: GenericRepertoireListView(title: "Editörün Seçimleri", repertoires: viewModel.editorRepertoires)) {
+                    NavigationLink(destination: GenericRepertoireListView(title: "Öne Çıkanlar", repertoires: viewModel.editorRepertoires)) {
                         VStack(alignment: .leading, spacing: 14) {
                             Image(systemName: "star.fill")
                                 .font(.system(size: 24))
                                 .foregroundColor(.yellow)
 
                             VStack(alignment: .leading, spacing: 2) {
-                                Text("Editörün Seçimleri")
+                                Text("Öne Çıkanlar")
                                     .font(.system(size: 16, weight: .bold))
                                     .foregroundColor(.white)
                                 Text("\(viewModel.editorRepertoires.count) Özel Liste")
@@ -188,7 +188,7 @@ struct HomeView: View {
                     NavigationLink(destination: MySongsView()) {
                         MinimalCategoryCard(
                             title: "Şarkılarım",
-                            subtitle: authViewModel.currentUser != nil ? "\(viewModel.mySongs.count) Kayıtlı" : "Giriş Yap",
+                            subtitle: authViewModel.currentUser != nil ? "Ekle, düzenle" : "Giriş Yap",
                             icon: "music.quarternote.3",
                             color: .indigo
                         )
@@ -210,35 +210,40 @@ struct HomeView: View {
                     let columns = [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)]
 
                     LazyVGrid(columns: columns, spacing: 12) {
+                        // Web ana sayfasındaki bölümlerle aynı adlar
+                        NavigationLink(destination: GenericSongListView(title: "Popüler Akorlar", sort: .popular)) {
+                            MinimalListCard(title: "Popüler Akorlar", icon: "bolt.fill")
+                        }
+                        NavigationLink(destination: GenericSongListView(title: "Rastgele", load: { try await GituarAPI.shared.randomSongs() })) {
+                            MinimalListCard(title: "Rastgele", icon: "shuffle")
+                        }
+                        NavigationLink(destination: GenericSongListView(title: "Yeni Akorlar", sort: .new)) {
+                            MinimalListCard(title: "Yeni Akorlar", icon: "sparkles")
+                        }
+                        NavigationLink(destination: GenericSongListView(title: "Son Çaldıklarım", load: { try await viewModel.recentlyPlayedSongs() })) {
+                            MinimalListCard(title: "Son Çaldıklarım", icon: "clock.fill")
+                        }
                         NavigationLink(destination: AllArtistsView()) {
-                            MinimalListCard(title: "Sanatçılar", icon: "person.2.fill")
+                            MinimalListCard(title: "Sanatçılar", icon: "music.mic")
                         }
-                        NavigationLink(destination: GenericSongListView(title: "Son Çalınanlar", load: { try await viewModel.recentlyPlayedSongs() })) {
-                            MinimalListCard(title: "Son Çalınanlar", icon: "clock.fill")
+                        NavigationLink(destination: ArtistListView(title: "Yeni Sanatçılar", load: { try await GituarAPI.shared.newestArtists() })) {
+                            MinimalListCard(title: "Yeni Sanatçılar", icon: "person.badge.plus")
                         }
-                        NavigationLink(destination: GenericSongListView(title: "Yeni Eklenenler", sort: .new)) {
-                            MinimalListCard(title: "Yeni Eklenenler", icon: "arrow.down.circle.fill")
-                        }
-                        NavigationLink(destination: GenericSongListView(title: "En Popüler", sort: .popular)) {
-                            MinimalListCard(title: "Çok Eklenenler", icon: "star.fill")
-                        }
-                        NavigationLink(destination: GenericSongListView(title: "Bu Ay Öne Çıkanlar", sort: .trending)) {
-                            MinimalListCard(title: "Öne Çıkanlar", icon: "flame.fill")
-                        }
-
-                        if authViewModel.isAdmin {
-                            NavigationLink(destination: PendingApprovalListView()) {
-                                MinimalListCard(title: "Onay Bekleyenler", icon: "checkmark.seal.fill")
-                            }
-                            NavigationLink(destination: ReportsListView()) {
-                                MinimalListCard(title: "Şikayetler", icon: "exclamationmark.shield.fill")
-                            }
+                        // Normal üyelerin herkese açık repertuarları (engellenenler hariç)
+                        NavigationLink(destination: GenericRepertoireListView(
+                            title: "Keşfet",
+                            repertoires: viewModel.communityRepertoires.filter { !viewModel.blockedUserIDs.contains($0.ownerId) }
+                        )) {
+                            MinimalListCard(title: "Keşfet", icon: "safari")
                         }
                     }
                     .padding(.horizontal, 20)
+
                 }
-                AdNativeView()
-                    .padding(.horizontal, 20)
+                if !AdMobManager.shared.isAdFree {
+                    AdNativeView()
+                        .padding(.horizontal, 20)
+                }
             }
             .padding(.bottom, 40)
             .padding(.top, 16)

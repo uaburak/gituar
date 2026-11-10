@@ -163,14 +163,20 @@ nonisolated final class GituarAPI: Sendable {
     }
 
     func songs(sort: SongSort, limit: Int = 50, offset: Int = 0) async throws -> [Song] {
-        let env: SongsEnvelope = try await get("/v1/songs", query: [
-            "sort": sort.rawValue, "limit": String(min(max(limit, 1), 100)), "offset": String(max(offset, 0))
-        ])
-        return visible(env.songs.map(\.song))
+        try await orOffline({
+            let env: SongsEnvelope = try await get("/v1/songs", query: [
+                "sort": sort.rawValue, "limit": String(min(max(limit, 1), 100)), "offset": String(max(offset, 0))
+            ])
+            return visible(env.songs.map(\.song))
+        }, { visible(OfflineIndex.shared.songs(sort: sort, limit: limit, offset: offset)) })
     }
 
     /// Kimliklere göre (sırayı koruyarak) onaylı şarkılar. Silinmiş/olmayan kimlikler sessizce atlanır.
     func songs(ids: [String]) async throws -> [Song] {
+        try await orOffline({ try await onlineSongs(ids: ids) }, { visible(OfflineIndex.shared.songs(ids: ids)) })
+    }
+
+    private func onlineSongs(ids: [String]) async throws -> [Song] {
         var seen = Set<String>()
         let unique = ids.filter { !$0.isEmpty && seen.insert($0).inserted }
         guard !unique.isEmpty else { return [] }
@@ -187,30 +193,113 @@ nonisolated final class GituarAPI: Sendable {
 
     /// Tek şarkı (içerikle). Oturum varsa kimlik kartı gönderilir — sahibi/yönetici onaysız şarkıyı da görür.
     func song(id: String) async throws -> Song {
-        let env: SongEnvelope = try await get("/v1/songs/\(Self.escape(id))", authorized: .ifAvailable)
-        return env.song.song
+        try await orOffline({
+            let env: SongEnvelope = try await get("/v1/songs/\(Self.escape(id))", authorized: .ifAvailable)
+            return env.song.song
+        }, { OfflineIndex.shared.song(id: id) })
     }
 
     func song(artistSlug: String, slug: String) async throws -> Song {
-        let env: SongEnvelope = try await get("/v1/songs/by-slug/\(Self.escape(artistSlug))/\(Self.escape(slug))")
-        return env.song.song
+        try await orOffline({
+            let env: SongEnvelope = try await get("/v1/songs/by-slug/\(Self.escape(artistSlug))/\(Self.escape(slug))")
+            return env.song.song
+        }, { OfflineIndex.shared.song(artistSlug: artistSlug, slug: slug) })
     }
 
     func artists(limit: Int = 100, offset: Int = 0) async throws -> [Artist] {
-        let env: ArtistsEnvelope = try await get("/v1/artists", query: [
-            "limit": String(min(max(limit, 1), 100)), "offset": String(max(offset, 0))
-        ])
-        return env.artists
+        try await orOffline({
+            let env: ArtistsEnvelope = try await get("/v1/artists", query: [
+                "limit": String(min(max(limit, 1), 100)), "offset": String(max(offset, 0))
+            ])
+            return env.artists
+        }, {
+            let all = OfflineIndex.shared.artists()
+            return offset < all.count ? Array(all[offset..<min(all.count, offset + limit)]) : []
+        })
+    }
+
+    /// Bütün sanatçılar (tek istekte, alfabetik). Popüler sanatçılar listesi bundan şarkı sayısına göre sıralanır.
+    func allArtists() async throws -> [Artist] {
+        try await orOffline({
+            let env: ArtistsEnvelope = try await get("/v1/artists", query: ["limit": "10000"])
+            return env.artists
+        }, { OfflineIndex.shared.artists() })
+    }
+
+    /// Bir kullanıcının yayındaki şarkıları (kullanıcı profili).
+    func songs(owner uid: String, limit: Int = 100) async throws -> [Song] {
+        let env: SongsEnvelope = try await get("/v1/songs", query: ["owner": uid, "sort": "title", "limit": String(min(max(limit, 1), 100))])
+        return env.songs.map(\.song)
+    }
+
+    /// Rastgele: alfabetik listenin iki rastgele yerinden 100'er şarkı alınıp karıştırılır (web'deki "Rastgele" ile aynı).
+    func randomSongs(count: Int = 40, catalogSize: Int = 20000) async throws -> [Song] {
+        let maxOffset = max(0, catalogSize - 100)
+        let offsets = [Int.random(in: 0...maxOffset), Int.random(in: 0...maxOffset)]
+        var pool: [Song] = []
+        for offset in offsets { pool += try await songs(sort: .title, limit: 100, offset: offset) }
+        var seen = Set<String>()
+        return Array(pool.filter { seen.insert($0.docId).inserted }.shuffled().prefix(count))
+    }
+
+    /// Yeni eklenen sanatçılar: en yeni şarkılardan, sanatçının ilk görüldüğü sırayla.
+    func newestArtists(limit: Int = 60) async throws -> [Artist] {
+        var result: [Artist] = []
+        var seen = Set<String>()
+        for page in 0..<5 where result.count < limit {
+            let list = try await songs(sort: .new, limit: 100, offset: page * 100)
+            for song in list {
+                let slug = song.resolvedArtistSlug
+                if seen.insert(slug).inserted {
+                    result.append(Artist(slug: slug, name: song.artist, songs: nil, score: nil))
+                }
+            }
+            if list.count < 100 { break }
+        }
+        return Array(result.prefix(limit))
     }
 
     func artist(slug: String) async throws -> ArtistDetail {
-        let env: ArtistDetailEnvelope = try await get("/v1/artists/\(Self.escape(slug))")
-        return ArtistDetail(slug: env.artist.slug, name: env.artist.name, songs: visible(env.artist.songs.map(\.song)))
+        try await orOffline({
+            let env: ArtistDetailEnvelope = try await get("/v1/artists/\(Self.escape(slug))")
+            return ArtistDetail(slug: env.artist.slug, name: env.artist.name, songs: visible(env.artist.songs.map(\.song)))
+        }, {
+            OfflineIndex.shared.artistSongs(slug: slug).map { ArtistDetail(slug: slug, name: $0.name, songs: visible($0.songs)) }
+        })
     }
 
     func search(_ query: String, limit: Int = 50) async throws -> SearchResults {
-        let env: SearchEnvelope = try await get("/v1/search", query: ["q": query, "limit": String(limit)])
-        return SearchResults(songs: visible(env.songs.map(\.song)), artists: env.artists)
+        try await orOffline({
+            let env: SearchEnvelope = try await get("/v1/search", query: ["q": query, "limit": String(limit)])
+            return SearchResults(songs: visible(env.songs.map(\.song)), artists: env.artists)
+        }, {
+            let r = OfflineIndex.shared.search(query, limit: limit)
+            return SearchResults(songs: visible(r.songs), artists: r.artists)
+        })
+    }
+
+    // MARK: - Çevrimdışı indirme
+
+    struct CatalogVersion: Decodable, Sendable { let v: String; let max: Double; let count: Int }
+
+    func catalogVersion() async throws -> CatalogVersion {
+        try await get("/v1/version")
+    }
+
+    /// Sürüm adresli dışa aktarım sayfası (içeriklerle).
+    func exportPage(version: String, limit: Int, offset: Int) async throws -> [Song] {
+        let env: SongsEnvelope = try await get("/v1/export", query: ["v": version, "limit": String(limit), "offset": String(offset)])
+        return env.songs.map(\.song)
+    }
+
+    /// İnternet yoksa indirilmiş kopyadan (varsa) yanıt verir.
+    private func orOffline<T>(_ online: () async throws -> T, _ offline: () -> T?) async throws -> T {
+        do {
+            return try await online()
+        } catch GituarAPIError.offline {
+            if OfflineIndex.shared.isAvailable, let value = offline() { return value }
+            throw GituarAPIError.offline
+        }
     }
 
     // MARK: - Authenticated

@@ -32,24 +32,7 @@ struct RepertoireListView: View {
                     LazyVGrid(columns: columns, spacing: 16) {
                         ForEach(viewModel.repertoires) { repertoire in
                             NavigationLink(destination: RepertoireDetailView(repertoire: repertoire)) {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(repertoire.name)
-                                        .font(.system(size: 16, weight: .bold))
-                                        .foregroundColor(.primary)
-                                        .lineLimit(2)
-                                        .multilineTextAlignment(.leading)
-                                    
-                                    Text("\(repertoire.songIds.count) Şarkı")
-                                        .font(.system(size: 13, weight: .medium))
-                                        .foregroundColor(.secondary)
-                                }
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .padding(14)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                        .fill(Color(UIColor.secondarySystemGroupedBackground))
-                                        .shadow(color: Color.black.opacity(0.04), radius: 8, x: 0, y: 2)
-                                )
+                                RepertoireCard(repertoire: repertoire)
                             }
                             .buttonStyle(PlainButtonStyle())
                             .contextMenu {
@@ -159,6 +142,35 @@ struct RepertoireDetailView: View {
         repertoire.ownerId == (viewModel.currentUserId ?? "local")
     }
 
+    /// Güncel hâli (kendi repertuarında herkese açma/gizleme anında yansısın)
+    private var liveRepertoire: Repertoire {
+        (viewModel.repertoires + viewModel.publicRepertoires).first(where: { $0.id != nil && $0.id == repertoire.id }) ?? repertoire
+    }
+
+    /// Yalnızca herkese açık repertuar paylaşılabilir.
+    private var shareURL: URL? {
+        let r = liveRepertoire
+        guard r.isPublic == true, let id = r.id else { return nil }
+        if let user = r.ownerUsername, !user.isEmpty, let slug = r.slug, !slug.isEmpty,
+           let u = user.addingPercentEncoding(withAllowedCharacters: .alphanumerics),
+           let sl = slug.addingPercentEncoding(withAllowedCharacters: .alphanumerics.union(CharacterSet(charactersIn: "-"))) {
+            return URL(string: "https://gituar.com/repertuar/\(u)/\(sl)/")
+        }
+        return URL(string: "https://gituar.com/repertuar/?id=\(id.addingPercentEncoding(withAllowedCharacters: .alphanumerics) ?? id)")
+    }
+
+    private var ownerLabel: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("Repertuar Sahibi")
+                .font(.system(size: 13, weight: .medium))
+                .foregroundColor(.secondary)
+            Text(isOwner ? "Ben" : (repertoire.ownerId == "local" ? "Ben" : (ownerUsername != nil ? "@\(ownerUsername!)" : "Yükleniyor...")))
+                .font(.system(size: 15, weight: .bold))
+                .foregroundColor(isOwner || repertoire.ownerId == "local" ? .primary : .blue)
+                .lineLimit(1)
+        }
+    }
+
     /// Repertuarın güncel şarkı kimlikleri (kendi repertuarında Firestore dinleyicisinden gelir).
     private var currentSongIds: [String] {
         viewModel.repertoires.first(where: { $0.id != nil && $0.id == repertoire.id })?.songIds ?? repertoire.songIds
@@ -234,14 +246,14 @@ struct RepertoireDetailView: View {
         .safeAreaInset(edge: .top) {
             VStack {
                 HStack {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Repertuar Sahibi")
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundColor(.secondary)
-                        Text(isOwner ? "Ben" : (repertoire.ownerId == "local" ? "Ben" : (ownerUsername != nil ? "@\(ownerUsername!)" : "Yükleniyor...")))
-                            .font(.system(size: 15, weight: .bold))
-                            .foregroundColor(.primary)
-                            .lineLimit(1)
+                    if isOwner || repertoire.ownerId == "local" {
+                        ownerLabel
+                    } else {
+                        // Sahibinin herkese açık profili
+                        NavigationLink(destination: PublicProfileView(ownerId: repertoire.ownerId, username: ownerUsername)) {
+                            ownerLabel
+                        }
+                        .buttonStyle(.plain)
                     }
                     
                     Spacer()
@@ -263,6 +275,16 @@ struct RepertoireDetailView: View {
         }
         .navigationTitle(repertoire.name)
         .toolbar {
+            // Herkese açık repertuarın web adresi (gituar.com/repertuar/{kullanıcı}/{slug}/)
+            if let url = shareURL {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    ShareLink(item: url) {
+                        Image(systemName: "square.and.arrow.up")
+                    }
+                    .accessibilityLabel("Repertuarı paylaş")
+                }
+                ToolbarSpacer(.fixed, placement: .navigationBarTrailing)
+            }
             ToolbarItem(placement: .navigationBarTrailing) {
                 if isOwner {
                     Menu {
@@ -271,7 +293,7 @@ struct RepertoireDetailView: View {
                         } label: {
                             HStack {
                                 Text("Herkesle Paylaş")
-                                if repertoire.isPublic == true {
+                                if liveRepertoire.isPublic == true {
                                     Image(systemName: "checkmark")
                                 }
                             }
@@ -282,13 +304,13 @@ struct RepertoireDetailView: View {
                         } label: {
                             HStack {
                                 Text("Gizli")
-                                if repertoire.isPublic == false || repertoire.isPublic == nil {
+                                if liveRepertoire.isPublic != true {
                                     Image(systemName: "checkmark")
                                 }
                             }
                         }
                     } label: {
-                        Image(systemName: "square.and.arrow.up")
+                        Image(systemName: liveRepertoire.isPublic == true ? "globe" : "lock")
                     }
                     .accessibilityLabel("Paylaşım ayarı")
                 } else {
@@ -311,6 +333,7 @@ struct RepertoireDetailView: View {
         .task(id: currentSongIds) { await loadSongs() }
         .task {
             guard !isOwner && repertoire.ownerId != "local" else { return }
+            if let known = repertoire.ownerUsername, !known.isEmpty { ownerUsername = known; return }
             do {
                 let doc = try await Firestore.firestore().collection("users").document(repertoire.ownerId).getDocument()
                 if let data = doc.data(), let username = data["username"] as? String {

@@ -234,6 +234,49 @@ class AuthViewModel: ObservableObject {
         }
     }
 
+    // MARK: - E-posta ve şifre (web ile aynı)
+
+    func signInWithEmail(_ email: String, password: String) {
+        runEmailAuth { try await Auth.auth().signIn(withEmail: email, password: password) }
+    }
+
+    func signUpWithEmail(_ email: String, password: String) {
+        runEmailAuth { try await Auth.auth().createUser(withEmail: email, password: password) }
+    }
+
+    /// Şifre sıfırlama bağlantısı gönderir.
+    func sendPasswordReset(_ email: String) {
+        let trimmed = email.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else {
+            errorMessage = "Şifre sıfırlama için önce e-posta adresini yaz."
+            return
+        }
+        Task { @MainActor in
+            isLoading = true
+            defer { isLoading = false }
+            do {
+                try await Auth.auth().sendPasswordReset(withEmail: trimmed)
+                errorMessage = "Şifre sıfırlama bağlantısı \(trimmed) adresine gönderildi."
+            } catch {
+                errorMessage = friendlyError(error)
+            }
+        }
+    }
+
+    private func runEmailAuth(_ op: @escaping () async throws -> AuthDataResult) {
+        errorMessage = nil
+        Task { @MainActor in
+            isLoading = true
+            defer { isLoading = false }
+            do {
+                _ = try await op()
+            } catch {
+                errorMessage = (error as NSError).code == AuthErrorCode.invalidCredential.rawValue
+                    ? "E-posta ya da şifre hatalı." : friendlyError(error)
+            }
+        }
+    }
+
     // MARK: - Misafir Modu
 
     func continueAsGuest() {
@@ -262,6 +305,12 @@ class AuthViewModel: ObservableObject {
         case AuthErrorCode.userDisabled.rawValue: return "Bu hesap devre dışı bırakılmış."
         case AuthErrorCode.invalidCredential.rawValue: return "Kimlik doğrulanamadı. Lütfen tekrar dene."
         case AuthErrorCode.userNotFound.rawValue: return "Bu e-posta ile kayıtlı hesap bulunamadı."
+        case AuthErrorCode.wrongPassword.rawValue: return "Şifre hatalı."
+        case AuthErrorCode.invalidEmail.rawValue: return "E-posta adresi geçersiz."
+        case AuthErrorCode.emailAlreadyInUse.rawValue: return "Bu e-posta zaten kayıtlı. Giriş yapmayı dene."
+        case AuthErrorCode.weakPassword.rawValue: return "Şifre en az 6 karakter olmalı."
+        case AuthErrorCode.operationNotAllowed.rawValue: return "Bu giriş yöntemi henüz açık değil."
+        case AuthErrorCode.accountExistsWithDifferentCredential.rawValue: return "Bu e-posta başka bir giriş yöntemiyle kayıtlı; o yöntemle giriş yap."
         default: return error.localizedDescription
         }
     }

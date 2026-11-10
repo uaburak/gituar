@@ -22,21 +22,9 @@ struct GenericRepertoireListView: View {
                     LazyVGrid(columns: columns, spacing: 16) {
                         ForEach(repertoires) { repertoire in
                             NavigationLink(destination: RepertoireDetailView(repertoire: repertoire)) {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(repertoire.name)
-                                        .font(.system(size: 16, weight: .bold))
-                                        .foregroundColor(.primary)
-                                        .lineLimit(2)
-                                        .multilineTextAlignment(.leading)
-                                    
-                                    Text("\(repertoire.songIds.count) Şarkı")
-                                        .font(.system(size: 13, weight: .medium))
-                                        .foregroundColor(.secondary)
-                                }
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .padding(16)
-                                .glassEffect(in: .rect(cornerRadius: 20.0))
+                                RepertoireCard(repertoire: repertoire)
                             }
+                            .buttonStyle(.plain)
                         }
                     }
                     .padding(20)
@@ -46,5 +34,26 @@ struct GenericRepertoireListView: View {
         }
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+/// Repertuar kartı: Repertuarlarım, Öne Çıkanlar ve Keşfet aynı kartı kullanır.
+struct RepertoireCard: View {
+    let repertoire: Repertoire
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(repertoire.name)
+                .font(.system(size: 16, weight: .bold))
+                .foregroundColor(.primary)
+                .lineLimit(2)
+                .multilineTextAlignment(.leading)
+            Text("\(repertoire.songIds.count) Şarkı")
+                .font(.system(size: 13, weight: .medium))
+                .foregroundColor(.secondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(16)
+        .glassEffect(in: .rect(cornerRadius: 20.0))
     }
 }

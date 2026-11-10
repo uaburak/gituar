@@ -17,17 +17,22 @@ struct GituarApp: App {
     @StateObject private var viewModel = ChordViewModel()
     @StateObject private var authViewModel = AuthViewModel()
     @Environment(\.scenePhase) private var scenePhase
+    @AppStorage("appTheme") private var appTheme = "system"
 
     var body: some Scene {
         WindowGroup {
             ContentView()
                 .environmentObject(viewModel)
                 .environmentObject(authViewModel)
+                // Ayarlar › Tema
+                .preferredColorScheme(appTheme == "light" ? .light : appTheme == "dark" ? .dark : nil)
                 .onAppear {
                     AdMobManager.shared.updateConsent()
                     // Gituar Pro (StoreKit 2 + hediye Pro) — durum AdMobManager.isAdFree'yi besler
                     ProManager.shared.start()
                     InterstitialAdManager.shared.preload()
+                    // İndirilmiş şarkı kopyası (varsa) belleğe alınır
+                    OfflineStore.shared.start()
                     AppOpenAdManager.shared.preload()
                 }
                 .onOpenURL { url in

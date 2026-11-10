@@ -14,6 +14,9 @@ struct SongDetailView: View {
     @State private var loadedSongId: String?
     @State private var selectedKeyRoot: String = ""
     @AppStorage("songFontSize") private var fontSize: Double = 14
+    @AppStorage("hideChords") private var hideChords = false
+    /// Kâğıtta dokunulan akor (diyagram kartı açık)
+    @State private var tappedChord: String?
     @State private var showRepertoirePicker = false
     @State private var capoFret: Int = 0
     @State private var isNoteEditing: Bool = false
@@ -59,6 +62,15 @@ struct SongDetailView: View {
         ChordTransposer.semitoneOffset(from: currentSong.originalKey, to: selectedKeyRoot)
     }
 
+    /// Kâğıtta yazan akorlar: seçilen ton, kapo takılıysa kapo kadar aşağıda (web ile aynı; ses kapolu gerçek perdeden gelir)
+    private var sheetOffset: Int { transposeOffset - capoFret }
+
+    /// Şarkının web adresi (paylaş)
+    private var webURL: URL? {
+        guard let slug = currentSong.slug, !slug.isEmpty else { return nil }
+        return URL(string: "https://gituar.com/akor/\(currentSong.resolvedArtistSlug)/\(slug)/")
+    }
+
     // MARK: - Extracted Views (To fix compiler type-check timeout)
     
     @ViewBuilder
@@ -70,7 +82,6 @@ struct SongDetailView: View {
                     Text("Ton")
                         .font(.system(size: 13, weight: .medium))
                         .foregroundColor(.secondary)
-                    Spacer()
                     HStack(spacing: 4) {
                         Text("Orijinal: \(currentSong.originalKey)")
                             .font(.system(size: 12, weight: .medium))
@@ -81,6 +92,16 @@ struct SongDetailView: View {
                                 .foregroundColor(.blue)
                         }
                     }
+                    Spacer()
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.2)) { hideChords.toggle() }
+                        if hideChords { tappedChord = nil }
+                    } label: {
+                        Label(hideChords ? "Akorları Aç" : "Akorları Kapat", systemImage: hideChords ? "eye" : "eye.slash")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(.blue)
+                    }
+                    .accessibilityLabel(hideChords ? "Akorları göster" : "Akorları gizle")
                 }
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
@@ -266,7 +287,7 @@ struct SongDetailView: View {
 
     @ViewBuilder
     private var sheetView: some View {
-        let offset = transposeOffset
+        let offset = sheetOffset
         let preferFlats = ChordTransposer.prefersFlats(targetRoot: selectedKeyRoot, originalKey: currentSong.originalKey)
 
         VStack(alignment: .leading, spacing: 0) {
@@ -275,12 +296,15 @@ struct SongDetailView: View {
                     ForEach(sheetLines) { line in
                         Group {
                             if line.isChordLine {
-                                Text(ChordTransposer.transpose(line.text, by: offset, preferFlats: preferFlats))
-                                    .font(.system(size: fontSize, weight: .semibold))
-                                    .tracking(-0.2)
-                                    .foregroundColor(.blue)
-                                    .lineLimit(1)
-                                    .fixedSize(horizontal: true, vertical: false)
+                                if !hideChords {
+                                    Text(Self.tappableChords(ChordTransposer.transpose(line.text, by: offset, preferFlats: preferFlats)))
+                                        .font(.system(size: fontSize, weight: .semibold))
+                                        .tracking(-0.2)
+                                        .foregroundColor(.blue)
+                                        .tint(.blue)
+                                        .lineLimit(1)
+                                        .fixedSize(horizontal: true, vertical: false)
+                                }
                             } else {
                                 Text(line.text)
                                     .font(.system(size: fontSize))
@@ -299,6 +323,50 @@ struct SongDetailView: View {
                 .frame(width: 0, height: 0)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        // Akora dokununca: diyagram kartı ve ses (akorlar bağlantı olarak işaretli; satır hizası bozulmaz)
+        .environment(\.openURL, OpenURLAction { url in
+            guard url.scheme == "gituarchord", let name = url.host(percentEncoded: false) ?? url.host else { return .discarded }
+            let chord = name.removingPercentEncoding ?? name
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) { tappedChord = chord }
+            if let shape = ChordShapes.shapes(for: chord).first {
+                let defaults = UserDefaults.standard
+                if defaults.object(forKey: "haptics") as? Bool ?? true {
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                }
+                // Ayarlar › Dokununca Sesi Çal (varsayılan açık); kapalıyken kartta "Çal" ile çalınır
+                if defaults.object(forKey: "chordSoundOnTap") as? Bool ?? true {
+                    ChordPlayer.shared.play(frets: shape.frets, capo: capoFret)
+                }
+            }
+            return .handled
+        })
+    }
+
+    /// Akor satırındaki her akoru dokunulabilir bağlantı yapar (gituarchord://Am).
+    static func tappableChords(_ line: String) -> AttributedString {
+        var out = AttributedString()
+        var token = ""
+        func flush() {
+            guard !token.isEmpty else { return }
+            var part = AttributedString(token)
+            if ChordShapes.simplify(token) != nil,
+               let encoded = token.addingPercentEncoding(withAllowedCharacters: .alphanumerics),
+               let url = URL(string: "gituarchord://\(encoded)") {
+                part.link = url
+            }
+            out += part
+            token = ""
+        }
+        for ch in line {
+            if ch.isWhitespace || "-–—,|()[]".contains(ch) {
+                flush()
+                out += AttributedString(String(ch))
+            } else {
+                token.append(ch)
+            }
+        }
+        flush()
+        return out
     }
 
     @ViewBuilder
@@ -364,6 +432,17 @@ struct SongDetailView: View {
                         .foregroundColor(.primary)
                 }
                 .accessibilityLabel("Repertuara ekle")
+            }
+        }
+        // Paylaş: yer iminin yanında ayrı bir yuvarlak düğme (ortak arka plan yok)
+        if !isApprovalMode, let url = webURL {
+            ToolbarSpacer(.fixed, placement: .primaryAction)
+            ToolbarItem(placement: .primaryAction) {
+                ShareLink(item: url) {
+                    Image(systemName: "square.and.arrow.up")
+                        .foregroundColor(.primary)
+                }
+                .accessibilityLabel("Paylaş")
             }
         }
 
@@ -435,6 +514,16 @@ struct SongDetailView: View {
                 .scrollEdgeEffectStyle(.soft)
             }
             .frame(width: geo.size.width, height: geo.size.height)
+            .overlay(alignment: .bottom) {
+                if let chord = tappedChord, !isFocusMode {
+                    ChordPopupCard(chord: chord, capo: capoFret) {
+                        withAnimation(.easeOut(duration: 0.2)) { tappedChord = nil }
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 12)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+            }
             .id(currentSong.docId)
             .transition(.asymmetric(
                 insertion: .move(edge: slideDirection == .trailing ? .trailing : .leading),
@@ -470,6 +559,7 @@ struct SongDetailView: View {
             }
         }
         .onChange(of: currentSong.docId) { _, _ in
+            tappedChord = nil
             loadStateForCurrentSong()
             InterstitialAdManager.shared.registerSongOpen()
             
@@ -479,6 +569,9 @@ struct SongDetailView: View {
             isPaused = false
             isFinished = false
         }
+        // Ton ya da kapo değişince kâğıttaki akor adları değişir: açık akor kartı kapanır
+        .onChange(of: capoFret) { _, _ in tappedChord = nil }
+        .onChange(of: selectedKeyRoot) { _, _ in tappedChord = nil }
         .onChange(of: autoScrollSpeed) { _, newValue in
             autoScroller.pixelsPerSecond = CGFloat(newValue)
         }
@@ -748,7 +841,15 @@ struct SongDetailView: View {
                 // UGC Added By Notice & Legal Text
                 VStack(alignment: .leading, spacing: 12) {
                     HStack {
-                        if let uploader = uploaderUsername, !uploader.isEmpty {
+                        if let uploader = uploaderUsername, !uploader.isEmpty, let ownerId = currentSong.ownerId, !ownerId.isEmpty {
+                            // Paylaşanın profili (web'deki /kullanici/… ile aynı)
+                            NavigationLink(destination: PublicProfileView(ownerId: ownerId, username: uploader)) {
+                                Text("@\(uploader)")
+                                    .font(.system(size: 13, weight: .semibold))
+                                    .foregroundColor(.blue)
+                            }
+                            .buttonStyle(.plain)
+                        } else if let uploader = uploaderUsername, !uploader.isEmpty {
                             Text("@\(uploader)")
                                 .font(.system(size: 13, weight: .semibold))
                                 .foregroundColor(.primary)

@@ -30,25 +30,27 @@ struct MinimalCategoryCard: View {
 struct MinimalListCard: View {
     let title: String
     let icon: String
-    
+
+    /// Ana sayfadaki bütün küçük kartlar tek ölçüde: sabit yükseklik, aynı ikon kutusu, aynı yazı.
+    static let height: CGFloat = 52
+
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 8) {
             Image(systemName: icon)
-                .font(.system(size: 18))
+                .font(.system(size: 17, weight: .regular))
                 .foregroundColor(.primary)
-                .frame(width: 24)
-            
+                .frame(width: 22, height: 22)
+
             Text(title)
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundColor(.primary)
                 .lineLimit(1)
-                .minimumScaleFactor(0.8)
-            
+
             Spacer(minLength: 0)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 14)
-        .glassEffect(in: .rect(cornerRadius: 20.0))
+        .padding(.horizontal, 12)
+        .frame(maxWidth: .infinity, minHeight: Self.height, maxHeight: Self.height, alignment: .leading)
+        .glassEffect(in: .capsule)
     }
 }
 

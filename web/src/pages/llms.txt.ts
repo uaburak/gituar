@@ -18,7 +18,7 @@ export const GET: APIRoute = ({ site }) => {
 - Sanatçı sayfası adresi: ${base}/sanatci/{sanatçı}/
 - Akorlar müzik eğitimi amacıyla yayımlanır; eserlerin hakları sahiplerine aittir.
 - iPhone uygulaması: ${APP_STORE_URL}
-- İletişim: iletisim@gituar.com
+- İletişim: info@gituar.com
 
 ## Ana bölümler
 

@@ -8,7 +8,7 @@ const faq: [string, string][] = [
   ["Gituar'ı telefonumun ana ekranına nasıl eklerim?", "En iyi deneyim için App Store'daki Gituar uygulamasını indir. Android'de tarayıcının menüsünden \"Ana ekrana ekle\" seçeneğini kullanabilirsin."],
   ["Akor gönderebilir miyim?", "Evet. iPhone uygulamasında giriş yaptıktan sonra yeni şarkı ekleyebilirsin. Gönderdiğin akorlar editör onayından sonra yayımlanır."],
   ["Gönderdiğim akor neden yayımlanmadı?", "Eksik ya da hatalı akorlar, başka bir kaynaktan birebir kopyalanmış içerikler ve kullanım şartlarına aykırı gönderiler onaylanmaz. Farklı bir sorun olduğunu düşünüyorsan bize yaz."],
-  ["Akorda hata buldum, ne yapayım?", "Şarkı sayfasının altındaki \"Hata bildir\" bağlantısını kullan ya da iletisim@gituar.com adresine yaz."],
+  ["Akorda hata buldum, ne yapayım?", "Şarkı sayfasının altındaki \"Hata bildir\" bağlantısını kullan ya da info@gituar.com adresine yaz."],
   ["Gituar Pro aboneliğini nasıl iptal ederim?", "Abonelik App Store üzerinden yönetilir. iPhone'da Ayarlar > adın > Abonelikler bölümünden iptal edebilirsin."],
 ];
 const jsonLd = { "@context": "https://schema.org", "@type": "FAQPage", mainEntity: faq.map(([q, a]) => ({ "@type": "Question", name: q, acceptedAnswer: { "@type": "Answer", text: a } })) };
@@ -16,7 +16,7 @@ const jsonLd = { "@context": "https://schema.org", "@type": "FAQPage", mainEntit
 <LegalPage title="Hakkında" path="/hakkinda/" updated="6 Kasım 2026" description="Gituar nedir? Kullanıcıların paylaştığı Türkçe şarkı akorları, transpoze, kapo ve repertuarlar. Sık sorulan sorular ve iletişim.">
   <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
   <p><strong>Gituar</strong>, Türkçe şarkıların gitar akorlarını bir araya getiren ücretsiz bir akor sitesi ve iPhone uygulamasıdır. Akorları kullanıcılar ekler, editörler onayladıktan sonra yayımlanır. Akorları kendi tonuna transpoze edebilir, kapo hesabı yapabilir, otomatik kaydırmayla çalabilir ve şarkılarını repertuarlarda toplayabilirsin.</p>
-  <p>Öneri, görüş ve şikayetlerini <a href="mailto:iletisim@gituar.com">iletisim@gituar.com</a> adresine yazabilirsin.</p>
+  <p>Öneri, görüş ve şikayetlerini <a href="mailto:info@gituar.com">info@gituar.com</a> adresine yazabilirsin.</p>
   <h2>Ses kayıtları</h2>
   <p>Akorlara tıklayınca çalan gitar sesleri, University of Iowa Electronic Music Studios kayıtlarının <a href="https://github.com/nbrosowsky/tonejs-instruments" rel="noopener">tonejs-instruments</a> projesinde düzenlenmiş hâlidir; <a href="https://creativecommons.org/licenses/by/3.0/" rel="noopener license">CC BY 3.0</a> lisansıyla kullanılır. Kayıtları kısalttık ve küçük dosyalara dönüştürdük.</p>
   <ListSection title="Sık sorulan sorular" icon="none" open>

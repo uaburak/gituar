@@ -219,7 +219,7 @@ export function homeJsonLd(base: string) {
         url: `${base}/`,
         logo: { "@type": "ImageObject", url: `${base}/apple-touch-icon.png`, width: 180, height: 180 },
         image: `${base}/og.png`,
-        email: "iletisim@gituar.com",
+        email: "info@gituar.com",
         description: "Türkçe şarkıların gitar akorları: transpoze, kapo, otomatik kaydırma ve repertuarlar. Web ve iPhone.",
         knowsLanguage: "tr",
         areaServed: { "@type": "Country", name: "Türkiye" },

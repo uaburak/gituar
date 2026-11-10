@@ -5,14 +5,14 @@ struct LegalContactView: View {
         List {
             Section(header: Text("İletişim")) {
                 Button(action: {
-                    if let url = URL(string: "mailto:iletisim@gituar.com") {
+                    if let url = URL(string: "mailto:info@gituar.com") {
                         UIApplication.shared.open(url)
                     }
                 }) {
                     HStack {
                         Image(systemName: "envelope.fill")
                             .foregroundColor(.blue)
-                        Text("iletisim@gituar.com")
+                        Text("info@gituar.com")
                             .foregroundColor(.primary)
                         Spacer()
                         Image(systemName: "arrow.up.right")
@@ -59,7 +59,7 @@ struct TermsOfUseView: View {
                     .foregroundStyle(.secondary)
                 LegalSection(title: "1. İçerik ve telif hakları", paragraphs: [
                     "Gituar'daki akorları ve sözleri kullanıcılar ekler; içerikler müzik eğitimi amacıyla yayımlanır. Eserlerin tüm hakları sahiplerine aittir.",
-                    "Bir içeriğin telif hakkını ihlal ettiğini düşünüyorsan şarkı sayfasındaki \"Şikayet Et\" ile ya da iletisim@gituar.com adresinden bildir. Geçerli bildirimler en geç 48 saat içinde yayından kaldırılır.",
+                    "Bir içeriğin telif hakkını ihlal ettiğini düşünüyorsan şarkı sayfasındaki \"Şikayet Et\" ile ya da info@gituar.com adresinden bildir. Geçerli bildirimler en geç 48 saat içinde yayından kaldırılır.",
                     "İçeriklerin doğruluğu garanti edilmez; akorlar hata içerebilir.",
                 ])
                 LegalSection(title: "2. Kullanıcı içerikleri ve sıfır tolerans", paragraphs: [
@@ -77,7 +77,7 @@ struct TermsOfUseView: View {
                     "İçeriklerin izinsiz ticari amaçla ya da otomatik araçlarla toplu kopyalanması, altyapıya zarar verecek girişimler ve tersine mühendislik yasaktır.",
                 ])
                 LegalSection(title: "6. Değişiklikler ve uygulanacak hukuk", paragraphs: [
-                    "Bu şartları gerektiğinde güncelleyebiliriz. Şartlara Türk hukuku uygulanır; uyuşmazlıklarda İstanbul mahkemeleri yetkilidir. Sorular için: iletisim@gituar.com",
+                    "Bu şartları gerektiğinde güncelleyebiliriz. Şartlara Türk hukuku uygulanır; uyuşmazlıklarda İstanbul mahkemeleri yetkilidir. Sorular için: info@gituar.com",
                 ])
             }
             .padding()
@@ -110,7 +110,7 @@ struct PrivacyPolicyView: View {
                     "Hizmet sağlayıcılarımız Google (Firebase, AdMob) ve Apple'dır; veriler yalnızca hizmetin sunulması için aktarılır, satılmaz. Hesabını sildiğinde verilerin silinir.",
                 ])
                 LegalSection(title: "Hakların", paragraphs: [
-                    "Verilerine erişme, düzeltme, silme ve itiraz hakların var. Taleplerin için iletisim@gituar.com adresine yaz; en geç 30 gün içinde yanıt veririz. Gituar 13 yaşın altındaki çocuklara yönelik değildir.",
+                    "Verilerine erişme, düzeltme, silme ve itiraz hakların var. Taleplerin için info@gituar.com adresine yaz; en geç 30 gün içinde yanıt veririz. Gituar 13 yaşın altındaki çocuklara yönelik değildir.",
                 ])
             }
             .padding()

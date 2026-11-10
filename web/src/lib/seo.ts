@@ -4,6 +4,7 @@ import { parse, chordSpans } from "@shared/chords";
 import { artistPath, songPath, type ArtistGroup } from "@shared/catalog";
 import type { CatalogSong } from "@shared/types";
 import { SITE_NAME, APP_STORE_URL, APP_STORE_ID } from "./site.ts";
+import { songChords } from "./chord-stats.ts";
 
 /** Base.astro her başlığın sonuna bunu ekler; sığdırma hesabı bu ekle birlikte yapılır. */
 export const TITLE_SUFFIX = ` · ${SITE_NAME}`;
@@ -47,11 +48,24 @@ export function looksTurkish(text: string): boolean {
 // ---------- Şarkı sayfası ----------
 
 /** Başlık ve son ekin sığıp sığmadığı: `bare` true ise Base " · Gituar" eklemez. */
-/** Sekme/Google başlığı: "Sanatçı - Şarkı - Akor" (kullanıcının istediği biçim; " · Gituar" eki yok). Uzunsa kısaltılır. */
+/**
+ * Sekme/Google başlığı: "Sanatçı - Şarkı Akor (Orijinal Ton ve Kolay)" (" · Gituar" eki yok).
+ * "Şarkı Akor" yan yana: aramalar "<şarkı> akor" biçiminde. "Kolay" yalnızca şarkı açık akorlarla ya da kapoyla
+ * kolay çalınabiliyorsa yazılır (sayfadaki "Kapo ile kolay" bilgisiyle tutarlı). Uzunsa ek ve sanatçı kısaltılır.
+ */
 export function songTitleParts(song: CatalogSong): { title: string; bare: boolean } {
   const name = song.songName.replace(/\s*\((?:ft\.?|feat\.?)[^)]*\)\s*/i, " ").trim();
   const artist = song.artist.split(/\s*(?:&|\bft\.?\s|\bfeat\.?\s)\s*/i)[0].trim() || song.artist;
-  const candidates = [`${song.artist} - ${song.songName} - Akor`, `${artist} - ${name} - Akor`, `${name} - Akor`];
+  const sc = songChords(song);
+  const easy = sc.chords.length > 0 && (sc.level === "kolay" || Boolean(sc.capo));
+  const tag = easy ? " (Orijinal Ton ve Kolay)" : " (Orijinal Ton)";
+  const candidates = [
+    `${song.artist} - ${song.songName} Akor${tag}`,
+    `${artist} - ${name} Akor${tag}`,
+    `${artist} - ${name} Akor`,
+    `${name} Akor${tag}`,
+    `${name} Akor`,
+  ];
   for (const c of candidates) if (c.length <= TITLE_MAX) return { title: c, bare: true };
   return { title: candidates[candidates.length - 1], bare: true };
 }

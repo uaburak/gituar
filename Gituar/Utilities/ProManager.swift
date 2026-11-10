@@ -7,7 +7,7 @@ import FirebaseFirestore
 // MARK: - ProManager
 //
 // "Gituar Pro" iki yoldan gelir:
-// 1. App Store aboneliği — aylık 99 TL, otomatik yenilenir (StoreKit 2). Sonuç `users/{uid}.pro` alanına yazılır (web okur).
+// 1. App Store aboneliği — aylık ₺99,99, otomatik yenilenir (StoreKit 2). Sonuç `users/{uid}.pro` alanına yazılır (web okur).
 // 2. Hediye Pro — yöneticinin verdiği `users/{uid}.proGrant = { active, until?, note, by, at }`. Yalnızca yönetici yazabilir
 //    (Firestore kuralları); uygulama yalnızca okur.
 // İkisinden biri geçerliyse kullanıcı Pro sayılır ve uygulamada hiçbir reklam yüklenmez (AdMobManager.isAdFree).

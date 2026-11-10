@@ -8,7 +8,7 @@ struct ProView: View {
     @State private var showError = false
 
     private var priceText: String {
-        pro.monthlyProduct?.displayPrice ?? "₺99"
+        pro.monthlyProduct?.displayPrice ?? "₺99,99"
     }
 
     var body: some View {

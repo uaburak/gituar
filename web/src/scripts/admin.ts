@@ -1,7 +1,8 @@
 // Yönetim: onay bekleyen kullanıcı şarkıları, şikayetler ve Pro üyeler (yalnızca users/{uid}.isAdmin; kurallar sunucuda da zorlar).
 import type { User } from "firebase/auth";
-import { firebaseReady, currentUser, listReports, setReportStatus, findUserByUsername, grantPro, revokePro, listProUsers } from "../lib/firebase-client.ts";
-import { apiIsAdmin, listPending, setSongStatus, deleteSong } from "../lib/api-admin.ts";
+import { firebaseReady, currentUser, listReports, setReportStatus, findUserByUsername, grantPro, revokePro, listProUsers, createPublicRepertoires } from "../lib/firebase-client.ts";
+import { apiIsAdmin, listPending, setSongStatus, deleteSong, validImport, importSong, resolveSongRefs, type ImportableSong, type BulkRepertoireEntry } from "../lib/api-admin.ts";
+import { getProfile } from "../lib/user-data.ts";
 import { esc, songsByIds } from "../lib/search-client.ts";
 
 const $ = (id: string) => document.getElementById(id)!;
@@ -149,6 +150,90 @@ function setupProForm() {
   });
 }
 
+async function readJson<T>(input: HTMLInputElement): Promise<T> {
+  const file = input.files?.[0];
+  if (!file) throw new Error("Dosya seçilmedi");
+  return JSON.parse(await file.text()) as T;
+}
+
+/** JSON'dan şarkı içe aktarma: geçerli olanlar sırayla API'ye gönderilir, ilerleme gösterilir. */
+function setupSongImport(username: string) {
+  const file = $("imp-file") as HTMLInputElement, start = $("imp-start") as HTMLButtonElement, msg = $("imp-msg"), preview = $("imp-preview");
+  let valid: ImportableSong[] = [];
+  file.addEventListener("change", async () => {
+    start.disabled = true;
+    preview.innerHTML = "";
+    try {
+      const data = await readJson<ImportableSong[]>(file);
+      if (!Array.isArray(data) || !data.length) throw new Error("Dosyanın [{\"songName\", \"artist\", \"originalKey\", \"content\"}] biçiminde olduğundan emin ol.");
+      valid = data.filter(validImport);
+      const skipped = data.length - valid.length;
+      msg.textContent = `${valid.length} şarkı yüklenmeye hazır${skipped ? ` · ${skipped} şarkı eksik alan nedeniyle atlanacak` : ""}.`;
+      preview.innerHTML = valid.slice(0, 50).map((x) => `<div class="row"><span class="row-body"><span class="row-title">${esc(x.songName!)} <span class="muted">· ${esc(x.artist!)}</span></span><span class="row-sub">${esc(x.originalKey!)}</span></span></div>`).join("")
+        + (valid.length > 50 ? `<div class="row muted small">… ve ${valid.length - 50} şarkı daha</div>` : "");
+      start.disabled = valid.length === 0;
+    } catch (e) {
+      msg.textContent = "Geçersiz JSON: " + (e as Error).message;
+    }
+  });
+  start.addEventListener("click", async () => {
+    start.disabled = true;
+    file.disabled = true;
+    let ok = 0, failed = 0, last = "";
+    for (const x of valid) {
+      try { await importSong(me, x, username); ok++; } catch (e) { failed++; last = (e as Error).message; }
+      msg.textContent = `Yükleniyor… ${ok + failed}/${valid.length}`;
+    }
+    msg.textContent = `${ok} şarkı yayına eklendi${failed ? ` · ${failed} şarkı eklenemedi (${last})` : ""}.`;
+    file.disabled = false;
+    file.value = "";
+    preview.innerHTML = "";
+  });
+}
+
+/** Toplu repertuar yükleme: şarkı gösterimleri kimliğe çevrilir, bulunamayanlar raporlanır. */
+function setupBulkImport(username: string) {
+  const file = $("bulk-file") as HTMLInputElement, start = $("bulk-start") as HTMLButtonElement, msg = $("bulk-msg"), preview = $("bulk-preview");
+  let entries: BulkRepertoireEntry[] = [];
+  let resolved: Map<string, string> = new Map();
+  file.addEventListener("change", async () => {
+    start.disabled = true;
+    preview.innerHTML = "";
+    try {
+      const data = await readJson<BulkRepertoireEntry[]>(file);
+      if (!Array.isArray(data) || !data.length || data.some((e) => typeof e?.name !== "string" || !Array.isArray(e.songIds))) throw new Error("Biçim [{\"name\", \"songIds\": [...]}] olmalı.");
+      entries = data.map((e) => ({ name: e.name.trim(), songIds: e.songIds.map(String) })).filter((e) => e.name);
+      msg.textContent = "Şarkılar bulunuyor…";
+      const r = await resolveSongRefs(entries.flatMap((e) => e.songIds));
+      resolved = r.ids;
+      const total = entries.reduce((n, e) => n + e.songIds.length, 0);
+      msg.textContent = `${entries.length} repertuar · ${total - r.missing.length}/${total} şarkı bulundu${r.missing.length ? ` · bulunamayanlar repertuara eklenmez` : ""}.`;
+      preview.innerHTML = entries.map((e) => {
+        const miss = e.songIds.filter((x) => !resolved.has(x.trim()));
+        return `<div class="row"><span class="row-body"><span class="row-title">${esc(e.name)}</span><span class="row-sub">${e.songIds.length - miss.length} şarkı${miss.length ? ` · bulunamadı: ${miss.map(esc).join(", ")}` : ""}</span></span></div>`;
+      }).join("");
+      start.disabled = entries.length === 0;
+    } catch (e) {
+      msg.textContent = "Geçersiz JSON: " + (e as Error).message;
+    }
+  });
+  start.addEventListener("click", async () => {
+    if (!username) { msg.textContent = "Önce Hesabım sayfasından kullanıcı adını seç."; return; }
+    start.disabled = true;
+    file.disabled = true;
+    try {
+      const out = entries.map((e) => ({ name: e.name, songIds: [...new Set(e.songIds.map((x) => resolved.get(x.trim())).filter((x): x is string => Boolean(x)))] }));
+      const ok = await createPublicRepertoires(me.uid, username, out, (n) => { msg.textContent = `Yükleniyor… ${n}/${out.length}`; });
+      msg.textContent = `${ok} repertuar herkese açık olarak eklendi.`;
+    } catch (e) {
+      msg.textContent = "Yüklenemedi: " + (e as Error).message;
+    }
+    file.disabled = false;
+    file.value = "";
+    preview.innerHTML = "";
+  });
+}
+
 (async () => {
   if (!firebaseReady) { status.textContent = "Web girişi yapılandırılmamış."; return; }
   const user = await currentUser();
@@ -160,8 +245,13 @@ function setupProForm() {
   $("admin-pending").hidden = false;
   $("admin-reports").hidden = false;
   $("admin-pro").hidden = false;
+  $("admin-import").hidden = false;
+  $("admin-bulk").hidden = false;
   $("admin-refresh").hidden = false;
   setupProForm();
+  const username = (await getProfile(user.uid).catch(() => null))?.username ?? "";
+  setupSongImport(username || user.displayName || "");
+  setupBulkImport(username);
   status.textContent = "";
   $("report-filter").querySelectorAll<HTMLButtonElement>("[data-f]").forEach((b) =>
     b.addEventListener("click", () => {

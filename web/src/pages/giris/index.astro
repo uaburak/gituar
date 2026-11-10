@@ -10,7 +10,10 @@ import Icon from "../../components/Icon.astro";
       <p class="muted small">Repertuarların web'de ve iPhone'da aynı kalsın.</p>
       <div id="auth-unavailable" class="alert" hidden>Web girişi henüz yapılandırılmadı. Firebase web uygulaması kimlikleri eklendiğinde açılacak.</div>
       <div id="auth-error" class="alert alert-error" hidden style="margin-bottom:12px"></div>
-      <button class="btn btn-block" id="btn-google" type="button" style="background:var(--surface);border:1px solid var(--hairline)"><Icon name="google" class="icon-sm" /> Google ile devam et</button>
+      <div id="social-btns" class="auth-social">
+        <button class="btn btn-block btn-apple" id="btn-apple" type="button"><Icon name="apple" class="icon-sm" /> Apple ile giriş yap</button>
+        <button class="btn btn-block" id="btn-google" type="button" style="background:var(--surface);border:1px solid var(--hairline)"><Icon name="google" class="icon-sm" /> Google ile devam et</button>
+      </div>
       <form id="email-form">
         <div class="divider">ya da e-postayla</div>
         <div class="field"><label for="email">E-posta</label><input class="input" id="email" name="email" type="email" placeholder="ornek@eposta.com" autocomplete="email" required /></div>

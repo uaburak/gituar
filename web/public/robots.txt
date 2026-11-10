@@ -6,5 +6,6 @@ Disallow: /repertuarlarim/
 Disallow: /repertuar/
 Disallow: /hesap/
 Disallow: /ara/
+Disallow: /sarkilarim/
 
 Sitemap: https://gituar.com/sitemap-index.xml

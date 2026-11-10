@@ -1055,3 +1055,49 @@ a.rp-owner:hover { color: var(--accent-text); text-decoration: none; }
 /* Yönetim · Pro üyeler */
 .admin-pro-form { display: grid; grid-template-columns: 1.2fr 1.4fr auto auto; gap: 8px; margin: 12px 0 8px; }
 @media (max-width: 700px) { .admin-pro-form { grid-template-columns: 1fr 1fr; } }
+
+/* ---- Paylaşan satırı: @kullanıcı  Engelle | Şikayet Et (iOS ile aynı düzen) ---- */
+.rp-by { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 4px !important; }
+.rp-by-user { font-size: 14px; font-weight: 700; color: var(--text); }
+a.rp-by-user:hover { text-decoration: underline; }
+.rp-by-actions { display: inline-flex; align-items: center; gap: 8px; }
+.rp-by-sep { color: var(--text-3); }
+
+/* ---- Kişisel not ---- */
+.rp-note { margin: 0 0 16px; display: grid; gap: 8px; }
+.rp-note-text { height: auto; min-height: 76px; padding: 10px 14px; resize: vertical; line-height: 1.45; }
+.rp-note-actions { display: flex; align-items: center; justify-content: flex-end; gap: 12px; }
+
+/* ---- Giriş: Apple ---- */
+.auth-social { display: grid; gap: 10px; }
+.btn-apple { background: #000; color: #fff; }
+:root[data-theme="dark"] .btn-apple { background: #fff; color: #000; }
+
+/* ---- Şarkılarım ---- */
+.ms-toolbar { display: flex; justify-content: flex-end; margin: 8px 0 12px; }
+.ms-row { display: flex; gap: 12px; flex-wrap: wrap; }
+.ms-grow { flex: 1 1 200px; }
+.ms-list .ms-row { width: 100%; border: 0; background: none; cursor: pointer; text-align: left; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.ms-badge { flex: none; display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+.ms-b-green { background: rgba(52,199,89,.15); color: #1f9d48; }
+.ms-b-orange { background: rgba(255,149,0,.15); color: #c96f00; }
+.ms-b-gray { background: rgba(142,142,147,.18); color: var(--text-2, #6e6e73); }
+.ms-b-red { background: rgba(255,59,48,.14); color: #e0281e; }
+.ms-empty { text-align: center; padding: 32px 16px; }
+.ms-empty-title { font-weight: 600; margin: 0 0 6px; }
+.ms-editor { max-width: 760px; }
+.ms-editor h2 { margin: 8px 0 4px; }
+.ms-status-line { margin: 8px 0 12px; font-size: 13px; }
+.ms-form { margin-top: 16px; }
+.ms-textarea { height: auto; min-height: 360px; padding: 12px 14px; resize: vertical; white-space: pre; overflow-x: auto; line-height: 1.5; font-size: 14px; }
+.ms-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.ms-delete { margin-left: auto; }
+.terms-dialog { width: min(92vw, 460px) !important; }
+.terms-list { margin: 12px 0; padding-left: 18px; display: grid; gap: 8px; font-size: 14px; }
+
+/* ---- Hesabım: engellenenler ---- */
+.acc-blocked { list-style: none; margin: 8px 0 0; padding: 0; }
+
+/* ---- Yönetim: içe aktarma ---- */
+.admin-import { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 8px 0; }
+.admin-import .input { flex: 1 1 260px; padding-top: 9px; }

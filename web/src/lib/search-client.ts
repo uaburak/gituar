@@ -9,12 +9,22 @@ export interface SongEntry {
   /** şarkı adı */ s: string;
   /** ton */ k: string;
   /** sayfa yolu */ p: string;
+  /** paylaşan kullanıcı (engelleme süzgeci) */ o?: string;
 }
 
-interface ApiListSong { id: string; artist: string; title: string; originalKey: string; artistSlug: string; slug: string }
+interface ApiListSong { id: string; artist: string; title: string; originalKey: string; artistSlug: string; slug: string; ownerId?: string | null }
 
 export function toEntry(s: ApiListSong): SongEntry {
-  return { i: s.id, a: s.artist, s: s.title, k: s.originalKey, p: `/akor/${s.artistSlug}/${s.slug}/` };
+  return { i: s.id, a: s.artist, s: s.title, k: s.originalKey, p: `/akor/${s.artistSlug}/${s.slug}/`, ...(s.ownerId ? { o: s.ownerId } : {}) };
+}
+
+/** Engellenen kullanıcıların şarkıları listelerden çıkarılır (iOS ile aynı; liste girişte Firestore'dan yenilenir). */
+function visible(list: SongEntry[]): SongEntry[] {
+  let blocked: string[] = [];
+  try { blocked = JSON.parse(localStorage.getItem("gituar-blocked") ?? "[]"); } catch {}
+  if (!blocked.length) return list;
+  const set = new Set(blocked);
+  return list.filter((e) => !e.o || !set.has(e.o));
 }
 
 async function get<T>(path: string): Promise<T> {
@@ -38,7 +48,7 @@ export function searchAll(query: string, limit = 50): Promise<SearchResult> {
       key,
       get<{ songs: ApiListSong[]; artists: { slug: string; name: string; songs: number }[] }>(`/v1/search?q=${encodeURIComponent(q)}&limit=${limit}`)
         .then((r) => ({
-          songs: r.songs.map(toEntry),
+          songs: visible(r.songs.map(toEntry)),
           artists: r.artists.map((a) => ({ name: a.name, count: a.songs, path: `/sanatci/${a.slug}/` })),
         }))
         .catch((e) => { cache.delete(key); throw e; }),
@@ -74,7 +84,7 @@ export async function songExists(id: string): Promise<boolean> {
 }
 
 export async function newestSongs(limit = 100): Promise<SongEntry[]> {
-  return (await get<{ songs: ApiListSong[] }>(`/v1/songs?sort=new&limit=${limit}`)).songs.map(toEntry);
+  return visible((await get<{ songs: ApiListSong[] }>(`/v1/songs?sort=new&limit=${limit}`)).songs.map(toEntry));
 }
 
 /** Repertuarım düzenindeki şarkı satırı: `<ul class="rp-list">` içine `<li>`. */

@@ -1,6 +1,7 @@
 // Her sayfa isteğinden önce şarkı dizini hazır olsun (bellekte varsa anında döner; değişiklik kontrolü arka planda).
 import { defineMiddleware } from "astro:middleware";
 import { loadCatalog } from "./lib/catalog.ts";
+import { sitemapPart } from "./lib/sitemap-part.ts";
 
 export const onRequest = defineMiddleware(async (context, next) => {
   // www.gituar.com → gituar.com (kalıcı)
@@ -14,6 +15,10 @@ export const onRequest = defineMiddleware(async (context, next) => {
     const ctx = (context.locals as { runtime?: { ctx?: { waitUntil(p: Promise<unknown>): void } } }).runtime?.ctx;
     await loadCatalog(ctx ? (p) => ctx.waitUntil(p) : undefined);
   }
+  // Site haritası parçaları /sitemap-0.xml, /sitemap-1.xml …: sayı katalogla artar (dosya başına sabit rota yok;
+  // trailingSlash: "always" değişken .xml rotalarını eşleştirmediği için burada karşılanır)
+  const part = /^\/sitemap-(\d+)\.xml$/.exec(path);
+  if (part) return sitemapPart(Number(part[1]))(context as Parameters<ReturnType<typeof sitemapPart>>[0]);
   const res = await next();
   res.headers.set("X-Content-Type-Options", "nosniff");
   res.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");

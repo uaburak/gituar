@@ -5,7 +5,7 @@ import Base from "../../layouts/Base.astro";
 <Base title="Yönetim" noindex ads={false}>
   <div class="page-head">
     <div class="title-row">
-      <div><h1>Yönetim</h1><p id="admin-meta">Onay bekleyen şarkılar, şikayetler ve Pro üyeler · iPhone uygulamasındaki yönetim ile aynı veriler</p></div>
+      <div><h1>Yönetim</h1><p id="admin-meta">Onay bekleyen şarkılar, şikayetler, Pro üyeler ve toplu içe aktarma · iPhone uygulamasındaki yönetim ile aynı veriler</p></div>
       <button class="btn" id="admin-refresh" type="button" hidden>Yenile</button>
     </div>
   </div>
@@ -43,6 +43,28 @@ import Base from "../../layouts/Base.astro";
     </form>
     <p class="muted small" id="pro-msg"></p>
     <div class="list" id="pro-list"></div>
+  </section>
+
+  <section class="section" id="admin-import" hidden>
+    <div class="section-head"><h2>JSON'dan şarkı içe aktar</h2></div>
+    <p class="muted small">iPhone'daki içe aktarmayla aynı biçim: <code>[&#123;"songName", "artist", "originalKey", "content"&#125;]</code>. Şarkılar doğrudan yayına girer.</p>
+    <div class="admin-import">
+      <input type="file" accept="application/json,.json" id="imp-file" class="input" aria-label="JSON dosyası" />
+      <button class="btn btn-primary" type="button" id="imp-start" disabled>Yükle</button>
+    </div>
+    <p class="muted small" id="imp-msg"></p>
+    <div class="list" id="imp-preview"></div>
+  </section>
+
+  <section class="section" id="admin-bulk" hidden>
+    <div class="section-head"><h2>Toplu repertuar yükle</h2></div>
+    <p class="muted small">Biçim: <code>[&#123;"name": "Başlangıç için", "songIds": ["…"]&#125;]</code>. Şarkı; kimliğiyle, <code>sanatçı-slug/şarkı-slug</code> adresiyle ya da <code>Sanatçı - Şarkı</code> adıyla yazılabilir. Repertuarlar herkese açık olarak (Editörün Seçimleri) senin adına eklenir.</p>
+    <div class="admin-import">
+      <input type="file" accept="application/json,.json" id="bulk-file" class="input" aria-label="JSON dosyası" />
+      <button class="btn btn-primary" type="button" id="bulk-start" disabled>Yükle</button>
+    </div>
+    <p class="muted small" id="bulk-msg"></p>
+    <div class="list" id="bulk-preview"></div>
   </section>
 
   <p class="muted small" id="admin-status" style="margin-top:16px">Yükleniyor…</p>

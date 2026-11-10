@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 
 // Canlı adres: gituar.com. Sayfalar istek anında üretilir (Cloudflare Worker); şarkılar Gituar API'sinden (D1) gelir.
 // Değişmeyen sayfalar (rehberler, yasal sayfalar, giriş…) `export const prerender = true` ile derlemede hazırlanır.
-// Site haritası: src/pages/sitemap-index.xml.ts ve sitemap-[part].xml.ts (istek anında).
+// Site haritası: src/pages/sitemap-index.xml.ts ve parçaları /sitemap-N.xml (middleware'de, istek anında).
 const site = process.env.PUBLIC_SITE_URL ?? "https://gituar.com";
 
 export default defineConfig({

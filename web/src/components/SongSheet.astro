@@ -9,9 +9,11 @@ const originalRoot = rootNote(song.originalKey);
 // Tonun kök dışındaki kısmı (C#m → "m"); seçicide her kök bu ekle gösterilir.
 const keySuffix = (song.originalKey ?? "").trim().slice(originalRoot.length);
 // Ritim / arpej / tempo (şarkıda varsa; yoksa çalarken yaygın bir ritim kullanılır)
-const extra = song as CatalogSong & { rhythm?: string; arpeggio?: string; tempo?: number; meter?: string };
+const extra = song as CatalogSong & { rhythm?: string; arpeggio?: string; tempo?: number; meter?: string; ownerId?: string | null };
+// Paylaşan: kullanıcı adı (addedBy) → /kullanici/{ad}/; sahibi engellenebilir (ownerId)
+const by = (song.addedBy ?? "").trim().toLocaleLowerCase("tr-TR");
 ---
-<article id="song" class="rp-song" data-id={song.id} data-key={song.originalKey} data-root={originalRoot} data-title={`${song.artist} - ${song.songName}`} data-name={song.songName} data-artist={song.artist} data-rhythm={extra.rhythm || undefined} data-arpeggio={extra.arpeggio || undefined} data-tempo={extra.tempo || undefined} data-meter={extra.meter || undefined}>
+<article id="song" class="rp-song" data-id={song.id} data-key={song.originalKey} data-root={originalRoot} data-title={`${song.artist} - ${song.songName}`} data-name={song.songName} data-artist={song.artist} data-rhythm={extra.rhythm || undefined} data-arpeggio={extra.arpeggio || undefined} data-tempo={extra.tempo || undefined} data-meter={extra.meter || undefined} data-owner={extra.ownerId || undefined} data-by={by || undefined}>
   <ul class="rp-menu" role="toolbar" aria-label="Akor araçları">
     <li><button type="button" id="menu-keys" aria-expanded="true" aria-controls="key-strip">Orijinal Ton: <b id="key-label">{originalRoot + keySuffix}</b><span class="rp-caret" aria-hidden="true"></span></button></li>
     <li class="rp-capo"><span>Kapo:</span>
@@ -23,12 +25,18 @@ const extra = song as CatalogSong & { rhythm?: string; arpeggio?: string; tempo?
     <li><button type="button" id="btn-play" aria-pressed="false">Sayfayı Oynat</button></li>
     <li><button type="button" id="btn-chords" aria-pressed="true">Akorları Kapat</button></li>
     <li><button type="button" id="btn-print">Yazdır</button></li>
+    <li><button type="button" id="btn-note" aria-expanded="false" aria-controls="note-panel">Not ekle</button></li>
     <li><button type="button" id="btn-save" class="rp-menu-accent" hidden>Tonu Kaydet</button></li>
     <li><button type="button" id="btn-saved" hidden>Kayıtlı Ton</button></li>
     <li><button type="button" id="btn-reset" class="rp-menu-danger" hidden>Orijinale Dön</button></li>
   </ul>
   <div class="rp-keys" id="key-strip" role="group" aria-label="Ton seç">
     {selectableKeys.map((k) => <button type="button" data-k={k} aria-pressed={k === originalRoot ? "true" : "false"} class:list={[{ original: k === originalRoot }]}>{k}</button>)}
+  </div>
+  <div class="rp-note" id="note-panel" hidden>
+    <label class="visually-hidden" for="note-text">Kişisel not</label>
+    <textarea class="input rp-note-text" id="note-text" rows="3" maxlength="2000" placeholder="Bu şarkı için kendine not al (yalnızca sen görürsün; iPhone'daki Gituar ile eşitlenir)"></textarea>
+    <div class="rp-note-actions"><span class="muted small" id="note-msg"></span><button type="button" class="btn btn-primary btn-mini" id="note-save">Notu kaydet</button></div>
   </div>
   <div class="rp-diagrams" id="diagram-panel" hidden><slot name="diagrams" /></div>
   <div class="rp-rhythm" id="rhythm-panel" hidden>
@@ -62,7 +70,7 @@ const extra = song as CatalogSong & { rhythm?: string; arpeggio?: string; tempo?
   <AdSlot size="incontent" unit="song-after-sheet" />
   <div class="rp-warning ugc-note">
     <p>Gituar, kullanıcıların kendi içeriklerini paylaştığı bir topluluk platformudur; tüm içerikler kullanıcı sorumluluğundadır. Bu içerik müzik eğitimi amacıyla yayımlanmış olup hakları sahiplerine aittir. Telif ihlali içerdiğini düşünüyorsan bizimle <a href="/iletisim/">iletişime</a> geç.</p>
-    <p class="rp-by">Ekleyen @anonim · <button type="button" class="ugc-report" id="report-open">Şikayet et</button></p>
+    <p class="rp-by">{by ? <a class="rp-by-user" id="owner-link" href={`/kullanici/${encodeURIComponent(by)}/`}>@{by}</a> : <span class="rp-by-user">@anonim</span>}<span class="rp-by-actions">{extra.ownerId && <><button type="button" class="ugc-report" id="block-open">Engelle</button><span class="rp-by-sep" aria-hidden="true">|</span></>}<button type="button" class="ugc-report" id="report-open">Şikayet Et</button></span></p>
   </div>
   <slot name="after" />
   <div class="play-bar" id="play-bar" aria-label="Otomatik kaydırma">
@@ -71,6 +79,14 @@ const extra = song as CatalogSong & { rhythm?: string; arpeggio?: string; tempo?
     <button class="btn btn-text tb" id="play-close" type="button">Kapat</button>
   </div>
 
+  <dialog id="block-dialog" class="card report-dialog">
+    <p class="report-title">Kullanıcıyı Engelle</p>
+    <p class="muted small" id="block-text">Bu kullanıcının paylaştığı şarkılar artık sana gösterilmeyecek. Engeli Hesabım sayfasından kaldırabilirsin.</p>
+    <div class="report-actions">
+      <button type="button" class="btn btn-block btn-delete" id="block-confirm">Engelle</button>
+      <button type="button" class="btn btn-text btn-block" id="block-cancel">Vazgeç</button>
+    </div>
+  </dialog>
   <dialog id="report-dialog" class="card report-dialog">
     <div id="report-ask">
       <p class="report-title">İçeriği Şikayet Et</p>

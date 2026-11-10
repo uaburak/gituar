@@ -1,0 +1,64 @@
+---
+// Şarkılarım: kullanıcının eklediği şarkılar (iOS Şarkılarım ile aynı veriler, Gituar API'si).
+// Liste + düzenleyici aynı sayfada; düzenleyici ?id=<şarkı> ya da ?yeni ile açılır.
+export const prerender = true;
+import Base from "../../layouts/Base.astro";
+import ListSection from "../../components/ListSection.astro";
+import { selectableKeys } from "@shared/chords";
+---
+<Base title="Şarkılarım" noindex ads={false}>
+  <ListSection title="Şarkılarım" heading="h1" icon="music" color="#5e5ce6" fixed />
+  <p id="ms-meta" class="muted small rp-empty">iPhone'daki Gituar ile aynı liste</p>
+  <div id="ms-auth" class="alert" hidden>Şarkılarını görmek ve eklemek için <a href="/giris/?next=/sarkilarim/">giriş yap</a>.</div>
+  <div id="ms-profile" class="alert" hidden>Şarkı paylaşmadan önce <a href="/hesap/?tamamla=1&next=/sarkilarim/">kullanıcı adını seç</a>.</div>
+
+  <section id="ms-list-wrap" hidden>
+    <div class="ms-toolbar"><button class="btn btn-primary" id="ms-new" type="button">+ Yeni şarkı</button></div>
+    <ul class="rp-list ms-list" id="ms-list"></ul>
+    <div class="ms-empty" id="ms-empty" hidden>
+      <p class="ms-empty-title">Henüz kendi şarkını oluşturmadın.</p>
+      <p class="muted small">Kendi şarkılarını ve akorlarını ekleyerek burada listeleyebilirsin.</p>
+    </div>
+  </section>
+  <p class="muted small rp-empty" id="ms-status">Yükleniyor…</p>
+
+  <section id="ms-editor" class="ms-editor" hidden>
+    <h2 id="ed-title">Yeni Şarkı Oluştur</h2>
+    <p class="muted small" id="ed-sub">Şarkının sözlerini ve akorlarını aşağıya ekle.</p>
+    <div id="ed-status" class="ms-status-line" hidden></div>
+    <form id="ed-form" class="ms-form" autocomplete="off">
+      <div class="field"><label for="ed-name">Şarkı adı</label><input class="input" id="ed-name" name="title" maxlength="160" required placeholder="Şarkı Adı" /></div>
+      <div class="ms-row">
+        <div class="field ms-grow"><label for="ed-artist">Sanatçı</label><input class="input" id="ed-artist" name="artist" maxlength="120" required placeholder="Sanatçı" /></div>
+        <div class="field"><label for="ed-key">Ton</label>
+          <select class="input" id="ed-key" name="key">{selectableKeys.flatMap((k) => [k, k + "m"]).map((k) => <option value={k}>{k}</option>)}</select>
+        </div>
+      </div>
+      <div class="field"><label for="ed-content">Akorlar ve sözler</label>
+        <textarea class="input ms-textarea" id="ed-content" name="content" maxlength="20000" required spellcheck="false" placeholder={"Akorları ve sözleri buraya yazın...\n\nÖrnek:\nAm         G\nBu bir şarkı sözü..."}></textarea>
+      </div>
+      <div id="ed-error" class="alert alert-error" hidden></div>
+      <div class="ms-actions">
+        <button class="btn" type="button" id="ed-draft">Taslak Kaydet</button>
+        <button class="btn btn-primary" type="button" id="ed-publish">Yayınla</button>
+        <button class="btn btn-text" type="button" id="ed-cancel">Vazgeç</button>
+        <button class="btn btn-text btn-danger ms-delete" type="button" id="ed-delete" hidden>Şarkıyı Sil</button>
+      </div>
+    </form>
+  </section>
+
+  <dialog id="terms-dialog" class="card terms-dialog">
+    <h2 style="margin:0 0 8px">Paylaşmadan önce</h2>
+    <p class="muted small">Gituar'da akorları kullanıcılar ekler. Paylaştığın içerikten sen sorumlusun. Göndermeden önce şu kuralları kabul etmelisin:</p>
+    <ul class="terms-list">
+      <li>Uygunsuz içeriğe ve kötüye kullanan kullanıcılara sıfır tolerans: küfür, hakaret, nefret söylemi, taciz ve müstehcen içerik yasaktır.</li>
+      <li>Yalnızca müzik eğitimi amacıyla akor ve söz paylaş. Eserlerin hakları sahiplerine aittir.</li>
+      <li>Gönderilen her şarkı editör onayından sonra yayımlanır. Kurallara uymayan içerik kaldırılır.</li>
+      <li>Şikayet edilen içerikler 24 saat içinde incelenir. Kuralları ihlal eden hesaplar kapatılır.</li>
+    </ul>
+    <p class="small"><a href="/kullanim-sartlari/" target="_blank" rel="noopener">Kullanım Şartlarının tamamı</a></p>
+    <button class="btn btn-primary btn-block" type="button" id="terms-accept">Kabul Ediyorum</button>
+    <button class="btn btn-text btn-block" type="button" id="terms-cancel" style="margin-top:6px">Vazgeç</button>
+  </dialog>
+  <script src="../../scripts/my-songs.ts"></script>
+</Base>

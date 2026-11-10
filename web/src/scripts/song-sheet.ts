@@ -301,5 +301,92 @@ function init(root: HTMLElement) {
   $("report-cancel").addEventListener("click", () => reportDialog.close());
   $("report-ok").addEventListener("click", () => reportDialog.close());
 
+  // ---- Engelle (iOS ile aynı: users/{uid}.blockedUsers; engellenenin şarkıları gösterilmez) ----
+  const ownerId = root.dataset.owner ?? "";
+  const ownerName = root.dataset.by ?? "";
+  const blockDialog = document.getElementById("block-dialog") as HTMLDialogElement | null;
+  const showBlocked = (blocked: boolean) => {
+    sheet.hidden = blocked;
+    let note = document.getElementById("blocked-note");
+    if (!blocked) { note?.remove(); return; }
+    if (note) return;
+    note = document.createElement("div");
+    note.id = "blocked-note";
+    note.className = "alert";
+    note.innerHTML = `${ownerName ? `@${esc(ownerName)} kullanıcısını` : "Bu kullanıcıyı"} engelledin; şarkıları gösterilmiyor. <button type="button" class="btn btn-text" id="blocked-undo" style="height:auto;padding:0">Engeli kaldır</button>`;
+    sheet.before(note);
+    note.querySelector("#blocked-undo")?.addEventListener("click", async () => {
+      const [{ currentUser }, ud] = await Promise.all([import("../lib/firebase-client.ts"), import("../lib/user-data.ts")]);
+      const user = await currentUser();
+      if (!user) return;
+      await ud.unblockUser(user.uid, ownerId);
+      showBlocked(false);
+    });
+  };
+  if (ownerId) {
+    // Bilinen engel listesi (Firestore'dan girişte yenilenir) sayfa açılır açılmaz uygulanır
+    void import("../lib/user-data.ts").then((ud) => { if (ud.blockedLocal().has(ownerId)) showBlocked(true); });
+  }
+  document.getElementById("block-open")?.addEventListener("click", async () => {
+    const mod = await import("../lib/firebase-client.ts");
+    const user = mod.firebaseReady ? await mod.currentUser() : null;
+    if (!user) { location.href = `/giris/?next=${encodeURIComponent(location.pathname)}`; return; }
+    if (user.uid === ownerId) { alert("Kendi şarkını engelleyemezsin."); return; }
+    $("block-text").textContent = `${ownerName ? `@${ownerName} kullanıcısının` : "Bu kullanıcının"} paylaştığı şarkılar artık sana gösterilmeyecek. Engeli Hesabım sayfasından kaldırabilirsin.`;
+    blockDialog?.showModal();
+    $("block-confirm").onclick = async () => {
+      try {
+        const ud = await import("../lib/user-data.ts");
+        await ud.blockUser(user.uid, ownerId);
+        blockDialog?.close();
+        showBlocked(true);
+        window.scrollTo({ top: 0 });
+      } catch {
+        alert("Engellenemedi. İnternet bağlantını kontrol edip tekrar dene.");
+      }
+    };
+  });
+  document.getElementById("block-cancel")?.addEventListener("click", () => blockDialog?.close());
+
+  // ---- Kişisel not (users/{uid}/preferences/{songId}.note; iPhone'daki not ile aynı) ----
+  const noteBtn = $("btn-note"), notePanel = $("note-panel"), noteText = $<HTMLTextAreaElement>("note-text"), noteMsg = $("note-msg");
+  let noteUser: import("firebase/auth").User | null = null;
+  const setNoteLabel = (has: boolean) => { noteBtn.textContent = has ? "Not" : "Not ekle"; };
+  const openNote = (open: boolean) => { notePanel.hidden = !open; noteBtn.setAttribute("aria-expanded", String(open)); };
+  // Girişliyse kayıtlı not açılışta gösterilir (iOS gibi: not varsa gizli kalmaz)
+  if (localStorage.getItem("gituar-auth") === "1") {
+    void (async () => {
+      const mod = await import("../lib/firebase-client.ts");
+      noteUser = mod.firebaseReady ? await mod.currentUser() : null;
+      if (!noteUser) return;
+      const ud = await import("../lib/user-data.ts");
+      const pref = await ud.getPreference(noteUser.uid, songId).catch(() => null);
+      if (ud.blockedLocal().has(ownerId)) showBlocked(true);
+      void ud.getProfile(noteUser.uid).then((p) => { if (ownerId && p?.blockedUsers.includes(ownerId)) showBlocked(true); }).catch(() => {});
+      if (pref?.note) { noteText.value = pref.note; setNoteLabel(true); openNote(true); }
+    })();
+  }
+  noteBtn.addEventListener("click", async () => {
+    if (!noteUser) {
+      const mod = await import("../lib/firebase-client.ts");
+      noteUser = mod.firebaseReady ? await mod.currentUser() : null;
+      if (!noteUser) { location.href = `/giris/?next=${encodeURIComponent(location.pathname)}`; return; }
+    }
+    openNote(notePanel.hidden);
+    if (!notePanel.hidden) noteText.focus();
+  });
+  $("note-save").addEventListener("click", async () => {
+    if (!noteUser) return;
+    noteMsg.textContent = "Kaydediliyor…";
+    try {
+      const ud = await import("../lib/user-data.ts");
+      await ud.saveNote(noteUser.uid, songId, noteText.value.trim(), { key: saved?.key ?? originalRoot, capo: saved?.capo ?? 0 });
+      setNoteLabel(Boolean(noteText.value.trim()));
+      noteMsg.textContent = "Kaydedildi";
+    } catch {
+      noteMsg.textContent = "Kaydedilemedi, tekrar dene.";
+    }
+  });
+
   render();
 }

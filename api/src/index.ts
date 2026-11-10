@@ -70,6 +70,32 @@ function versioned(url: URL, fallbackSeconds: number): number {
   return url.searchParams.has("v") ? 31_536_000 : fallbackSeconds;
 }
 
+
+// ---------- IndexNow (Bing, Yandex, Seznam, Naver): yayına giren/değişen şarkı sayfası anında bildirilir ----------
+// Anahtar dosyası web sitesinde: https://gituar.com/68ad4424d5cfece8fed64cd8fceac050.txt
+const INDEXNOW_KEY = "68ad4424d5cfece8fed64cd8fceac050";
+const SITE = "https://gituar.com";
+
+async function notifyIndexNow(rows: Record<string, unknown>[]): Promise<void> {
+  const urls = new Set<string>();
+  for (const r of rows) {
+    if (r.status !== "approved") continue;
+    urls.add(`${SITE}/akor/${r.artist_slug}/${r.slug}/`);
+    urls.add(`${SITE}/sanatci/${r.artist_slug}/`);
+  }
+  if (!urls.size) return;
+  try {
+    await fetch("https://api.indexnow.org/indexnow", {
+      method: "POST",
+      headers: { "Content-Type": "application/json; charset=utf-8" },
+      body: JSON.stringify({ host: "gituar.com", key: INDEXNOW_KEY, keyLocation: `${SITE}/${INDEXNOW_KEY}.txt`, urlList: [...urls] }),
+      signal: AbortSignal.timeout(3000),
+    });
+  } catch {
+    // Bildirim başarısız olsa da yazma işlemi etkilenmez; site haritası zaten günceldir
+  }
+}
+
 class HttpError extends Error {
   constructor(public status: number, message: string) {
     super(message);
@@ -289,8 +315,10 @@ async function route(req: Request, env: Env, url: URL): Promise<Response> {
       return json({ songs: results.map((r) => toSong(r)) }, {}, 300);
     }
     const order = sort === "popular" ? "score DESC, created_at DESC" : sort === "title" ? "title COLLATE NOCASE" : "created_at DESC";
-    const { results } = await env.DB.prepare(`SELECT ${LIST_FIELDS} FROM songs WHERE status = 'approved' ORDER BY ${order} LIMIT ? OFFSET ?`)
-      .bind(limit, offset).all();
+    // ?owner=<uid>: bir kullanıcının yayındaki şarkıları (kullanıcı profili)
+    const owner = url.searchParams.get("owner");
+    const { results } = await env.DB.prepare(`SELECT ${LIST_FIELDS} FROM songs WHERE status = 'approved'${owner ? " AND owner_id = ?" : ""} ORDER BY ${order} LIMIT ? OFFSET ?`)
+      .bind(...(owner ? [owner] : []), limit, offset).all();
     return json({ songs: results.map((r) => toSong(r)) }, {}, 60);
   }
 
@@ -392,7 +420,9 @@ async function route(req: Request, env: Env, url: URL): Promise<Response> {
         `UPDATE songs SET artist = ?, artist_slug = ?, title = ?, slug = ?, original_key = ?, content = ?, status = ?, updated_at = ?, search = ?, rhythm = ? WHERE id = ?`,
       ).bind(artist, artistSlug, title, slug, c.originalKey ?? row.original_key, c.content ?? row.content, status, Date.now(),
         turkeyNormalized(`${artist} ${title}`), c.rhythm ? JSON.stringify({ ...JSON.parse((row.rhythm as string) || "{}"), ...c.rhythm }) : (row.rhythm ?? null), id).run();
-      return json({ song: toSong(await loadSong(env, id), true) });
+      const updated = await loadSong(env, id);
+      await notifyIndexNow([updated]);
+      return json({ song: toSong(updated, true) });
     }
     if (method === "DELETE") {
       const user = await requireUser(req, env);
@@ -423,7 +453,9 @@ async function route(req: Request, env: Env, url: URL): Promise<Response> {
     ).bind(id, c.artist, artistSlug, c.title, slug, c.originalKey ?? "", c.content ?? "", status, user.uid,
       input.addedBy?.trim() || user.name || null, now, now, turkeyNormalized(`${c.artist} ${c.title}`),
       c.rhythm ? JSON.stringify(c.rhythm) : null).run();
-    return json({ song: toSong(await loadSong(env, id), true) }, { status: 201 });
+    const created = await loadSong(env, id);
+    await notifyIndexNow([created]);
+    return json({ song: toSong(created, true) }, { status: 201 });
   }
 
   // Sanatçılar: alfabetik, şarkı sayısıyla
@@ -522,7 +554,10 @@ async function route(req: Request, env: Env, url: URL): Promise<Response> {
 
   if (method === "GET" && path === "/v1/me/songs") {
     const user = await requireUser(req, env);
-    const { results } = await env.DB.prepare(`SELECT ${FULL_FIELDS} FROM songs WHERE owner_id = ? ORDER BY updated_at DESC`).bind(user.uid).all();
+    // İçe aktarılan katalog (im… kimlikler) ve eski katalog (yalnızca rakam) kullanıcının eklediği şarkılar değil
+    const { results } = await env.DB.prepare(
+      `SELECT ${FULL_FIELDS} FROM songs WHERE owner_id = ? AND id NOT LIKE 'im%' AND id GLOB '*[^0-9]*' ORDER BY updated_at DESC`,
+    ).bind(user.uid).all();
     return json({ songs: results.map((r) => toSong(r, true)) });
   }
 
@@ -539,7 +574,9 @@ async function route(req: Request, env: Env, url: URL): Promise<Response> {
     const id = decodeURIComponent(match[1]);
     await loadSong(env, id);
     await env.DB.prepare("UPDATE songs SET status = ?, updated_at = ? WHERE id = ?").bind(status, Date.now(), id).run();
-    return json({ song: toSong(await loadSong(env, id), true) });
+    const changed = await loadSong(env, id);
+    await notifyIndexNow([changed]);
+    return json({ song: toSong(changed, true) });
   }
 
   throw new HttpError(404, "Bulunamadı");

@@ -218,6 +218,9 @@ export async function isAdminUser(uid: string): Promise<boolean> {
   try {
     const snap = await f.fsMod.getDoc(f.fsMod.doc(f.db, "users", uid));
     admin = snap.data()?.isAdmin === true;
+    // Aynı okumada engel listesi de tazelenir (listeler ve şarkı sayfası bu tarayıcı kopyasını kullanır)
+    const blocked = snap.data()?.blockedUsers;
+    try { localStorage.setItem("gituar-blocked", JSON.stringify(Array.isArray(blocked) ? blocked : [])); } catch {}
   } catch {
     admin = false;
   }
@@ -346,6 +349,16 @@ export async function signInGoogle(): Promise<void> {
   if (!f) return;
   await f.authMod.signInWithPopup(f.auth, new f.authMod.GoogleAuthProvider());
 }
+/** Apple ile giriş (Firebase apple.com sağlayıcısı; Firebase Console'da Apple sağlayıcısı ve Services ID tanımlı olmalı). */
+export async function signInApple(): Promise<void> {
+  const f = await fb();
+  if (!f) return;
+  const provider = new f.authMod.OAuthProvider("apple.com");
+  provider.addScope("email");
+  provider.addScope("name");
+  provider.setCustomParameters({ locale: "tr_TR" });
+  await f.authMod.signInWithPopup(f.auth, provider);
+}
 export async function signInEmail(email: string, password: string): Promise<void> {
   const f = await fb();
   if (!f) return;
@@ -360,21 +373,22 @@ export async function signOutUser(): Promise<void> {
   const f = await fb();
   if (!f) return;
   await f.authMod.signOut(f.auth);
-  try { localStorage.removeItem("gituar-auth"); localStorage.removeItem("gituar-user"); } catch {}
+  try { for (const k of ["gituar-auth", "gituar-user", "gituar-blocked", "gituar-admin"]) localStorage.removeItem(k); } catch {}
   setPro(false);
 }
 
 // ---------- Hesap silme (App Store 5.1.1(v) ile aynı kapsam) ----------
 
 export class ReauthRequired extends Error {
-  constructor(public method: "password" | "google") { super("reauth"); }
+  constructor(public method: "password" | "google" | "apple") { super("reauth"); }
 }
 
 /** Oturum 5 dakikadan eskiyse Firebase silmeyi reddeder; veriler silinmeden önce kontrol edilir. */
-export async function needsReauth(user: User): Promise<"password" | "google" | null> {
+export async function needsReauth(user: User): Promise<"password" | "google" | "apple" | null> {
   const last = Date.parse(user.metadata.lastSignInTime ?? "");
   if (Number.isFinite(last) && Date.now() - last < 4.5 * 60 * 1000) return null;
-  return user.providerData.some((p) => p.providerId === "password") ? "password" : "google";
+  if (user.providerData.some((p) => p.providerId === "password")) return "password";
+  return user.providerData.some((p) => p.providerId === "apple.com") ? "apple" : "google";
 }
 
 export async function reauthenticate(user: User, password?: string): Promise<void> {
@@ -384,7 +398,8 @@ export async function reauthenticate(user: User, password?: string): Promise<voi
     const cred = f.authMod.EmailAuthProvider.credential(user.email ?? "", password);
     await f.authMod.reauthenticateWithCredential(user, cred);
   } else {
-    await f.authMod.reauthenticateWithPopup(user, new f.authMod.GoogleAuthProvider());
+    const apple = user.providerData.some((p) => p.providerId === "apple.com") && !user.providerData.some((p) => p.providerId === "google.com");
+    await f.authMod.reauthenticateWithPopup(user, apple ? new f.authMod.OAuthProvider("apple.com") : new f.authMod.GoogleAuthProvider());
   }
 }
 
@@ -412,4 +427,27 @@ export async function deleteAccount(user: User, apiUrl: string): Promise<void> {
   try {
     for (const k of ["gituar-auth", "gituar-user", "gituar-pro", "gituar-admin"]) localStorage.removeItem(k);
   } catch {}
+}
+
+/**
+ * Yönetici toplu repertuar yüklemesi (iOS bulkImportRepertoires ile aynı): her kayıt public-repertoires'a
+ * herkese açık olarak, adres alanlarıyla (ownerUsername, slug) yazılır. Sıra korunsun diye createdAt birer saniye geriye gider.
+ */
+export async function createPublicRepertoires(uid: string, ownerUsername: string, entries: { name: string; songIds: string[] }[], onProgress?: (done: number) => void): Promise<number> {
+  const f = await fb();
+  if (!f) throw new Error("Firebase hazır değil");
+  const fs = f.fsMod;
+  const existing = await fs.getDocs(fs.query(fs.collection(f.db, "public-repertoires"), fs.where("ownerId", "==", uid)));
+  const taken = new Set(existing.docs.map((d) => d.data().slug).filter((x): x is string => typeof x === "string"));
+  let ok = 0;
+  for (const [i, e] of entries.entries()) {
+    const ref = fs.doc(fs.collection(f.db, "public-repertoires"));
+    await fs.setDoc(ref, {
+      name: e.name, songIds: e.songIds, ownerId: uid, isPublic: true, createdAt: fs.Timestamp.fromMillis(Date.now() - i * 1000),
+      ownerUsername, slug: uniqueSlug(e.name, taken),
+    });
+    ok++;
+    onProgress?.(ok);
+  }
+  return ok;
 }

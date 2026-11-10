@@ -15,20 +15,20 @@ const by = (song.addedBy ?? "").trim().toLocaleLowerCase("tr-TR");
 ---
 <article id="song" class="rp-song" data-id={song.id} data-key={song.originalKey} data-root={originalRoot} data-title={`${song.artist} - ${song.songName}`} data-name={song.songName} data-artist={song.artist} data-rhythm={extra.rhythm || undefined} data-arpeggio={extra.arpeggio || undefined} data-tempo={extra.tempo || undefined} data-meter={extra.meter || undefined} data-owner={extra.ownerId || undefined} data-by={by || undefined}>
   <ul class="rp-menu" role="toolbar" aria-label="Akor araçları">
-    <li><button type="button" id="menu-keys" aria-expanded="true" aria-controls="key-strip">Orijinal Ton: <b id="key-label">{originalRoot + keySuffix}</b><span class="rp-caret" aria-hidden="true"></span></button></li>
-    <li class="rp-capo"><span>Kapo:</span>
+    <li role="none"><button type="button" id="menu-keys" aria-expanded="true" aria-controls="key-strip">Orijinal Ton: <b id="key-label">{originalRoot + keySuffix}</b><span class="rp-caret" aria-hidden="true"></span></button></li>
+    <li role="none" class="rp-capo"><span>Kapo:</span>
       <button type="button" id="capo-dec" aria-label="Kapo azalt">−</button><b id="capo-val">0</b><button type="button" id="capo-inc" aria-label="Kapo artır">+</button>
     </li>
-    <li><button type="button" id="menu-diagrams" aria-expanded="false" aria-controls="diagram-panel">Akorlar</button></li>
-    <li><button type="button" id="menu-rhythm" aria-expanded="false" aria-controls="rhythm-panel">Ritim</button></li>
-    <li><button type="button" id="btn-rep">Repertuara Ekle</button></li>
-    <li><button type="button" id="btn-play" aria-pressed="false">Sayfayı Oynat</button></li>
-    <li><button type="button" id="btn-chords" aria-pressed="true">Akorları Kapat</button></li>
-    <li><button type="button" id="btn-print">Yazdır</button></li>
-    <li><button type="button" id="btn-note" aria-expanded="false" aria-controls="note-panel">Not ekle</button></li>
-    <li><button type="button" id="btn-save" class="rp-menu-accent" hidden>Tonu Kaydet</button></li>
-    <li><button type="button" id="btn-saved" hidden>Kayıtlı Ton</button></li>
-    <li><button type="button" id="btn-reset" class="rp-menu-danger" hidden>Orijinale Dön</button></li>
+    <li role="none"><button type="button" id="menu-diagrams" aria-expanded="false" aria-controls="diagram-panel">Akorlar</button></li>
+    <li role="none"><button type="button" id="menu-rhythm" aria-expanded="false" aria-controls="rhythm-panel">Ritim</button></li>
+    <li role="none"><button type="button" id="btn-rep">Repertuara Ekle</button></li>
+    <li role="none"><button type="button" id="btn-play" aria-pressed="false">Sayfayı Oynat</button></li>
+    <li role="none"><button type="button" id="btn-chords" aria-pressed="true">Akorları Kapat</button></li>
+    <li role="none"><button type="button" id="btn-print">Yazdır</button></li>
+    <li role="none"><button type="button" id="btn-note" aria-expanded="false" aria-controls="note-panel">Not ekle</button></li>
+    <li role="none"><button type="button" id="btn-save" class="rp-menu-accent" hidden>Tonu Kaydet</button></li>
+    <li role="none"><button type="button" id="btn-saved" hidden>Kayıtlı Ton</button></li>
+    <li role="none"><button type="button" id="btn-reset" class="rp-menu-danger" hidden>Orijinale Dön</button></li>
   </ul>
   <div class="rp-keys" id="key-strip" role="group" aria-label="Ton seç">
     {selectableKeys.map((k) => <button type="button" data-k={k} aria-pressed={k === originalRoot ? "true" : "false"} class:list={[{ original: k === originalRoot }]}>{k}</button>)}
@@ -60,8 +60,8 @@ const by = (song.addedBy ?? "").trim().toLocaleLowerCase("tr-TR");
     <p class="muted small rh-note" id="rh-note">Akor süreleri kâğıttaki yerlerinden tahmin edilir; çalan akor kâğıtta işaretlenir.</p>
   </div>
   <div class="rp-font" aria-label="Yazı boyutu">
-    <button type="button" id="font-inc" aria-label="Yazıyı büyüt">+A</button>
-    <button type="button" id="font-dec" aria-label="Yazıyı küçült">-A</button>
+    <button type="button" id="font-inc" aria-label="Yazıyı büyüt (+A)">+A</button>
+    <button type="button" id="font-dec" aria-label="Yazıyı küçült (-A)">-A</button>
     <span class="visually-hidden">Yazı boyutu <span id="font-val">13</span></span>
   </div>
   <div class="sheet is-original" id="sheet">

@@ -1,8 +1,9 @@
 ---
 // Tek reklam bileşeni. Pro kullanıcılarında app.ts `html.pro` sınıfını koyar ve CSS hepsini gizler.
 // Yerleşim, büyük akor sitelerindeki düzene göre:
-//   leaderboard → içerik kartının üstünde geniş üst reklam (masaüstü 970/728, mobil 320×100/300×250)
-//   incontent   → akor kâğıdının hemen altında geniş reklam
+//   leaderboard → içerik kartının üstünde geniş üst şerit (masaüstü 970×90, tablet 728×90, telefon 320×100)
+//   incontent   → akor kâğıdının hemen altında (geniş ekran 728×90, telefon 300×250)
+//   Geniş yerlerin ölçüsü ekran genişliğine göre CSS'te sabittir (global.css): yer baştan ayrılır, reklam gelince sayfa kaymaz.
 //   side        → içerik sütununun iki yanında, kaydırınca sabit kalan 160×600
 //   sticky      → ekranın altında, kapatılabilen sabit şerit (masaüstü 970/728×90, mobil 320×50/100)
 //   rect/inline → sayfa içi kutu ve liste aralarındaki reklamlar
@@ -14,22 +15,25 @@ import { ADSENSE_CLIENT, ADSENSE_SLOTS } from "../lib/site.ts";
 type Size = "side" | "leaderboard" | "incontent" | "rect" | "inline" | "sticky" | "video";
 interface Props { size: Size; unit: string; class?: string }
 const { size, unit, class: className = "" } = Astro.props;
-const labels: Record<Size, string> = { side: "160 × 600", leaderboard: "970 × 250 · 728 × 90", incontent: "970 × 250 · 300 × 250", rect: "300 × 250", inline: "728 × 90", sticky: "728 × 90 · 320 × 50", video: "Video · 16:9" };
+const labels: Record<Size, string> = { side: "160 × 600", leaderboard: "970 × 90 · 728 × 90 · 320 × 100", incontent: "728 × 90 · 300 × 250", rect: "300 × 250", inline: "728 × 90 · 320 × 100", sticky: "728 × 90 · 320 × 50", video: "Video · 16:9" };
 const format = size === "side" ? "vertical" : size === "rect" ? "rectangle" : size === "sticky" ? "horizontal" : "auto";
 // AdSense birimi (data-ad-slot) yer türüne göre .env'den gelir; `unit` yalnızca ölçüm/etiket içindir.
 // Ayrı birim yoksa geniş yerler duyarlı liste içi birimi kullanır.
 const slot = ADSENSE_SLOTS[size] || (size === "leaderboard" || size === "incontent" ? ADSENSE_SLOTS.inline : "");
 // Yerelde (astro dev) AdSense reklam basmaz (onaylı alan adı ve birim ister). Bunun yerine Google'ın
 // herkese açık örnek reklam ağından (Google Publisher Tag, /6355419/...) gerçek test reklamları çekilir.
-// Canlıda hiçbir zaman çizilmez (import.meta.env.DEV yalnızca dev sunucusunda true).
-const demo = import.meta.env.DEV;
+// Canlıda hiçbir zaman çizilmez (import.meta.env.DEV yalnızca dev sunucusunda true). Üretim derlemesini yerelde
+// test reklamlarıyla ölçmek için (Lighthouse) PUBLIC_AD_DEMO=1; Cloudflare derlemesinde bu değişken yok.
+const demo = import.meta.env.DEV || import.meta.env.PUBLIC_AD_DEMO === "1";
 const live = !demo && Boolean(ADSENSE_CLIENT && slot);
-// Mobil alt şerit AdSense'te sabit 320×50 birimdir; diğerleri duyarlı
-const fixed = size === "side" ? { w: 160, h: 600 } : null;
+// Sabit ölçülü yerler: yan 160×600, kutu 300×250. Geniş yerlerin (üst, kâğıt altı, liste içi) ölçüsü ekran genişliğine
+// göre CSS'ten gelir (global.css .ad-leaderboard/.ad-incontent/.ad-inline); AdSense o ölçüde reklam ister, sayfa kaymaz.
+const fixed = size === "side" ? { w: 160, h: 600 } : size === "rect" ? { w: 300, h: 250 } : null;
+const cssSized = size === "leaderboard" || size === "incontent" || size === "inline";
 const close = size === "sticky";
 ---
 {demo && size === "video" && (
-  <div class:list={["ad-slot", "ad-video", "ad-test", className]} data-unit={unit} aria-label="Google test video reklamı (yalnızca yerelde)">
+  <div class:list={["ad-slot", "ad-video", "ad-test", className]} data-unit={unit} data-note="Google test video reklamı (yalnızca yerelde)">
     <div class="ad-video-box">
       <video class="ad-video-media" muted playsinline preload="none"></video>
       <div class="ad-video-ui"></div>
@@ -84,7 +88,7 @@ const close = size === "sticky";
   </script>
 )}
 {demo && size !== "video" && (
-  <div class:list={["ad-slot", `ad-${size}`, "ad-test", className]} data-unit={unit} aria-label="Google test reklamı (yalnızca yerelde)">
+  <div class:list={["ad-slot", `ad-${size}`, "ad-test", className]} data-unit={unit} data-note="Google test reklamı (yalnızca yerelde)">
     {close && <button type="button" class="ad-close" aria-label="Reklamı kapat">×</button>}
     <div class="gpt-test" data-gpt-kind={size}></div>
     <span class="ad-test-label">Test reklamı · {labels[size]}</span>
@@ -93,7 +97,7 @@ const close = size === "sticky";
 {demo && size !== "video" && (
   <script is:inline>
     // Google Publisher Tag'i bir kez yükle; sayfadaki test yerlerini Google'ın herkese açık örnek ağından doldur.
-    // Her yer birden çok boyut ister (gerçek sitelerdeki gibi); Google o an verebildiği boyutu yerleştirir.
+    // Ölçüler canlıdaki sabit ölçülerle aynı (global.css): kutu önceden o boyutta, reklam gelince sayfa kaymaz.
     // Örnek ağ yalnızca 728×90, 300×250, 320×50 ve 160×600 verir; aynı boyutu sayfada çoğu zaman bir kez verir.
     // Boş dönen yer ölçülü test kutusu olarak kalır.
     if (!window.__gptTest) {
@@ -103,11 +107,11 @@ const close = size === "sticky";
       s.src = "https://securepubads.g.doubleclick.net/tag/js/gpt.js";
       s.async = true;
       document.head.appendChild(s);
-      const wide = () => innerWidth >= 1000, mid = () => innerWidth >= 760;
+      const mid = () => innerWidth >= 760;
       const kinds = {
-        leaderboard: { unit: "/6355419/Travel/Asia", sizes: () => mid() ? [[970, 250], [970, 90], [728, 90]] : [[320, 100], [320, 50], [300, 250]] },
-        incontent: { unit: "/6355419/Travel/Europe/France", sizes: () => mid() ? [[970, 250], [970, 90], [728, 90]] : [[336, 280], [300, 250]] },
-        inline: { unit: "/6355419/Travel/Europe/Germany", sizes: () => mid() ? [[728, 90], [300, 250]] : [[300, 250], [320, 100]] },
+        leaderboard: { unit: "/6355419/Travel/Asia", sizes: () => innerWidth >= 1024 ? [[970, 90], [728, 90]] : mid() ? [[728, 90]] : [[320, 100]] },
+        incontent: { unit: "/6355419/Travel/Europe/France", sizes: () => mid() ? [[728, 90]] : [[300, 250]] },
+        inline: { unit: "/6355419/Travel/Europe/Germany", sizes: () => mid() ? [[728, 90]] : [[320, 100]] },
         rect: { unit: "/6355419/Travel/Europe/Germany", sizes: () => [[300, 250]] },
         side: { unit: "/6355419/Travel/Europe", sizes: () => [[160, 600]] },
         sticky: { unit: "/6355419/Travel/Europe", sizes: () => mid() ? [[970, 90], [728, 90]] : [[320, 100], [320, 50]] },
@@ -124,23 +128,10 @@ const close = size === "sticky";
         // Sayfa geçişinde tam ekran reklam (interstitial): site içi bir bağlantıya tıklanınca açılır
         const inter = googletag.defineOutOfPageSlot("/6355419/Travel/Europe/France/Paris", googletag.enums.OutOfPageFormat.INTERSTITIAL);
         if (inter) inter.addService(googletag.pubads());
-        // Geniş yerlerde (üst, kâğıt altı, liste içi) gelen reklam yerin genişliğine büyütülür:
-        // canlıda AdSense'in duyarlı birimi alanı enine doldurur; test ağı yalnızca sabit boyut verdiği için burada ölçeklenir.
-        const stretch = (el) => {
-          const [w, h] = (el.dataset.adSize || "").split("x").map(Number);
-          if (!w || !["leaderboard", "incontent", "inline"].includes(el.dataset.gptKind)) return;
-          const box = el.closest(".ad-slot");
-          const k = box.clientWidth / w;
-          el.style.width = w + "px"; el.style.height = h + "px";
-          el.style.transform = `scale(${k})`;
-          box.style.height = h * k + "px";
-        };
         googletag.pubads().addEventListener("slotRenderEnded", (e) => {
           const el = document.getElementById(e.slot.getSlotElementId());
           el?.closest(".ad-slot")?.classList.toggle("ad-test-empty", e.isEmpty);
-          if (el && !e.isEmpty && e.size) { el.dataset.adSize = e.size.join("x"); stretch(el); }
         });
-        addEventListener("resize", () => document.querySelectorAll(".gpt-test[data-ad-size]").forEach(stretch));
         googletag.pubads().enableSingleRequest();
         googletag.enableServices();
         document.querySelectorAll(".gpt-test[id]").forEach((el) => googletag.display(el.id));
@@ -151,12 +142,14 @@ const close = size === "sticky";
   </script>
 )}
 {!demo && size !== "video" && (live || !ADSENSE_CLIENT) && (
-  <div class:list={["ad-slot", `ad-${size}`, className]} data-unit={unit} aria-label="Reklam">
+  <div class:list={["ad-slot", `ad-${size}`, className]} data-unit={unit}>
     {close && <button type="button" class="ad-close" aria-label="Reklamı kapat">×</button>}
     {live
       ? (fixed
           ? <ins class="adsbygoogle" style={`display:inline-block;width:${fixed.w}px;height:${fixed.h}px`} data-ad-client={ADSENSE_CLIENT} data-ad-slot={slot}></ins>
-          : <ins class="adsbygoogle" style="display:block;width:100%" data-ad-client={ADSENSE_CLIENT} data-ad-slot={slot} data-ad-format={format} data-full-width-responsive="true"></ins>)
+          : cssSized
+            ? <ins class="adsbygoogle" style="display:inline-block" data-ad-client={ADSENSE_CLIENT} data-ad-slot={slot}></ins>
+            : <ins class="adsbygoogle" style="display:block;width:100%" data-ad-client={ADSENSE_CLIENT} data-ad-slot={slot} data-ad-format={format} data-full-width-responsive="true"></ins>)
       : <div class="ad-placeholder"><b>REKLAM</b><span>{labels[size]}</span></div>}
   </div>
 )}

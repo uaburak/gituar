@@ -88,13 +88,20 @@ function loadAds() {
   s.async = true;
   s.crossOrigin = "anonymous";
   s.src = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT}`;
-  s.onload = () => {
-    const w = window as unknown as { adsbygoogle?: unknown[] };
-    document.querySelectorAll<HTMLElement>("ins.adsbygoogle").forEach(() => {
-      (w.adsbygoogle = w.adsbygoogle || []).push({});
-    });
-  };
+  s.onload = fillAds;
   document.head.appendChild(s);
+  // Yan reklamlar yalnızca ≥1440 px'te görünür; pencere sonradan genişlerse o yerler de doldurulur
+  matchMedia("(min-width: 1440px)").addEventListener("change", () => { if (adsLoaded) fillAds(); });
+}
+
+/** Görünür ve henüz işlenmemiş her <ins> için bir push. Gizli yerler (dar ekranda yan reklamlar) için de push yapılırsa
+ *  AdSense konsola "All 'ins' elements ... already have ads in them" hatası basar (PageSpeed "En İyi Uygulamalar" düşer). */
+function fillAds() {
+  const w = window as unknown as { adsbygoogle?: unknown[] };
+  document.querySelectorAll<HTMLElement>("ins.adsbygoogle").forEach((el) => {
+    if (el.dataset.adsbygoogleStatus || el.getClientRects().length === 0) return;
+    (w.adsbygoogle = w.adsbygoogle || []).push({});
+  });
 }
 
 // Hesap silindikten sonra ana sayfada bilgi

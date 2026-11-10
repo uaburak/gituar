@@ -132,10 +132,11 @@ html.pro .shell:not(.shell-plain) { grid-template-columns: minmax(0, var(--conte
 }
 .search-mini:hover { text-decoration: none; border-color: var(--strong); }
 .search-mini .icon { width: 16px; height: 16px; color: var(--text-3); }
-.search-mini-label { flex: 1; font-size: 13px; color: var(--text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Arama ipucu ve ⌘K rozeti: 4,5:1 kontrast (erişilebilirlik); text-3 beyazda, text-2 gri rozette tutmuyordu */
+.search-mini-label { flex: 1; font-size: 13px; color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 kbd.key {
   font-family: var(--mono); font-size: 11px; line-height: 14px; padding: 2px 6px; border-radius: 6px;
-  background: var(--muted); border: 0; color: var(--text-2);
+  background: var(--muted); border: 0; color: var(--text);
 }
 .pro-pill {
   display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 14px; border-radius: 999px;
@@ -545,13 +546,28 @@ dialog::backdrop { background: rgba(0,0,0,.35); }
 /* AdSense dolmayan birimleri gizler; koyu temada boş kutu beyaz kalmasın */
 ins.adsbygoogle { background: transparent; }
 ins.adsbygoogle[data-ad-status="unfilled"] { display: none !important; }
-.ad-slot:has(> ins[data-ad-status="unfilled"]) { display: none; }
-.ad-rect { width: 300px; max-width: 100%; min-height: 250px; margin: 0 auto; }
-.ad-inline { min-height: 90px; margin: 32px 0; }
-.ad-leaderboard { width: 728px; max-width: 100%; min-height: 90px; margin: 48px auto 0; }
-.list > .ad-inline { margin: 0; padding: 12px 20px; border-bottom: 1px solid var(--hairline); }
-/* Akor kâğıdının altındaki geniş reklam (masaüstü 970×250'ye kadar, mobil 300×250) */
-.ad-incontent { width: 100%; min-height: 90px; margin: 24px 0; }
+/* Sabit ölçülü yerler dolmasa da (onay bekleyen hesap, boş dönen istek) yerini korur: içerik sonradan kaymasın (CLS).
+   Yalnızca alt şerit (konumu sabit, akışı etkilemez) dolmayınca kaldırılır. */
+.ad-sticky:has(> ins[data-ad-status="unfilled"]) { display: none; }
+/* Geniş yerler sabit ölçülü: yer, reklam gelmeden ayrılır; reklam gelince sayfa kaymaz (CLS 0).
+   Ölçü AdSense'e <ins> üzerindeki CSS'ten gider (data-ad-format yok; AdSense "ekran genişliğine göre sabit boyut" yöntemi):
+   üst şerit telefon 320×100, tablet 728×90, masaüstü 970×90; kâğıt altı telefon 300×250, geniş ekran 728×90. */
+.ad-slot > ins.adsbygoogle { display: inline-block; }
+.ad-leaderboard, .ad-leaderboard > ins.adsbygoogle, .ad-inline, .ad-inline > ins.adsbygoogle { width: 320px; height: 100px; }
+.ad-incontent, .ad-incontent > ins.adsbygoogle, .ad-rect, .ad-rect > ins.adsbygoogle { width: 300px; height: 250px; }
+@media (min-width: 760px) {
+  .ad-leaderboard, .ad-leaderboard > ins.adsbygoogle, .ad-inline, .ad-inline > ins.adsbygoogle,
+  .ad-incontent, .ad-incontent > ins.adsbygoogle { width: 728px; height: 90px; }
+}
+@media (min-width: 1024px) { .ad-leaderboard, .ad-leaderboard > ins.adsbygoogle { width: 970px; height: 90px; } }
+/* Çok dar ekranda kutu daralır, reklam ortadan kırpılır (yatay kaydırma olmaz) */
+.ad-leaderboard, .ad-incontent, .ad-inline, .ad-rect { max-width: 100%; }
+.ad-rect { margin: 0 auto; }
+.ad-inline { margin: 32px auto; }
+.ad-leaderboard { margin: 48px auto 0; }
+.list > .ad-inline { height: auto; margin: 0; padding: 12px 20px; border-bottom: 1px solid var(--hairline); }
+/* Akor kâğıdının altındaki geniş reklam */
+.ad-incontent { margin: 24px auto; }
 /* Alt sabit şerit: her genişlikte, kapatılabilir */
 .ad-sticky {
   position: fixed; left: 50%; bottom: 0; transform: translateX(-50%); z-index: 40;
@@ -583,17 +599,13 @@ html.pro body { padding-bottom: 0 !important; }
 .ad-test { display: grid; place-items: center; }
 .ad-test:not(.ad-sticky) { position: relative; }
 .ad-side.ad-test { width: 160px; height: 600px; }
-.ad-rect.ad-test { min-height: 250px; }
-.ad-leaderboard.ad-test, .ad-inline.ad-test { min-height: 90px; }
 .ad-sticky.ad-test { display: grid; }
 .ad-video.ad-test { display: block; }
 .gpt-test { line-height: 0; }
-/* Ölçeklenen test reklamı: sol üstten büyür, yer genişliğini tam doldurur */
-.ad-leaderboard .gpt-test[data-ad-size], .ad-incontent .gpt-test[data-ad-size], .ad-inline .gpt-test[data-ad-size] { justify-self: start; align-self: start; transform-origin: 0 0; }
 .ad-test-label { display: none; }
 .ad-test-empty:not(.ad-sticky) { border: 1px dashed var(--strong); border-radius: 12px; background: var(--ad); }
 .ad-test-empty .gpt-test { display: none; }
-.ad-test-empty .ad-test-label { display: block; font-size: 11px; font-weight: 600; letter-spacing: .04em; color: var(--text-3); }
+.ad-test-empty .ad-test-label { display: block; font-size: 11px; font-weight: 600; letter-spacing: .04em; color: var(--text-2); }
 :root[data-theme="dark"] .card, :root[data-theme="dark"] .list, :root[data-theme="dark"] .sheet, :root[data-theme="dark"] .tools,
 :root[data-theme="dark"] .guide-body, :root[data-theme="dark"] .artist-cols, :root[data-theme="dark"] .feature { box-shadow: inset 0 0 0 1px var(--hairline); }
 :root[data-theme="dark"] .promo-card { background: var(--surface); box-shadow: inset 0 0 0 1px var(--hairline); }
@@ -653,11 +665,12 @@ html.pro body { padding-bottom: 0; }
 .footer-logo .brand-mark { width: 28px; height: 28px; border-radius: 7px; }
 .footer-cols { display: flex; gap: 72px; flex-wrap: wrap; }
 .footer-cols nav { display: grid; gap: 12px; align-content: start; }
-.footer-title { font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-3); }
+/* Alt bilgi başlıkları ve telif satırı text-2: text-3 (#86868b) açık zeminde 4,5:1 kontrastı tutmuyor (erişilebilirlik) */
+.footer-title { font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-2); }
 .footer-cols a { color: var(--text-2); }
 .footer-cols a:hover { color: var(--text); text-decoration: none; }
 .footer-bottom { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
-.footer-bottom .copy { font-size: 12px; color: var(--text-3); }
+.footer-bottom .copy { font-size: 12px; color: var(--text-2); }
 .footer-theme { display: inline-flex; align-items: center; gap: 6px; border: 0; background: none; padding: 0; cursor: pointer; font-size: 14px; color: var(--text-2); }
 .footer-theme:hover { color: var(--text); }
 .btn-appstore .icon-sm { width: 15px; height: 15px; }
@@ -735,11 +748,12 @@ html.pro body { padding-bottom: 0; }
 @media (max-width: 600px) { .consent { left: 12px; right: 12px; bottom: 12px; max-width: none; } }
 
 /* ---------- Şarkı alt bilgisi: topluluk notu ve şikayet (iOS ile aynı) ---------- */
-.ugc-note { margin-top: 20px; display: grid; gap: 8px; font-size: 12px; line-height: 1.5; color: var(--text-3); }
+/* Küçük (12 px) uyarı metinleri text-2: text-3 beyazda 4,5:1 kontrastı tutmuyor (erişilebilirlik) */
+.ugc-note { margin-top: 20px; display: grid; gap: 8px; font-size: 12px; line-height: 1.5; color: var(--text-2); }
 .ugc-note p { margin: 0; }
 .ugc-head { display: flex; align-items: center; justify-content: space-between; }
 .ugc-by { font-size: 13px; color: var(--text-2); }
-.ugc-report { display: inline-flex; align-items: center; gap: 4px; border: 0; background: none; padding: 0; font: inherit; font-size: 13px; font-weight: 600; color: #ff3b30; cursor: pointer; }
+.ugc-report { display: inline-flex; align-items: center; gap: 4px; border: 0; background: none; padding: 0; font: inherit; font-size: 13px; font-weight: 600; color: var(--level-ileri); cursor: pointer; } /* koyu kırmızı: beyazda 5:1 */
 .ugc-report:hover { text-decoration: underline; }
 .report-dialog { max-width: 360px; }
 .report-title { font-size: 17px; font-weight: 600; margin: 0 0 6px; color: var(--text); }
@@ -792,8 +806,7 @@ a.chord-diagram:hover { background: var(--muted); text-decoration: none; }
    Tek beyaz panel; içinde 74 px başlıklı açılır liste bölümleri, iki sütunlu rozetli satırlar.
    Renkler, zemin ve köşeler Gituar değişkenlerinden.
    ===================================================================== */
-.ad-top { width: 100%; min-height: 90px; margin: 0 auto 24px; }
-@media (max-width: 759px) { .ad-top { min-height: 100px; } }
+.ad-top { margin: 0 auto 24px; } /* ölçüler .ad-leaderboard'dan (sabit, kaymaz) */
 .page-card { --card-pad: 20px; background: var(--surface); border-radius: 20px; padding: 0 var(--card-pad) var(--card-pad); overflow: clip; }
 :root[data-theme="dark"] .page-card { box-shadow: inset 0 0 0 1px var(--hairline); }
 .page-card > :first-child:not(.rp-section):not(.rp-head) { margin-top: var(--card-pad); }
@@ -937,7 +950,7 @@ details.rp-section[open] > .rp-title .rp-chev { transform: rotate(-135deg); marg
 .rp-font button:hover { background: var(--muted); }
 .page-card .rp-song .sheet { box-shadow: none; padding: 20px 0 16px; border-radius: 0; }
 .rp-song .chords { line-height: 19px; }
-.rp-warning { margin: 0 0 24px; display: grid; gap: 6px; font-size: 12px; line-height: 1.5; color: var(--text-3); max-width: 720px; }
+.rp-warning { margin: 0 0 24px; display: grid; gap: 6px; font-size: 12px; line-height: 1.5; color: var(--text-2); max-width: 720px; }
 .rp-warning p { margin: 0; }
 .rp-by .ugc-report { font-size: 12px; }
 .rp-song + script + .rp-section, .rp-warning + .rp-section { border-top: 1px solid var(--rp-line); }
@@ -993,6 +1006,8 @@ details.rp-section[open] > .rp-title .rp-chev { transform: rotate(-135deg); marg
 .rp-seo h2 { font-size: 16px; line-height: 24px; font-weight: 600; color: var(--text); margin: 0 0 8px; }
 .rp-seo h3 { font-size: 14px; font-weight: 600; color: var(--text); margin: 18px 0 4px; }
 .rp-seo p { margin: 0 0 10px; }
+/* Düz metin içindeki bağlantılar yalnızca renkle ayrılmasın: altı çizili (erişilebilirlik, link-in-text-block) */
+.rp-seo a, .rp-content a, .legal-body a, .guide-body p a:not(.btn), .ugc-note a, .sheet-note a { text-decoration: underline; text-underline-offset: 2px; }
 /* "Tümü" satırı: liste satırlarıyla aynı görünüm (rozet + metin) */
 .rp-all { gap: 0; }
 button.rp-all { width: 100%; border: 0; background: none; font: inherit; text-align: left; cursor: pointer; }

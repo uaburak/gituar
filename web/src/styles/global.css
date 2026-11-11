@@ -116,22 +116,37 @@ html.pro .shell:not(.shell-plain) { grid-template-columns: minmax(0, var(--conte
 /* Üst bar zeminle bir: arka plan yok, kaymaz (statik) */
 .site-header { position: relative; z-index: 50; height: 72px; background: transparent; }
 .nav-inner { position: relative; max-width: calc(var(--content) + 2 * var(--pad-x)); height: 100%; margin: 0 auto; padding: 0 var(--pad-x); display: flex; align-items: center; gap: 36px; }
-.brand { display: inline-flex; align-items: center; color: var(--text); }
+.brand { display: inline-flex; align-items: center; color: var(--text); flex: none; }
 .brand:hover { text-decoration: none; }
 .brand-mark { width: 32px; height: 32px; border-radius: 8px; display: block; }
 .brand { gap: 10px; }
 .brand-name { font-size: 18px; font-weight: 700; letter-spacing: -0.02em; color: var(--text); }
-.nav { display: flex; gap: 28px; }
+.nav { display: flex; gap: 28px; flex: none; }
 .nav a { font-size: 14px; font-weight: 500; color: var(--text-2); letter-spacing: -0.01em; white-space: nowrap; }
-@media (max-width: 1180px) { .nav-inner { gap: 24px; } .nav { gap: 20px; } .search-mini { width: 200px; } }
+@media (max-width: 1180px) { .nav-inner { gap: 24px; } .nav { gap: 20px; } }
+@media (max-width: 1040px) { .nav-inner { gap: 20px; } .nav { gap: 16px; } }
 .nav a:hover { color: var(--text); text-decoration: none; }
-.header-actions { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+/* Sağ blok menüden kalan yeri doldurur; arama kutusu bu yere göre esner, menüye sayfa eklenince üst bar sütundan taşmaz */
+.header-actions { flex: 1 1 auto; min-width: 0; display: flex; align-items: center; justify-content: flex-end; gap: 12px; }
 .search-mini {
-  width: 260px; height: 36px; display: flex; align-items: center; gap: 8px; padding: 0 6px 0 14px; cursor: text;
+  flex: 1 1 0; min-width: 36px; height: 36px; display: flex; align-items: center; gap: 8px; padding: 0; cursor: text;
   border-radius: 999px; background: var(--surface); border: 1px solid var(--hairline); color: var(--text-3); font: inherit; text-align: left;
 }
 .search-mini:hover { text-decoration: none; border-color: var(--strong); }
-.search-mini .icon { width: 16px; height: 16px; color: var(--text-3); }
+.search-mini .icon { width: 16px; height: 16px; color: var(--text-3); flex: none; margin-left: 14px; }
+.search-mini .key { flex: none; margin-right: 6px; }
+/* Kutu menüden kalan yere göre daralır; uzun ipucu sığmayınca kısa "Ara" görünür */
+.search-mini { container-type: inline-size; }
+.search-mini .label-short { display: none; }
+@container (max-width: 219px) {
+  .search-mini .label-long { display: none; }
+  .search-mini .label-short { display: inline; }
+}
+/* Çok darda yalnızca ortalanmış büyüteç kalır */
+@container (max-width: 109px) {
+  .search-mini .search-mini-label, .search-mini .key { display: none; }
+  .search-mini .icon { margin: 0 auto; }
+}
 /* Arama ipucu ve ⌘K rozeti: 4,5:1 kontrast (erişilebilirlik); text-3 beyazda, text-2 gri rozette tutmuyordu */
 .search-mini-label { flex: 1; font-size: 13px; color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 kbd.key {

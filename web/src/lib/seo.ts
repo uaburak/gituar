@@ -3,7 +3,7 @@
 import { parse, chordSpans } from "@shared/chords";
 import { artistPath, songPath, type ArtistGroup } from "@shared/catalog";
 import type { CatalogSong } from "@shared/types";
-import { SITE_NAME, APP_STORE_URL, APP_STORE_ID } from "./site.ts";
+import { SITE_NAME, APP_STORE_URL, APP_STORE_ID, INSTAGRAM_URL } from "./site.ts";
 import { songChords } from "./chord-stats.ts";
 
 /** Base.astro her başlığın sonuna bunu ekler; sığdırma hesabı bu ekle birlikte yapılır. */
@@ -223,7 +223,7 @@ export function homeJsonLd(base: string) {
         description: "Türkçe şarkıların gitar akorları: transpoze, kapo, otomatik kaydırma ve repertuarlar. Web ve iPhone.",
         knowsLanguage: "tr",
         areaServed: { "@type": "Country", name: "Türkiye" },
-        sameAs: [APP_STORE_URL],
+        sameAs: [APP_STORE_URL, INSTAGRAM_URL],
       },
       {
         "@type": "SoftwareApplication",

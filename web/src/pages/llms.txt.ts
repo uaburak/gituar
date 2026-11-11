@@ -2,7 +2,7 @@
 import type { APIRoute } from "astro";
 import { topArtists } from "../lib/catalog.ts";
 import { artistPath } from "@shared/catalog";
-import { APP_STORE_URL } from "../lib/site.ts";
+import { APP_STORE_URL, INSTAGRAM_URL } from "../lib/site.ts";
 
 export const GET: APIRoute = ({ site }) => {
   const base = (site?.href ?? "https://gituar.com/").replace(/\/$/, "");
@@ -18,6 +18,7 @@ export const GET: APIRoute = ({ site }) => {
 - Sanatçı sayfası adresi: ${base}/sanatci/{sanatçı}/
 - Akorlar müzik eğitimi amacıyla yayımlanır; eserlerin hakları sahiplerine aittir.
 - iPhone uygulaması: ${APP_STORE_URL}
+- Instagram: ${INSTAGRAM_URL}
 - İletişim: info@gituar.com
 
 ## Ana bölümler

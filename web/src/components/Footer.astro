@@ -2,7 +2,7 @@
 // Alt bilgi (Wecra web-yeni · Web/Alt bilgi): marka + üç bağlantı sütunu, altta telif ve gece modu.
 import Logo from "./Logo.astro";
 import Icon from "./Icon.astro";
-import { APP_STORE_URL } from "../lib/site.ts";
+import { APP_STORE_URL, INSTAGRAM_URL } from "../lib/site.ts";
 const year = new Date().getFullYear();
 ---
 <footer class="site-footer">
@@ -28,6 +28,7 @@ const year = new Date().getFullYear();
           <a href="/hakkinda/">Hakkında</a>
           <a href="/pro/">Gituar Pro</a>
           <a href={APP_STORE_URL} rel="noopener">iOS uygulaması</a>
+          <a href={INSTAGRAM_URL} rel="me noopener">Instagram</a>
           <a href="/rehber/">Rehber</a>
           <a href="/iletisim/">İletişim</a>
         </nav>

@@ -88,11 +88,62 @@ function loadAds() {
   s.async = true;
   s.crossOrigin = "anonymous";
   s.src = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT}`;
+  // KVKK: açık rıza ("all") yoksa reklam istekleri kişiselleştirilmemiş gider. Betik yüklenmeden önce kuyruğa konmalı.
+  const q = ((window as unknown as { adsbygoogle?: AdsQueue }).adsbygoogle ??= [] as unknown as AdsQueue);
+  q.requestNonPersonalizedAds = consentChoice() === "all" ? 0 : 1;
   s.onload = fillAds;
   document.head.appendChild(s);
   // Yan reklamlar yalnızca ≥1440 px'te görünür; pencere sonradan genişlerse o yerler de doldurulur
   matchMedia("(min-width: 1440px)").addEventListener("change", () => { if (adsLoaded) fillAds(); });
 }
+
+type AdsQueue = unknown[] & { requestNonPersonalizedAds?: 0 | 1 };
+function consentChoice(): string | null {
+  try { return localStorage.getItem("gituar-consent"); } catch { return null; }
+}
+// Kabul edilince sonraki reklam istekleri (geçiş reklamı, yeni sayfa) kişiselleştirilebilir; reddedilince kişiselleştirilmemiş kalır
+document.addEventListener("gituar:consent", (e) => {
+  const q = (window as unknown as { adsbygoogle?: AdsQueue }).adsbygoogle;
+  if (q) q.requestNonPersonalizedAds = (e as CustomEvent<string>).detail === "all" ? 0 : 1;
+});
+// Alt bilgideki "Çerez tercihleri": izni geri almak ya da değiştirmek için bildirimi yeniden açar (KVKK)
+document.getElementById("consent-reopen")?.addEventListener("click", () => {
+  const box = document.getElementById("consent");
+  if (!box) return;
+  box.hidden = false;
+  document.getElementById("consent-accept")?.focus();
+});
+
+// AdSense otomatik reklamlarının alt şeridi (anchor) ekranın altına yapışır; çerez bildirimi ve oynat çubuğu onun altında
+// kalmasın diye şeridin yüksekliği --anchor-h olarak yazılır (global.css bu kadar yukarı kaydırır). Şerit kapanınca 0 olur.
+function watchAnchorAd() {
+  let current: HTMLElement | null = null;
+  const measure = () => {
+    let h = 0;
+    if (current && current.isConnected) {
+      const r = current.getBoundingClientRect();
+      if (r.height > 0 && r.top < innerHeight && r.bottom >= innerHeight - 2) h = Math.round(innerHeight - r.top);
+    }
+    html.style.setProperty("--anchor-h", `${h}px`);
+  };
+  const ro = new ResizeObserver(measure);
+  const attrs = new MutationObserver(measure);
+  const find = () => {
+    const el = [...document.querySelectorAll<HTMLElement>("body > ins.adsbygoogle, html > ins.adsbygoogle")]
+      .find((x) => getComputedStyle(x).position === "fixed" && x.getBoundingClientRect().bottom >= innerHeight - 2 && x.getBoundingClientRect().width > innerWidth / 2);
+    if (el && el !== current) {
+      current = el;
+      ro.disconnect(); attrs.disconnect();
+      ro.observe(el);
+      attrs.observe(el, { attributes: true, attributeFilter: ["style", "data-anchor-status"] });
+    }
+    measure();
+  };
+  new MutationObserver(find).observe(document.body, { childList: true });
+  new MutationObserver(find).observe(html, { childList: true });
+  addEventListener("resize", measure);
+}
+watchAnchorAd();
 
 /** Görünür ve henüz işlenmemiş her <ins> için bir push. Gizli yerler (dar ekranda yan reklamlar) için de push yapılırsa
  *  AdSense konsola "All 'ins' elements ... already have ads in them" hatası basar (PageSpeed "En İyi Uygulamalar" düşer). */

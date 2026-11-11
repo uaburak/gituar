@@ -98,21 +98,30 @@ const ogImage = new URL("/og.png", Astro.site ?? "https://gituar.com").href;
   </head>
   <body>
     <Header />
-    <!-- Çerez bildirimi gövdenin başında: uzun sayfalarda ilk çizimle birlikte görünsün (sayfa sonunda olunca
-         yavaş bağlantıda saniyeler sonra beliriyor; PageSpeed'de LCP/Speed Index'i bozuyordu). Konumu sabit (sol alt). -->
-    <div class="consent" id="consent" hidden role="region" aria-label="Çerez bildirimi">
-      <p>Bu siteyi kullanarak <a href="/kullanim-sartlari/">Kullanım Şartlarımızı</a> ve <a href="/gizlilik/">Gizlilik ve Çerez Politikamızı</a> kabul etmiş olursun.</p>
-      <button type="button" class="btn" id="consent-ok">Anladım</button>
+    <!-- Çerez izni (KVKK açık rıza): Kabul et → kişiselleştirilmiş reklam, Reddet → kişiselleştirilmemiş reklam.
+         Karar verilene kadar reklamlar kişiselleştirilmemiş istenir (app.ts). Seçim localStorage "gituar-consent" = "all" | "necessary";
+         eski "1" (yalnızca bilgilendirme) geçerli rıza sayılmaz, bildirim yeniden gösterilir. Alt bilgideki "Çerez tercihleri" yeniden açar.
+         Gövdenin başında: uzun sayfalarda ilk çizimle birlikte görünsün (sayfa sonunda olunca LCP/Speed Index bozuluyordu). -->
+    <div class="consent" id="consent" hidden role="region" aria-label="Çerez izni">
+      <p>Reklamları göstermek için Google çerezlerini kullanıyoruz. Kabul edersen reklamlar ilgi alanlarına göre seçilir, reddedersen kişiselleştirilmemiş reklam görürsün. Ayrıntılar <a href="/gizlilik/">Gizlilik ve Çerez Politikası</a>'nda.</p>
+      <div class="consent-actions">
+        <button type="button" class="btn" id="consent-reject">Reddet</button>
+        <button type="button" class="btn" id="consent-accept">Kabul et</button>
+      </div>
     </div>
     <script is:inline>
       (function () {
         var box = document.getElementById("consent");
-        try { if (localStorage.getItem("gituar-consent") === "1") return; } catch (e) {}
-        box.hidden = false;
-        document.getElementById("consent-ok").addEventListener("click", function () {
-          try { localStorage.setItem("gituar-consent", "1"); } catch (e) {}
+        var c = null;
+        try { c = localStorage.getItem("gituar-consent"); } catch (e) {}
+        if (c !== "all" && c !== "necessary") box.hidden = false;
+        function choose(v) {
+          try { localStorage.setItem("gituar-consent", v); } catch (e) {}
           box.hidden = true;
-        });
+          document.dispatchEvent(new CustomEvent("gituar:consent", { detail: v }));
+        }
+        document.getElementById("consent-accept").addEventListener("click", function () { choose("all"); });
+        document.getElementById("consent-reject").addEventListener("click", function () { choose("necessary"); });
       })();
     </script>
     <div class:list={["shell", { "shell-plain": !ads }]}>

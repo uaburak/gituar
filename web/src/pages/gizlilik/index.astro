@@ -2,7 +2,7 @@
 export const prerender = true;
 import LegalPage from "../../components/LegalPage.astro";
 ---
-<LegalPage title="Gizlilik ve Çerez Politikası" path="/gizlilik/" updated="6 Kasım 2026" description="Gituar hangi verileri neden işler, hangi çerezleri ve yerel depolama alanlarını kullanır, reklam ortakları kimdir ve KVKK kapsamındaki haklarını nasıl kullanırsın.">
+<LegalPage title="Gizlilik ve Çerez Politikası" path="/gizlilik/" updated="11 Kasım 2026" description="Gituar hangi verileri neden işler, hangi çerezleri ve yerel depolama alanlarını kullanır, reklam ortakları kimdir ve KVKK kapsamındaki haklarını nasıl kullanırsın.">
   <p>Bu politika, gituar.com sitesini ve Gituar iPhone uygulamasını kullanırken hangi verilerin işlendiğini açıklar. 6698 sayılı Kişisel Verilerin Korunması Kanunu (KVKK) kapsamındaki soruların ve taleplerin için <a href="mailto:info@gituar.com">info@gituar.com</a> adresine yazabilirsin.</p>
 
   <h2>Hangi verileri işliyoruz?</h2>
@@ -10,7 +10,7 @@ import LegalPage from "../../components/LegalPage.astro";
     <li><strong>Hesap bilgileri:</strong> Apple, Google ya da e-posta ile giriş yaptığında adın, e-posta adresin ve varsa profil fotoğrafın. Giriş Google Firebase Authentication ile yapılır, şifren bize ulaşmaz.</li>
     <li><strong>Kullanım verileri:</strong> Favorilerin, repertuarların, şarkı başına seçtiğin ton ve kapo ayarları, gönderdiğin akorlar ve hata bildirimleri. Bunlar Google Firebase (Cloud Firestore) üzerinde hesabına bağlı olarak saklanır.</li>
     <li><strong>Abonelik durumu:</strong> Gituar Pro'nun aktif olup olmadığı ve bitiş tarihi. Ödeme bilgilerin Apple'da kalır, bize ulaşmaz.</li>
-    <li><strong>Teknik kayıtlar:</strong> Siteyi barındıran Vercel, güvenlik ve hata tespiti için IP adresi, tarayıcı bilgisi ve istek zamanı gibi sunucu kayıtlarını kısa süre tutar. Bu kayıtlar yasal saklama süreleri sonunda silinir.</li>
+    <li><strong>Teknik kayıtlar:</strong> Siteyi barındıran Cloudflare, güvenlik ve hata tespiti için IP adresi, tarayıcı bilgisi ve istek zamanı gibi sunucu kayıtlarını kısa süre tutar. Bu kayıtlar yasal saklama süreleri sonunda silinir.</li>
   </ul>
   <p>Giriş yapmadan siteyi kullanabilirsin. Bu durumda hesap ve kullanım verisi oluşmaz.</p>
 
@@ -23,15 +23,16 @@ import LegalPage from "../../components/LegalPage.astro";
     <li><span class="mono">gituar-theme</span>: aydınlık ya da karanlık tema tercihin.</li>
     <li><span class="mono">gituar-font</span> ve şarkı tercihleri: yazı boyutu, ton ve kapo ayarların.</li>
     <li><span class="mono">gituar-auth</span>, <span class="mono">gituar-user</span>, <span class="mono">gituar-pro</span>, <span class="mono">gituar-admin</span>, <span class="mono">gituar-recent</span>: son açtığın şarkıları (ana sayfadaki “Son Çaldıklarım” için), giriş, Pro ve yönetici durumunu, üst barda gösterilen adının baş harfini ve profil fotoğrafının adresini sayfa açılırken hatırlamak için.</li>
-    <li><span class="mono">gituar-consent</span>: bu bildirimi kapattığını hatırlamak için.</li>
+    <li><span class="mono">gituar-consent</span>: reklam çerezleri için verdiğin izni ya da reddini hatırlamak için.</li>
   </ul>
   <p>Giriş yaptığında Firebase, oturumunu sürdürmek için tarayıcında kendi kayıtlarını tutar. Bu kayıtları tarayıcı ayarlarından silebilir ya da engelleyebilirsin. Bu durumda giriş ve tercihler gibi bazı özellikler çalışmayabilir.</p>
 
   <h2>Reklamlar ve üçüncü taraf çerezleri</h2>
-  <p>Gituar Pro kullanmayanlara web sitesinde Google AdSense, uygulamada Google AdMob reklamları gösterilir. Google ve ortakları, reklamları sunmak, ölçmek ve ilgi alanına göre kişiselleştirmek için çerezler ya da cihaz reklam kimliği kullanabilir. Google'ın bu verileri nasıl kullandığını <a href="https://policies.google.com/technologies/partner-sites" rel="noopener">Google'ın iş ortağı siteleri politikasında</a> okuyabilirsin. Kişiselleştirilmiş reklamları <a href="https://adssettings.google.com" rel="noopener">Google Reklam Ayarları</a> sayfasından kapatabilirsin. iPhone'da uygulama, reklam kimliği için iOS'un izin penceresiyle onayını ister.</p>
+  <p>Gituar Pro kullanmayanlara web sitesinde Google AdSense, uygulamada Google AdMob reklamları gösterilir. Sitede sabit reklam alanlarının yanında Google'ın ekranın altında duran şerit, kenar ve sayfa geçişlerinde tam ekran reklam biçimleri de kullanılır. Google ve ortakları, reklamları sunmak, ölçmek ve ilgi alanına göre kişiselleştirmek için çerezler ya da cihaz reklam kimliği kullanabilir. Google'ın bu verileri nasıl kullandığını <a href="https://policies.google.com/technologies/partner-sites" rel="noopener">Google'ın iş ortağı siteleri politikasında</a> okuyabilirsin.</p>
+  <p>Siteye ilk girişinde çerez izni sorulur. <strong>Kabul et</strong> dersen reklamlar ilgi alanlarına göre kişiselleştirilir. <strong>Reddet</strong> dersen ya da henüz seçim yapmadıysan kişiselleştirilmemiş reklam gösterilir. Kişiselleştirilmemiş reklamlarda Google çerezleri yalnızca reklam sıklığını sınırlamak, toplu ölçüm yapmak ve sahtekârlığı önlemek için kullanır. Seçimini istediğin zaman sayfanın altındaki <strong>Çerez tercihleri</strong> bağlantısından değiştirebilir ya da geri alabilirsin. Google hesabındaki reklam kişiselleştirmesini <a href="https://adssettings.google.com" rel="noopener">Google Reklam Ayarları</a> sayfasından da kapatabilirsin. iPhone'da uygulama, reklam kimliği için iOS'un izin penceresiyle onayını ister.</p>
 
   <h2>Verilerin aktarılması</h2>
-  <p>Hizmet sağlayıcılarımız Google (Firebase, AdSense, AdMob), Vercel ve Apple'dır. Bu şirketlerin sunucuları yurt dışında olabilir. Veriler yalnızca hizmetin sunulması için ve bu şirketlerin gizlilik taahhütleri çerçevesinde aktarılır. Yasal zorunluluk dışında başka kimseyle paylaşılmaz.</p>
+  <p>Hizmet sağlayıcılarımız Google (Firebase, AdSense, AdMob), Cloudflare ve Apple'dır. Bu şirketlerin sunucuları yurt dışında olabilir. Veriler yalnızca hizmetin sunulması için ve bu şirketlerin gizlilik taahhütleri çerçevesinde aktarılır. Yasal zorunluluk dışında başka kimseyle paylaşılmaz.</p>
 
   <h2>Saklama süresi ve güvenlik</h2>
   <p>Hesap verilerin, hesabın açık olduğu sürece saklanır. Hesabını sildiğinde favorilerin, repertuarların ve tercihlerin silinir. Onaylanıp yayımlanmış akor katkıları anonim olarak kalabilir. Veriler yetkisiz erişime karşı korunan sunucularda tutulur.</p>

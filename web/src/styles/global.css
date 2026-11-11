@@ -603,6 +603,8 @@ body:has(.ad-sticky) .play-bar, body:has(.ad-sticky) .consent { bottom: 76px; }
 @media (min-width: 760px) { body:has(.ad-sticky) .play-bar, body:has(.ad-sticky) .consent { bottom: 116px; } }
 html.pro body .play-bar { bottom: 20px; }
 html.pro body .consent { bottom: 16px; }
+/* AdSense otomatik alt şeridi (anchor) görünürken oynat çubuğu ve çerez izni onun üstünde (app.ts --anchor-h yazar) */
+.play-bar { bottom: calc(20px + var(--anchor-h, 0px)); }
 html.pro .ad-slot, html.pro .side-ad { display: none !important; }
 html.pro body { padding-bottom: 0 !important; }
 /* Video reklam (outstream): 16:9 kutu, bitince kapanır */
@@ -756,11 +758,16 @@ html.pro body { padding-bottom: 0; }
 @media (max-width: 800px) { .legal-layout { grid-template-columns: minmax(0, 1fr); } .legal-menu { position: static; } .guide-body { padding: 24px 20px; } }
 .legal-nav { display: flex; flex-wrap: wrap; gap: 8px 18px; border-top: 1px solid var(--hairline); margin-top: 28px; padding-top: 16px; font-size: 14px; }
 .footer-legal { font-size: 13px; }
-.consent { position: fixed; left: 16px; bottom: 16px; z-index: 60; max-width: 420px; display: flex; align-items: center; gap: 14px; padding: 12px 14px 12px 18px; background: var(--surface); color: var(--text); border: 1px solid var(--hairline); border-radius: 16px; box-shadow: 0 8px 30px rgba(0,0,0,.12); font-size: 13px; line-height: 1.4; }
+.consent { position: fixed; left: 16px; bottom: calc(16px + var(--anchor-h, 0px)); z-index: 60; max-width: 440px; display: grid; gap: 12px; padding: 14px 16px; background: var(--surface); color: var(--text); border: 1px solid var(--hairline); border-radius: 16px; box-shadow: 0 8px 30px rgba(0,0,0,.12); font-size: 13px; line-height: 1.4; }
 .consent[hidden] { display: none; }
 .consent p { margin: 0; }
-.consent .btn { flex: none; }
-@media (max-width: 600px) { .consent { left: 12px; right: 12px; bottom: 12px; max-width: none; } }
+.consent a { text-decoration: underline; text-underline-offset: 2px; }
+/* Reddet ve Kabul et eşit ağırlıkta (KVKK: reddetmek kabul etmek kadar kolay olmalı) */
+.consent-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.consent-actions .btn { height: 36px; font-size: 14px; }
+@media (max-width: 600px) { .consent { left: 12px; right: 12px; bottom: calc(12px + var(--anchor-h, 0px)); max-width: none; } }
+.footer-link { border: 0; background: none; padding: 0; font: inherit; color: var(--text-2); cursor: pointer; text-align: left; }
+.footer-link:hover { color: var(--text); }
 
 /* ---------- Şarkı alt bilgisi: topluluk notu ve şikayet (iOS ile aynı) ---------- */
 /* Küçük (12 px) uyarı metinleri text-2: text-3 beyazda 4,5:1 kontrastı tutmuyor (erişilebilirlik) */
